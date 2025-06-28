@@ -1,11 +1,13 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { StatusBadge } from '../components/StatusBadge';
+import { ScheduleJobDialog } from '../components/ScheduleJobDialog';
 import { Plus, Calendar, MapPin, Users } from 'lucide-react';
 import { useJobs } from '@/hooks/useJobs';
 
 export const Jobs = () => {
   const { jobs, isLoading } = useJobs();
+  const [isScheduleDialogOpen, setIsScheduleDialogOpen] = useState(false);
 
   const totalRevenue = jobs
     .filter(job => job.status === 'Completed')
@@ -29,7 +31,10 @@ export const Jobs = () => {
           <h1 className="text-3xl font-bold text-gray-900">Jobs Management</h1>
           <p className="text-gray-600 mt-2">Schedule and track all moving jobs</p>
         </div>
-        <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2">
+        <button 
+          onClick={() => setIsScheduleDialogOpen(true)}
+          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+        >
           <Plus className="h-4 w-4" />
           Schedule New Job
         </button>
@@ -124,6 +129,11 @@ export const Jobs = () => {
           <p className="text-gray-400 mt-2">Start by scheduling your first moving job</p>
         </div>
       )}
+
+      <ScheduleJobDialog 
+        open={isScheduleDialogOpen} 
+        onOpenChange={setIsScheduleDialogOpen} 
+      />
     </div>
   );
 };
