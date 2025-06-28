@@ -6,18 +6,25 @@ import { useToast } from '@/hooks/use-toast';
 export interface TimeEntry {
   id: string;
   employee_id: string;
-  job_id: string;
-  hours_worked: number;
-  hourly_rate: number;
+  job_id: string | null;
   entry_date: string;
+  clock_in_time: string;
+  clock_out_time: string | null;
+  regular_hours: number | null;
+  overtime_hours: number | null;
+  break_duration_minutes: number | null;
+  hourly_rate: number;
+  overtime_rate: number | null;
+  total_pay: number | null;
   notes: string | null;
   status: 'pending' | 'approved' | 'rejected';
   manager_notes: string | null;
   approved_by: string | null;
   approved_at: string | null;
-  paid: boolean;
+  is_paid: boolean;
   paid_at: string | null;
   created_at: string;
+  updated_at: string;
 }
 
 export const useTimeEntries = () => {
@@ -32,23 +39,49 @@ export const useTimeEntries = () => {
         .select(`
           *,
           employees!inner(name),
-          jobs!inner(client_name, job_date)
+          jobs(client_name, job_date)
         `)
         .order('entry_date', { ascending: false });
       
       if (error) throw error;
       return data as (TimeEntry & { 
         employees: { name: string };
-        jobs: { client_name: string; job_date: string };
+        jobs: { client_name: string; job_date: string } | null;
       })[];
     }
   });
 
   const addTimeEntryMutation = useMutation({
-    mutationFn: async (timeEntryData: Omit<TimeEntry, 'id' | 'created_at' | 'status' | 'manager_notes' | 'approved_by' | 'approved_at' | 'paid' | 'paid_at'>) => {
+    mutationFn: async (timeEntryData: {
+      employee_id: string;
+      job_id?: string;
+      entry_date: string;
+      clock_in_time: string;
+      clock_out_time?: string;
+      regular_hours?: number;
+      overtime_hours?: number;
+      break_duration_minutes?: number;
+      hourly_rate: number;
+      overtime_rate?: number;
+      notes?: string;
+    }) => {
       const { data, error } = await supabase
         .from('time_entries')
-        .insert([{ ...timeEntryData, status: 'pending', paid: false }])
+        .insert({
+          employee_id: timeEntryData.employee_id,
+          job_id: timeEntryData.job_id || null,
+          entry_date: timeEntryData.entry_date,
+          clock_in_time: timeEntryData.clock_in_time,
+          clock_out_time: timeEntryData.clock_out_time || null,
+          regular_hours: timeEntryData.regular_hours || null,
+          overtime_hours: timeEntryData.overtime_hours || null,
+          break_duration_minutes: timeEntryData.break_duration_minutes || 0,
+          hourly_rate: timeEntryData.hourly_rate,
+          overtime_rate: timeEntryData.overtime_rate || null,
+          notes: timeEntryData.notes || null,
+          status: 'pending',
+          is_paid: false
+        })
         .select()
         .single();
       
@@ -139,7 +172,7 @@ export const useTimeEntries = () => {
       const { data, error } = await supabase
         .from('time_entries')
         .update({
-          paid,
+          is_paid: paid,
           paid_at: paid ? new Date().toISOString() : null
         })
         .eq('id', id)

@@ -31,9 +31,9 @@ export const Employees = () => {
     addEmployee({
       name: employeeData.name,
       phone: employeeData.phone,
-      email: employeeData.email || null,
+      email: employeeData.email || undefined,
       hourly_wage: parseFloat(employeeData.hourlyWage),
-      status: 'Active',
+      status: 'active',
       hire_date: employeeData.hireDate
     });
   };
@@ -56,8 +56,15 @@ export const Employees = () => {
              entryDate.getFullYear() === currentYear;
     });
 
-    const totalHours = monthlyEntries.reduce((sum, entry) => sum + entry.hours_worked, 0);
-    const totalEarnings = monthlyEntries.reduce((sum, entry) => sum + (entry.hours_worked * entry.hourly_rate), 0);
+    const totalHours = monthlyEntries.reduce((sum, entry) => {
+      return sum + (entry.regular_hours || 0) + (entry.overtime_hours || 0);
+    }, 0);
+    
+    const totalEarnings = monthlyEntries.reduce((sum, entry) => {
+      const regularPay = (entry.regular_hours || 0) * entry.hourly_rate;
+      const overtimePay = (entry.overtime_hours || 0) * (entry.overtime_rate || entry.hourly_rate * 1.5);
+      return sum + regularPay + overtimePay;
+    }, 0);
 
     // Also get pending hours for display
     const pendingEntries = timeEntries.filter(entry => {
@@ -68,12 +75,14 @@ export const Employees = () => {
              entryDate.getFullYear() === currentYear;
     });
     
-    const pendingHours = pendingEntries.reduce((sum, entry) => sum + entry.hours_worked, 0);
+    const pendingHours = pendingEntries.reduce((sum, entry) => {
+      return sum + (entry.regular_hours || 0) + (entry.overtime_hours || 0);
+    }, 0);
 
     return { totalHours, totalEarnings, pendingHours };
   };
 
-  const activeEmployees = employees.filter(emp => emp.status === 'Active').length;
+  const activeEmployees = employees.filter(emp => emp.status === 'active').length;
   const totalPayrollThisMonth = employees.reduce((sum, emp) => {
     const { totalEarnings } = calculateMonthlyStats(emp.id);
     return sum + totalEarnings;

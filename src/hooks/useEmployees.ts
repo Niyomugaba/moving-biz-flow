@@ -41,10 +41,31 @@ export const useEmployees = () => {
   });
 
   const addEmployeeMutation = useMutation({
-    mutationFn: async (employeeData: Omit<Employee, 'id' | 'created_at' | 'updated_at' | 'employee_number'>) => {
+    mutationFn: async (employeeData: {
+      name: string;
+      phone: string;
+      email?: string;
+      address?: string;
+      hourly_wage: number;
+      status: 'active' | 'inactive' | 'terminated' | 'on_leave';
+      hire_date: string;
+      position?: string;
+      department?: string;
+    }) => {
+      // Let database generate employee_number via trigger
       const { data, error } = await supabase
         .from('employees')
-        .insert(employeeData)
+        .insert({
+          name: employeeData.name,
+          phone: employeeData.phone,
+          email: employeeData.email || null,
+          address: employeeData.address || null,
+          hourly_wage: employeeData.hourly_wage,
+          status: employeeData.status,
+          hire_date: employeeData.hire_date,
+          position: employeeData.position || 'mover',
+          department: employeeData.department || 'operations'
+        })
         .select()
         .single();
       

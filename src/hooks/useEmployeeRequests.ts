@@ -106,13 +106,14 @@ export const useEmployeeRequests = () => {
         if (status === 'approved' && hourlyWage) {
           console.log('Creating employee record...');
           
+          // Create employee record - let database generate employee_number
           const { data: employeeData, error: employeeError } = await supabase
             .from('employees')
             .insert({
               name: currentRequest.name,
-              email: currentRequest.email || null,
+              email: currentRequest.email,
               phone: currentRequest.phone,
-              address: currentRequest.address || null,
+              address: currentRequest.address,
               position: currentRequest.position_applied || 'mover',
               hourly_wage: hourlyWage,
               status: 'active',

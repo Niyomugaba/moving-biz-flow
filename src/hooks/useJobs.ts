@@ -50,10 +50,41 @@ export const useJobs = () => {
   });
 
   const addJobMutation = useMutation({
-    mutationFn: async (jobData: Omit<Job, 'id' | 'created_at' | 'updated_at' | 'job_number'>) => {
+    mutationFn: async (jobData: {
+      client_name: string;
+      client_phone: string;
+      client_email?: string;
+      origin_address: string;
+      destination_address: string;
+      job_date: string;
+      start_time: string;
+      estimated_duration_hours: number;
+      hourly_rate: number;
+      estimated_total: number;
+      movers_needed: number;
+      truck_size?: string;
+      special_requirements?: string;
+      client_id?: string;
+    }) => {
+      // Let database generate job_number via trigger
       const { data, error } = await supabase
         .from('jobs')
-        .insert(jobData)
+        .insert({
+          client_name: jobData.client_name,
+          client_phone: jobData.client_phone,
+          client_email: jobData.client_email || null,
+          origin_address: jobData.origin_address,
+          destination_address: jobData.destination_address,
+          job_date: jobData.job_date,
+          start_time: jobData.start_time,
+          estimated_duration_hours: jobData.estimated_duration_hours,
+          hourly_rate: jobData.hourly_rate,
+          estimated_total: jobData.estimated_total,
+          movers_needed: jobData.movers_needed,
+          truck_size: jobData.truck_size || null,
+          special_requirements: jobData.special_requirements || null,
+          client_id: jobData.client_id || null
+        })
         .select()
         .single();
       
