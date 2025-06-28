@@ -1,79 +1,26 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { StatusBadge } from '../components/StatusBadge';
 import { Plus, Calendar, MapPin, Users } from 'lucide-react';
-
-interface Job {
-  id: number;
-  clientName: string;
-  clientPhone: string;
-  clientEmail: string;
-  address: string;
-  date: string;
-  time: string;
-  hourlyRate: number;
-  moversNeeded: number;
-  assignedEmployees: string[];
-  status: 'Scheduled' | 'In Progress' | 'Completed';
-  estimatedHours: number;
-  notes: string;
-}
+import { useJobs } from '@/hooks/useJobs';
 
 export const Jobs = () => {
-  const [jobs, setJobs] = useState<Job[]>([
-    {
-      id: 1,
-      clientName: 'John Smith',
-      clientPhone: '(555) 123-4567',
-      clientEmail: 'john@email.com',
-      address: '123 Main St, Anytown, ST 12345',
-      date: '2024-01-20',
-      time: '09:00',
-      hourlyRate: 85,
-      moversNeeded: 3,
-      assignedEmployees: ['Mike Johnson', 'Sarah Davis', 'Tom Wilson'],
-      status: 'Scheduled',
-      estimatedHours: 6,
-      notes: '2BR apartment to 3BR house, piano needs special care'
-    },
-    {
-      id: 2,
-      clientName: 'Sarah Johnson',
-      clientPhone: '(555) 234-5678',
-      clientEmail: 'sarah@email.com',
-      address: '456 Oak Ave, Business District, ST 12345',
-      date: '2024-01-18',
-      time: '14:00',
-      hourlyRate: 95,
-      moversNeeded: 4,
-      assignedEmployees: ['Mike Johnson', 'Sarah Davis', 'Tom Wilson', 'Alex Brown'],
-      status: 'In Progress',
-      estimatedHours: 8,
-      notes: 'Office relocation, heavy equipment, elevator available'
-    },
-    {
-      id: 3,
-      clientName: 'Mike Davis',
-      clientPhone: '(555) 345-6789',
-      clientEmail: 'mike@email.com',
-      address: '789 Pine St, Suburbia, ST 12345',
-      date: '2024-01-15',
-      time: '08:00',
-      hourlyRate: 90,
-      moversNeeded: 2,
-      assignedEmployees: ['Tom Wilson', 'Alex Brown'],
-      status: 'Completed',
-      estimatedHours: 5,
-      notes: 'Long distance move, 3BR house, fragile items'
-    }
-  ]);
+  const { jobs, isLoading } = useJobs();
 
   const totalRevenue = jobs
     .filter(job => job.status === 'Completed')
-    .reduce((sum, job) => sum + (job.hourlyRate * job.estimatedHours), 0);
+    .reduce((sum, job) => sum + (job.hourly_rate * job.estimated_hours), 0);
 
   const activeJobs = jobs.filter(job => job.status !== 'Completed').length;
   const completedJobs = jobs.filter(job => job.status === 'Completed').length;
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-lg text-gray-600">Loading jobs...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -114,14 +61,14 @@ export const Jobs = () => {
           <div key={job.id} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
             <div className="p-6">
               <div className="flex justify-between items-start mb-4">
-                <h3 className="text-lg font-semibold text-gray-900">{job.clientName}</h3>
+                <h3 className="text-lg font-semibold text-gray-900">{job.client_name}</h3>
                 <StatusBadge status={job.status} variant="job" />
               </div>
               
               <div className="space-y-3">
                 <div className="flex items-center text-sm text-gray-600">
                   <Calendar className="h-4 w-4 mr-2" />
-                  {job.date} at {job.time}
+                  {job.job_date} at {job.job_time}
                 </div>
                 
                 <div className="flex items-start text-sm text-gray-600">
@@ -131,38 +78,24 @@ export const Jobs = () => {
                 
                 <div className="flex items-center text-sm text-gray-600">
                   <Users className="h-4 w-4 mr-2" />
-                  {job.moversNeeded} movers needed
+                  {job.movers_needed} movers needed
                 </div>
               </div>
 
               <div className="mt-4 pt-4 border-t border-gray-200">
                 <div className="flex justify-between items-center text-sm">
                   <span className="text-gray-600">Rate:</span>
-                  <span className="font-medium">${job.hourlyRate}/hr</span>
+                  <span className="font-medium">${job.hourly_rate}/hr</span>
                 </div>
                 <div className="flex justify-between items-center text-sm mt-1">
                   <span className="text-gray-600">Est. Hours:</span>
-                  <span className="font-medium">{job.estimatedHours}h</span>
+                  <span className="font-medium">{job.estimated_hours}h</span>
                 </div>
                 <div className="flex justify-between items-center text-sm mt-1">
                   <span className="text-gray-600">Est. Total:</span>
                   <span className="font-semibold text-green-600">
-                    ${(job.hourlyRate * job.estimatedHours).toLocaleString()}
+                    ${(job.hourly_rate * job.estimated_hours).toLocaleString()}
                   </span>
-                </div>
-              </div>
-
-              <div className="mt-4">
-                <p className="text-xs text-gray-500 mb-2">Assigned Team:</p>
-                <div className="flex flex-wrap gap-1">
-                  {job.assignedEmployees.map((employee, index) => (
-                    <span
-                      key={index}
-                      className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full"
-                    >
-                      {employee}
-                    </span>
-                  ))}
                 </div>
               </div>
 
@@ -184,6 +117,13 @@ export const Jobs = () => {
           </div>
         ))}
       </div>
+
+      {jobs.length === 0 && (
+        <div className="text-center py-12">
+          <div className="text-gray-500 text-lg">No jobs scheduled yet</div>
+          <p className="text-gray-400 mt-2">Start by scheduling your first moving job</p>
+        </div>
+      )}
     </div>
   );
 };

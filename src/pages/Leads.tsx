@@ -3,102 +3,38 @@ import React, { useState } from 'react';
 import { StatusBadge } from '../components/StatusBadge';
 import { AddLeadDialog } from '../components/AddLeadDialog';
 import { Plus, Search, Filter } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
-
-interface Lead {
-  id: number;
-  name: string;
-  phone: string;
-  email: string;
-  source: string;
-  cost: number;
-  status: 'New' | 'Contacted' | 'Converted' | 'Lost';
-  notes: string;
-  dateAdded: string;
-}
+import { useLeads } from '@/hooks/useLeads';
 
 export const Leads = () => {
-  const [leads, setLeads] = useState<Lead[]>([
-    {
-      id: 1,
-      name: 'John Smith',
-      phone: '(555) 123-4567',
-      email: 'john@email.com',
-      source: 'Google Ads',
-      cost: 25,
-      status: 'New',
-      notes: 'Moving from 2BR apartment to house',
-      dateAdded: '2024-01-15'
-    },
-    {
-      id: 2,
-      name: 'Sarah Johnson',
-      phone: '(555) 234-5678',
-      email: 'sarah@email.com',
-      source: 'Referral',
-      cost: 0,
-      status: 'Contacted',
-      notes: 'Office relocation, 20+ employees',
-      dateAdded: '2024-01-14'
-    },
-    {
-      id: 3,
-      name: 'Mike Davis',
-      phone: '(555) 345-6789',
-      email: 'mike@email.com',
-      source: 'Thumbtack',
-      cost: 35,
-      status: 'Converted',
-      notes: 'Long distance move, 3BR house',
-      dateAdded: '2024-01-13'
-    }
-  ]);
-
+  const { leads, isLoading, addLead, updateLead } = useLeads();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('All');
   const [isAddLeadDialogOpen, setIsAddLeadDialogOpen] = useState(false);
-  const { toast } = useToast();
 
-  const addNewLead = (leadData: any) => {
-    const newLead: Lead = {
-      id: Math.max(...leads.map(l => l.id)) + 1,
+  const handleAddLead = (leadData: any) => {
+    addLead({
       name: leadData.name,
       phone: leadData.phone,
-      email: leadData.email,
+      email: leadData.email || null,
       source: leadData.source,
       cost: parseFloat(leadData.cost) || 0,
       status: 'New',
-      notes: '',
-      dateAdded: new Date().toISOString().split('T')[0]
-    };
-    
-    setLeads([newLead, ...leads]);
-  };
-
-  const updateLeadStatus = (leadId: number, newStatus: 'New' | 'Contacted' | 'Converted' | 'Lost') => {
-    setLeads(leads.map(lead => 
-      lead.id === leadId ? { ...lead, status: newStatus } : lead
-    ));
-    
-    const lead = leads.find(l => l.id === leadId);
-    toast({
-      title: "Lead Updated",
-      description: `${lead?.name}'s status changed to ${newStatus}`,
+      notes: null
     });
   };
 
-  const convertLead = (leadId: number) => {
-    updateLeadStatus(leadId, 'Converted');
-    toast({
-      title: "Lead Converted!",
-      description: "Lead has been converted to a job. Redirecting to schedule job...",
-    });
-    // Here you would typically redirect to create a job
+  const handleUpdateLeadStatus = (leadId: string, newStatus: 'New' | 'Contacted' | 'Converted' | 'Lost') => {
+    updateLead({ id: leadId, updates: { status: newStatus } });
+  };
+
+  const handleConvertLead = (leadId: string) => {
+    updateLead({ id: leadId, updates: { status: 'Converted' } });
   };
 
   const filteredLeads = leads.filter(lead => {
     const matchesSearch = lead.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         lead.email.toLowerCase().includes(searchTerm.toLowerCase());
+                         lead.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         lead.phone.includes(searchTerm);
     const matchesStatus = statusFilter === 'All' || lead.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
@@ -106,6 +42,14 @@ export const Leads = () => {
   const totalCost = leads.reduce((sum, lead) => sum + lead.cost, 0);
   const convertedLeads = leads.filter(lead => lead.status === 'Converted').length;
   const conversionRate = leads.length > 0 ? Math.round((convertedLeads / leads.length) * 100) : 0;
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-lg text-gray-600">Loading leads...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -219,18 +163,18 @@ export const Leads = () => {
                     <StatusBadge status={lead.status} />
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {lead.dateAdded}
+                    {new Date(lead.created_at).toLocaleDateString()}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <button 
-                      onClick={() => updateLeadStatus(lead.id, lead.status === 'New' ? 'Contacted' : lead.status)}
+                      onClick={() => handleUpdateLeadStatus(lead.id, lead.status === 'New' ? 'Contacted' : lead.status)}
                       className="text-blue-600 hover:text-blue-900 mr-3"
                     >
                       Edit
                     </button>
                     {lead.status !== 'Converted' && (
                       <button 
-                        onClick={() => convertLead(lead.id)}
+                        onClick={() => handleConvertLead(lead.id)}
                         className="text-green-600 hover:text-green-900"
                       >
                         Convert
@@ -247,7 +191,7 @@ export const Leads = () => {
       <AddLeadDialog 
         open={isAddLeadDialogOpen} 
         onOpenChange={setIsAddLeadDialogOpen}
-        onAddLead={addNewLead}
+        onAddLead={handleAddLead}
       />
     </div>
   );

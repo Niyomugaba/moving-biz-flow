@@ -5,6 +5,8 @@ import { StatusBadge } from '../components/StatusBadge';
 import { AddLeadDialog } from '../components/AddLeadDialog';
 import { ScheduleJobDialog } from '../components/ScheduleJobDialog';
 import { useNavigate } from 'react-router-dom';
+import { useLeads } from '@/hooks/useLeads';
+import { useJobs } from '@/hooks/useJobs';
 import { 
   Users, 
   Briefcase, 
@@ -19,63 +21,54 @@ export const Dashboard = () => {
   const [isScheduleJobOpen, setIsScheduleJobOpen] = useState(false);
   const navigate = useNavigate();
 
-  // Mock data - in real app this would come from your backend
-  const metrics = {
-    totalLeads: 45,
-    convertedLeads: 28,
-    activeJobs: 12,
-    monthlyRevenue: 18750,
-    monthlyProfit: 12400,
-    conversionRate: 62
+  const { leads, addLead } = useLeads();
+  const { jobs } = useJobs();
+
+  const handleAddLead = (leadData: any) => {
+    addLead({
+      name: leadData.name,
+      phone: leadData.phone,
+      email: leadData.email || null,
+      source: leadData.source,
+      cost: parseFloat(leadData.cost) || 0,
+      status: 'New',
+      notes: null
+    });
   };
 
-  const recentJobs = [
-    {
-      id: 1,
-      client: 'John Smith',
-      date: '2024-01-15',
-      status: 'Scheduled',
-      value: 850
-    },
-    {
-      id: 2,
-      client: 'Sarah Johnson',
-      date: '2024-01-14',
-      status: 'In Progress',
-      value: 1200
-    },
-    {
-      id: 3,
-      client: 'Mike Davis',
-      date: '2024-01-13',
-      status: 'Completed',
-      value: 950
-    }
-  ];
+  // Calculate metrics from real data
+  const convertedLeads = leads.filter(lead => lead.status === 'Converted').length;
+  const activeJobs = jobs.filter(job => job.status !== 'Completed').length;
+  const monthlyRevenue = jobs
+    .filter(job => job.status === 'Completed')
+    .reduce((sum, job) => sum + (job.hourly_rate * job.estimated_hours), 0);
+  const monthlyProfit = Math.round(monthlyRevenue * 0.65); // Assuming 65% profit margin
+  const conversionRate = leads.length > 0 ? Math.round((convertedLeads / leads.length) * 100) : 0;
+  const avgJobValue = convertedLeads > 0 ? Math.round(monthlyRevenue / convertedLeads) : 0;
 
-  const recentLeads = [
-    {
-      id: 1,
-      name: 'Emma Wilson',
-      source: 'Google Ads',
-      status: 'New',
-      cost: 25
-    },
-    {
-      id: 2,
-      name: 'Robert Brown',
-      source: 'Referral',
-      status: 'Contacted',
-      cost: 0
-    },
-    {
-      id: 3,
-      name: 'Lisa Garcia',
-      source: 'Thumbtack',
-      status: 'Converted',
-      cost: 35
-    }
-  ];
+  // Recent jobs (last 3)
+  const recentJobs = jobs
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+    .slice(0, 3)
+    .map(job => ({
+      id: job.id,
+      client: job.client_name,
+      date: job.job_date,
+      status: job.status,
+      value: job.hourly_rate * job.estimated_hours
+    }));
+
+  // Recent leads (last 3)
+  const recentLeads = leads
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+    .slice(0, 3)
+    .map(lead => ({
+      id: lead.id,
+      name: lead.name,
+      source: lead.source,
+      status: lead.status,
+      cost: lead.cost
+    }));
 
   return (
     <div className="space-y-8">
@@ -88,45 +81,45 @@ export const Dashboard = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <MetricCard
           title="Total Leads This Month"
-          value={metrics.totalLeads}
+          value={leads.length}
           icon={Users}
-          change="+12% from last month"
-          changeType="positive"
+          change={leads.length > 0 ? "+12% from last month" : "Start adding leads"}
+          changeType={leads.length > 0 ? "positive" : "neutral"}
         />
         <MetricCard
           title="Active Jobs"
-          value={metrics.activeJobs}
+          value={activeJobs}
           icon={Briefcase}
-          change="3 scheduled today"
+          change={activeJobs > 0 ? "3 scheduled today" : "No active jobs"}
           changeType="neutral"
         />
         <MetricCard
           title="Monthly Revenue"
-          value={`$${metrics.monthlyRevenue.toLocaleString()}`}
+          value={`$${monthlyRevenue.toLocaleString()}`}
           icon={DollarSign}
-          change="+18% from last month"
-          changeType="positive"
+          change={monthlyRevenue > 0 ? "+18% from last month" : "Complete jobs to see revenue"}
+          changeType={monthlyRevenue > 0 ? "positive" : "neutral"}
         />
         <MetricCard
           title="Monthly Profit"
-          value={`$${metrics.monthlyProfit.toLocaleString()}`}
+          value={`$${monthlyProfit.toLocaleString()}`}
           icon={TrendingUp}
-          change="+22% from last month"
-          changeType="positive"
+          change={monthlyProfit > 0 ? "+22% from last month" : "Complete jobs to see profit"}
+          changeType={monthlyProfit > 0 ? "positive" : "neutral"}
         />
         <MetricCard
           title="Conversion Rate"
-          value={`${metrics.conversionRate}%`}
+          value={`${conversionRate}%`}
           icon={TrendingUp}
-          change="+5% from last month"
-          changeType="positive"
+          change={conversionRate > 0 ? "+5% from last month" : "Convert leads to improve"}
+          changeType={conversionRate > 0 ? "positive" : "neutral"}
         />
         <MetricCard
           title="Avg Job Value"
-          value={`$${Math.round(metrics.monthlyRevenue / metrics.convertedLeads)}`}
+          value={`$${avgJobValue}`}
           icon={DollarSign}
-          change="$50 higher than last month"
-          changeType="positive"
+          change={avgJobValue > 0 ? "$50 higher than last month" : "Complete jobs to calculate"}
+          changeType={avgJobValue > 0 ? "positive" : "neutral"}
         />
       </div>
 
@@ -142,18 +135,24 @@ export const Dashboard = () => {
           </div>
           <div className="p-6">
             <div className="space-y-4">
-              {recentJobs.map((job) => (
-                <div key={job.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                  <div>
-                    <p className="font-medium text-gray-900">{job.client}</p>
-                    <p className="text-sm text-gray-600">{job.date}</p>
+              {recentJobs.length > 0 ? (
+                recentJobs.map((job) => (
+                  <div key={job.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                    <div>
+                      <p className="font-medium text-gray-900">{job.client}</p>
+                      <p className="text-sm text-gray-600">{job.date}</p>
+                    </div>
+                    <div className="text-right">
+                      <StatusBadge status={job.status} variant="job" />
+                      <p className="text-sm font-medium text-gray-900 mt-1">${job.value}</p>
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <StatusBadge status={job.status} variant="job" />
-                    <p className="text-sm font-medium text-gray-900 mt-1">${job.value}</p>
-                  </div>
+                ))
+              ) : (
+                <div className="text-center py-4 text-gray-500">
+                  No jobs yet. Schedule your first job to see it here.
                 </div>
-              ))}
+              )}
             </div>
           </div>
         </div>
@@ -168,20 +167,26 @@ export const Dashboard = () => {
           </div>
           <div className="p-6">
             <div className="space-y-4">
-              {recentLeads.map((lead) => (
-                <div key={lead.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                  <div>
-                    <p className="font-medium text-gray-900">{lead.name}</p>
-                    <p className="text-sm text-gray-600">{lead.source}</p>
+              {recentLeads.length > 0 ? (
+                recentLeads.map((lead) => (
+                  <div key={lead.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                    <div>
+                      <p className="font-medium text-gray-900">{lead.name}</p>
+                      <p className="text-sm text-gray-600">{lead.source}</p>
+                    </div>
+                    <div className="text-right">
+                      <StatusBadge status={lead.status} variant="lead" />
+                      <p className="text-sm text-gray-600 mt-1">
+                        {lead.cost > 0 ? `$${lead.cost}` : 'Free'}
+                      </p>
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <StatusBadge status={lead.status} variant="lead" />
-                    <p className="text-sm text-gray-600 mt-1">
-                      {lead.cost > 0 ? `$${lead.cost}` : 'Free'}
-                    </p>
-                  </div>
+                ))
+              ) : (
+                <div className="text-center py-4 text-gray-500">
+                  No leads yet. Add your first lead to see it here.
                 </div>
-              ))}
+              )}
             </div>
           </div>
         </div>
@@ -226,6 +231,7 @@ export const Dashboard = () => {
       <AddLeadDialog 
         open={isAddLeadOpen} 
         onOpenChange={setIsAddLeadOpen} 
+        onAddLead={handleAddLead}
       />
       <ScheduleJobDialog 
         open={isScheduleJobOpen} 

@@ -9,7 +9,257 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      clients: {
+        Row: {
+          address: string
+          created_at: string
+          email: string | null
+          id: string
+          name: string
+          phone: string
+          updated_at: string
+        }
+        Insert: {
+          address: string
+          created_at?: string
+          email?: string | null
+          id?: string
+          name: string
+          phone: string
+          updated_at?: string
+        }
+        Update: {
+          address?: string
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string
+          phone?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      employees: {
+        Row: {
+          created_at: string
+          email: string | null
+          hire_date: string
+          hourly_wage: number
+          id: string
+          name: string
+          phone: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          hire_date?: string
+          hourly_wage: number
+          id?: string
+          name: string
+          phone: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          hire_date?: string
+          hourly_wage?: number
+          id?: string
+          name?: string
+          phone?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      job_assignments: {
+        Row: {
+          created_at: string
+          employee_id: string | null
+          id: string
+          job_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          employee_id?: string | null
+          id?: string
+          job_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          employee_id?: string | null
+          id?: string
+          job_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_assignments_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_assignments_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      jobs: {
+        Row: {
+          address: string
+          client_email: string | null
+          client_id: string | null
+          client_name: string
+          client_phone: string
+          created_at: string
+          estimated_hours: number
+          hourly_rate: number
+          id: string
+          job_date: string
+          job_time: string
+          movers_needed: number
+          notes: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          address: string
+          client_email?: string | null
+          client_id?: string | null
+          client_name: string
+          client_phone: string
+          created_at?: string
+          estimated_hours: number
+          hourly_rate: number
+          id?: string
+          job_date: string
+          job_time: string
+          movers_needed: number
+          notes?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          address?: string
+          client_email?: string | null
+          client_id?: string | null
+          client_name?: string
+          client_phone?: string
+          created_at?: string
+          estimated_hours?: number
+          hourly_rate?: number
+          id?: string
+          job_date?: string
+          job_time?: string
+          movers_needed?: number
+          notes?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jobs_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      leads: {
+        Row: {
+          cost: number | null
+          created_at: string
+          email: string | null
+          id: string
+          name: string
+          notes: string | null
+          phone: string
+          source: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          cost?: number | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          phone: string
+          source: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          cost?: number | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          phone?: string
+          source?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      time_entries: {
+        Row: {
+          created_at: string
+          employee_id: string | null
+          entry_date: string
+          hourly_rate: number
+          hours_worked: number
+          id: string
+          job_id: string | null
+          notes: string | null
+        }
+        Insert: {
+          created_at?: string
+          employee_id?: string | null
+          entry_date?: string
+          hourly_rate: number
+          hours_worked: number
+          id?: string
+          job_id?: string | null
+          notes?: string | null
+        }
+        Update: {
+          created_at?: string
+          employee_id?: string | null
+          entry_date?: string
+          hourly_rate?: number
+          hours_worked?: number
+          id?: string
+          job_id?: string | null
+          notes?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "time_entries_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "time_entries_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
