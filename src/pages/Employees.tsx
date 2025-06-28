@@ -3,15 +3,26 @@ import React, { useState } from 'react';
 import { StatusBadge } from '../components/StatusBadge';
 import { AddEmployeeDialog } from '../components/AddEmployeeDialog';
 import { EmployeeTimeTrackingDialog } from '../components/EmployeeTimeTrackingDialog';
-import { Plus, Phone, Mail, DollarSign, Clock } from 'lucide-react';
+import { Plus, Phone, Mail, DollarSign, Clock, UserCheck, Eye } from 'lucide-react';
 import { useEmployees } from '@/hooks/useEmployees';
 import { useTimeEntries } from '@/hooks/useTimeEntries';
+import { Link } from 'react-router-dom';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Button } from '@/components/ui/button';
 
 export const Employees = () => {
   const { employees, isLoading, addEmployee } = useEmployees();
   const { timeEntries } = useTimeEntries();
   const [isAddEmployeeDialogOpen, setIsAddEmployeeDialogOpen] = useState(false);
   const [isTimeTrackingDialogOpen, setIsTimeTrackingDialogOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
 
   const handleAddEmployee = (employeeData: any) => {
     addEmployee({
@@ -82,6 +93,12 @@ export const Employees = () => {
           <p className="text-gray-600 mt-2">Manage your moving crew and track payroll</p>
         </div>
         <div className="flex gap-2">
+          <Link to="/employee-requests">
+            <Button variant="outline" className="flex items-center gap-2">
+              <UserCheck className="h-4 w-4" />
+              View Requests
+            </Button>
+          </Link>
           <button 
             onClick={() => setIsTimeTrackingDialogOpen(true)}
             className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
@@ -120,71 +137,148 @@ export const Employees = () => {
         </div>
       </div>
 
-      {/* Employee Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {employees.map((employee) => {
-          const { totalHours, totalEarnings, pendingHours } = calculateMonthlyStats(employee.id);
-          return (
-            <div key={employee.id} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-              <div className="p-6">
-                <div className="flex justify-between items-start mb-4">
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900">{employee.name}</h3>
-                    <p className="text-sm text-gray-500">Since {employee.hire_date}</p>
-                  </div>
-                  <StatusBadge status={employee.status} variant="employee" />
-                </div>
-                
-                <div className="space-y-3">
-                  <div className="flex items-center text-sm text-gray-600">
-                    <Phone className="h-4 w-4 mr-2" />
-                    {employee.phone}
+      {/* View Toggle */}
+      <div className="flex gap-2">
+        <Button 
+          variant={viewMode === 'cards' ? 'default' : 'outline'}
+          onClick={() => setViewMode('cards')}
+          size="sm"
+        >
+          Card View
+        </Button>
+        <Button 
+          variant={viewMode === 'table' ? 'default' : 'outline'}
+          onClick={() => setViewMode('table')}
+          size="sm"
+        >
+          Table View
+        </Button>
+      </div>
+
+      {viewMode === 'cards' ? (
+        // Employee Cards
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {employees.map((employee) => {
+            const { totalHours, totalEarnings, pendingHours } = calculateMonthlyStats(employee.id);
+            return (
+              <div key={employee.id} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                <div className="p-6">
+                  <div className="flex justify-between items-start mb-4">
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-900">{employee.name}</h3>
+                      <p className="text-sm text-gray-500">Since {employee.hire_date}</p>
+                    </div>
+                    <StatusBadge status={employee.status} variant="employee" />
                   </div>
                   
-                  {employee.email && (
+                  <div className="space-y-3">
                     <div className="flex items-center text-sm text-gray-600">
-                      <Mail className="h-4 w-4 mr-2" />
-                      {employee.email}
+                      <Phone className="h-4 w-4 mr-2" />
+                      {employee.phone}
                     </div>
-                  )}
-                  
-                  <div className="flex items-center text-sm text-gray-600">
-                    <DollarSign className="h-4 w-4 mr-2" />
-                    ${employee.hourly_wage}/hour
-                  </div>
-                </div>
-
-                <div className="mt-4 pt-4 border-t border-gray-200">
-                  <div className="grid grid-cols-2 gap-4 text-center">
-                    <div>
-                      <p className="text-lg font-semibold text-gray-900">{totalHours}h</p>
-                      <p className="text-xs text-gray-500">Approved Hours</p>
-                      {pendingHours > 0 && (
-                        <p className="text-xs text-yellow-600">+{pendingHours}h pending</p>
-                      )}
-                    </div>
-                    <div>
-                      <p className="text-lg font-semibold text-green-600">
-                        ${totalEarnings.toLocaleString()}
-                      </p>
-                      <p className="text-xs text-gray-500">Approved Earnings</p>
+                    
+                    {employee.email && (
+                      <div className="flex items-center text-sm text-gray-600">
+                        <Mail className="h-4 w-4 mr-2" />
+                        {employee.email}
+                      </div>
+                    )}
+                    
+                    <div className="flex items-center text-sm text-gray-600">
+                      <DollarSign className="h-4 w-4 mr-2" />
+                      ${employee.hourly_wage}/hour
                     </div>
                   </div>
-                </div>
 
-                <div className="mt-4 flex gap-2">
-                  <button className="flex-1 bg-purple-50 text-purple-700 py-2 px-3 rounded-lg text-sm font-medium hover:bg-purple-100 transition-colors">
-                    Edit Profile
-                  </button>
-                  <button className="flex-1 bg-green-50 text-green-700 py-2 px-3 rounded-lg text-sm font-medium hover:bg-green-100 transition-colors">
-                    View Hours
-                  </button>
+                  <div className="mt-4 pt-4 border-t border-gray-200">
+                    <div className="grid grid-cols-2 gap-4 text-center">
+                      <div>
+                        <p className="text-lg font-semibold text-gray-900">{totalHours}h</p>
+                        <p className="text-xs text-gray-500">Approved Hours</p>
+                        {pendingHours > 0 && (
+                          <p className="text-xs text-yellow-600">+{pendingHours}h pending</p>
+                        )}
+                      </div>
+                      <div>
+                        <p className="text-lg font-semibold text-green-600">
+                          ${totalEarnings.toLocaleString()}
+                        </p>
+                        <p className="text-xs text-gray-500">Approved Earnings</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 flex gap-2">
+                    <button className="flex-1 bg-purple-50 text-purple-700 py-2 px-3 rounded-lg text-sm font-medium hover:bg-purple-100 transition-colors">
+                      Edit Profile
+                    </button>
+                    <button className="flex-1 bg-green-50 text-green-700 py-2 px-3 rounded-lg text-sm font-medium hover:bg-green-100 transition-colors">
+                      View Hours
+                    </button>
+                  </div>
                 </div>
               </div>
+            );
+          })}
+        </div>
+      ) : (
+        // Employee Table
+        <div className="bg-white rounded-lg shadow-sm border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Name</TableHead>
+                <TableHead>Phone</TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Hourly Rate</TableHead>
+                <TableHead>Hire Date</TableHead>
+                <TableHead>Monthly Hours</TableHead>
+                <TableHead>Monthly Earnings</TableHead>
+                <TableHead>Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {employees.map((employee) => {
+                const { totalHours, totalEarnings, pendingHours } = calculateMonthlyStats(employee.id);
+                return (
+                  <TableRow key={employee.id}>
+                    <TableCell className="font-medium">{employee.name}</TableCell>
+                    <TableCell>{employee.phone}</TableCell>
+                    <TableCell>{employee.email || 'N/A'}</TableCell>
+                    <TableCell>
+                      <StatusBadge status={employee.status} variant="employee" />
+                    </TableCell>
+                    <TableCell>${employee.hourly_wage}/hr</TableCell>
+                    <TableCell>{new Date(employee.hire_date).toLocaleDateString()}</TableCell>
+                    <TableCell>
+                      <span className="font-medium">{totalHours}h</span>
+                      {pendingHours > 0 && (
+                        <span className="text-yellow-600 text-sm"> (+{pendingHours}h pending)</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-green-600 font-medium">
+                      ${totalEarnings.toLocaleString()}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex gap-1">
+                        <Button variant="outline" size="sm">
+                          <Eye className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+          {employees.length === 0 && (
+            <div className="p-6 text-center text-gray-500">
+              No employees found. Add your first employee to get started.
             </div>
-          );
-        })}
-      </div>
+          )}
+        </div>
+      )}
 
       <AddEmployeeDialog 
         open={isAddEmployeeDialogOpen} 
