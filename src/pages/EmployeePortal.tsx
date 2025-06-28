@@ -1,16 +1,18 @@
+
 import React, { useState } from 'react';
 import { useEmployees } from '@/hooks/useEmployees';
 import { useJobs } from '@/hooks/useJobs';
 import { useTimeEntries } from '@/hooks/useTimeEntries';
+import { NewEmployeeRequestForm } from '@/components/NewEmployeeRequestForm';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Clock, CheckCircle } from 'lucide-react';
+import { Clock, CheckCircle, UserPlus } from 'lucide-react';
 
 export const EmployeePortal = () => {
   const { employees } = useEmployees();
   const { jobs } = useJobs();
   const { addTimeEntry } = useTimeEntries();
-  const [step, setStep] = useState<'phone' | 'pin' | 'timeEntry' | 'success'>('phone');
+  const [step, setStep] = useState<'phone' | 'pin' | 'timeEntry' | 'success' | 'newEmployee' | 'requestSubmitted'>('phone');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [pin, setPin] = useState('');
   const [generatedPin, setGeneratedPin] = useState('');
@@ -79,7 +81,8 @@ export const EmployeePortal = () => {
       
       setStep('pin');
     } else {
-      alert('Phone number not found. Please contact your manager.');
+      // Redirect to new employee request
+      setStep('newEmployee');
     }
   };
 
@@ -135,6 +138,40 @@ export const EmployeePortal = () => {
 
   const completedJobs = jobs.filter(job => job.status === 'Completed');
 
+  // Handle new employee request form
+  if (step === 'newEmployee') {
+    return (
+      <NewEmployeeRequestForm 
+        onBack={() => setStep('phone')} 
+        onSuccess={() => setStep('requestSubmitted')}
+      />
+    );
+  }
+
+  // Handle request submitted confirmation
+  if (step === 'requestSubmitted') {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100 flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-8">
+          <div className="text-center space-y-6">
+            <div className="bg-green-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto">
+              <CheckCircle className="h-8 w-8 text-green-600" />
+            </div>
+            <div>
+              <h2 className="text-xl font-semibold text-gray-900 mb-2">Request Submitted!</h2>
+              <p className="text-gray-600">
+                Your employee request has been sent to management for approval. Once approved, you can return here to log your hours.
+              </p>
+            </div>
+            <Button onClick={resetForm} className="w-full bg-blue-600 hover:bg-blue-700">
+              Back to Login
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-8">
@@ -168,6 +205,19 @@ export const EmployeePortal = () => {
             <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700">
               Send Verification Code
             </Button>
+
+            <div className="text-center pt-4 border-t">
+              <p className="text-sm text-gray-600 mb-3">New employee?</p>
+              <Button 
+                type="button"
+                variant="outline"
+                onClick={() => setStep('newEmployee')}
+                className="w-full border-green-200 text-green-700 hover:bg-green-50"
+              >
+                <UserPlus className="h-4 w-4 mr-2" />
+                Request Access
+              </Button>
+            </div>
           </form>
         )}
 

@@ -15,6 +15,8 @@ export interface TimeEntry {
   manager_notes: string | null;
   approved_by: string | null;
   approved_at: string | null;
+  paid: boolean;
+  paid_at: string | null;
   created_at: string;
 }
 
@@ -43,10 +45,10 @@ export const useTimeEntries = () => {
   });
 
   const addTimeEntryMutation = useMutation({
-    mutationFn: async (timeEntryData: Omit<TimeEntry, 'id' | 'created_at' | 'status' | 'manager_notes' | 'approved_by' | 'approved_at'>) => {
+    mutationFn: async (timeEntryData: Omit<TimeEntry, 'id' | 'created_at' | 'status' | 'manager_notes' | 'approved_by' | 'approved_at' | 'paid' | 'paid_at'>) => {
       const { data, error } = await supabase
         .from('time_entries')
-        .insert([{ ...timeEntryData, status: 'pending' }])
+        .insert([{ ...timeEntryData, status: 'pending', paid: false }])
         .select()
         .single();
       
@@ -132,6 +134,30 @@ export const useTimeEntries = () => {
     }
   });
 
+  const markAsPaidMutation = useMutation({
+    mutationFn: async ({ id, paid }: { id: string; paid: boolean }) => {
+      const { data, error } = await supabase
+        .from('time_entries')
+        .update({
+          paid,
+          paid_at: paid ? new Date().toISOString() : null
+        })
+        .eq('id', id)
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['timeEntries'] });
+      toast({
+        title: "Payment Status Updated",
+        description: "The payment status has been updated.",
+      });
+    }
+  });
+
   return {
     timeEntries,
     isLoading,
@@ -143,6 +169,8 @@ export const useTimeEntries = () => {
     approveTimeEntry: approveTimeEntryMutation.mutate,
     isApprovingTimeEntry: approveTimeEntryMutation.isPending,
     rejectTimeEntry: rejectTimeEntryMutation.mutate,
-    isRejectingTimeEntry: rejectTimeEntryMutation.isPending
+    isRejectingTimeEntry: rejectTimeEntryMutation.isPending,
+    markAsPaid: markAsPaidMutation.mutate,
+    isMarkingAsPaid: markAsPaidMutation.isPending
   };
 };

@@ -1,13 +1,14 @@
 
 import React, { useState } from 'react';
 import { useTimeEntries } from '@/hooks/useTimeEntries';
-import { Clock, CheckCircle, XCircle, Edit, Filter, Search, Download, Calendar } from 'lucide-react';
+import { Clock, CheckCircle, XCircle, Edit, Filter, Search, Download, Calendar, DollarSign } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 export const TimeLogs = () => {
-  const { timeEntries, isLoading, approveTimeEntry, rejectTimeEntry, updateTimeEntry } = useTimeEntries();
+  const { timeEntries, isLoading, approveTimeEntry, rejectTimeEntry, updateTimeEntry, markAsPaid } = useTimeEntries();
   const [statusFilter, setStatusFilter] = useState<string>('All');
+  const [paymentFilter, setPaymentFilter] = useState<string>('All');
   const [searchTerm, setSearchTerm] = useState('');
   const [dateFilter, setDateFilter] = useState('');
   const [selectedEntry, setSelectedEntry] = useState<any>(null);
@@ -20,13 +21,18 @@ export const TimeLogs = () => {
     const matchesSearch = entry.employees?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          entry.jobs?.client_name.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'All' || entry.status === statusFilter.toLowerCase();
+    const matchesPayment = paymentFilter === 'All' || 
+                          (paymentFilter === 'Paid' && entry.paid) ||
+                          (paymentFilter === 'Unpaid' && !entry.paid);
     const matchesDate = !dateFilter || entry.entry_date === dateFilter;
-    return matchesSearch && matchesStatus && matchesDate;
+    return matchesSearch && matchesStatus && matchesPayment && matchesDate;
   });
 
   const pendingCount = timeEntries.filter(entry => entry.status === 'pending').length;
   const approvedCount = timeEntries.filter(entry => entry.status === 'approved').length;
   const rejectedCount = timeEntries.filter(entry => entry.status === 'rejected').length;
+  const paidCount = timeEntries.filter(entry => entry.paid).length;
+  const unpaidCount = timeEntries.filter(entry => entry.status === 'approved' && !entry.paid).length;
   const totalHoursThisWeek = timeEntries
     .filter(entry => {
       const entryDate = new Date(entry.entry_date);
@@ -74,6 +80,13 @@ export const TimeLogs = () => {
     }
   };
 
+  const handleTogglePayment = (entryId: string, currentPaidStatus: boolean) => {
+    markAsPaid({
+      id: entryId,
+      paid: !currentPaidStatus
+    });
+  };
+
   const handleBulkApprove = () => {
     const pendingSelected = selectedEntries.filter(id => {
       const entry = timeEntries.find(e => e.id === id);
@@ -112,6 +125,8 @@ export const TimeLogs = () => {
       'Rate': entry.hourly_rate,
       'Total': (entry.hours_worked * entry.hourly_rate).toFixed(2),
       'Status': entry.status,
+      'Paid': entry.paid ? 'Yes' : 'No',
+      'Paid Date': entry.paid_at ? new Date(entry.paid_at).toLocaleDateString() : '',
       'Notes': entry.notes || '',
       'Manager Notes': entry.manager_notes || ''
     }));
@@ -173,7 +188,7 @@ export const TimeLogs = () => {
       </div>
 
       {/* Enhanced Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
         <div className="bg-white p-4 rounded-lg shadow-sm border">
           <p className="text-sm text-gray-600">Total Submissions</p>
           <p className="text-2xl font-bold text-gray-900">{timeEntries.length}</p>
@@ -187,12 +202,16 @@ export const TimeLogs = () => {
           <p className="text-2xl font-bold text-green-600">{approvedCount}</p>
         </div>
         <div className="bg-white p-4 rounded-lg shadow-sm border">
-          <p className="text-sm text-gray-600">Rejected</p>
-          <p className="text-2xl font-bold text-red-600">{rejectedCount}</p>
+          <p className="text-sm text-gray-600">Paid</p>
+          <p className="text-2xl font-bold text-blue-600">{paidCount}</p>
+        </div>
+        <div className="bg-white p-4 rounded-lg shadow-sm border">
+          <p className="text-sm text-gray-600">Unpaid</p>
+          <p className="text-2xl font-bold text-orange-600">{unpaidCount}</p>
         </div>
         <div className="bg-white p-4 rounded-lg shadow-sm border">
           <p className="text-sm text-gray-600">Hours This Week</p>
-          <p className="text-2xl font-bold text-blue-600">{totalHoursThisWeek}h</p>
+          <p className="text-2xl font-bold text-purple-600">{totalHoursThisWeek}h</p>
         </div>
       </div>
 
@@ -229,6 +248,18 @@ export const TimeLogs = () => {
               <option value="Pending">Pending</option>
               <option value="Approved">Approved</option>
               <option value="Rejected">Rejected</option>
+            </select>
+          </div>
+          <div className="flex items-center gap-2">
+            <DollarSign className="h-4 w-4 text-gray-400" />
+            <select
+              className="border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+              value={paymentFilter}
+              onChange={(e) => setPaymentFilter(e.target.value)}
+            >
+              <option value="All">All Payment</option>
+              <option value="Paid">Paid</option>
+              <option value="Unpaid">Unpaid</option>
             </select>
           </div>
         </div>
@@ -268,6 +299,9 @@ export const TimeLogs = () => {
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Status
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Payment
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Actions
@@ -315,6 +349,18 @@ export const TimeLogs = () => {
                       {entry.status}
                     </span>
                   </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    {entry.status === 'approved' && (
+                      <Button
+                        variant={entry.paid ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => handleTogglePayment(entry.id, entry.paid)}
+                        className={entry.paid ? "bg-green-600 hover:bg-green-700" : "border-green-200 text-green-700 hover:bg-green-50"}
+                      >
+                        {entry.paid ? 'Paid' : 'Mark Paid'}
+                      </Button>
+                    )}
+                  </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <Button
                       variant="outline"
@@ -351,6 +397,11 @@ export const TimeLogs = () => {
                 <h3 className="font-medium text-gray-900">{selectedEntry.employees?.name}</h3>
                 <p className="text-sm text-gray-600">{selectedEntry.jobs?.client_name} - {selectedEntry.jobs?.job_date}</p>
                 <p className="text-sm text-gray-600">Submitted: {selectedEntry.entry_date}</p>
+                <div className="flex items-center gap-2 mt-2">
+                  <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${selectedEntry.paid ? 'bg-green-100 text-green-800' : 'bg-orange-100 text-orange-800'}`}>
+                    {selectedEntry.paid ? 'Paid' : 'Unpaid'}
+                  </span>
+                </div>
               </div>
               
               <div>

@@ -13,6 +13,7 @@ import { Clients } from "./pages/Clients";
 import { Financials } from "./pages/Financials";
 import { EmployeePortal } from "./pages/EmployeePortal";
 import { TimeLogs } from "./pages/TimeLogs";
+import { EmployeeRequests } from "./pages/EmployeeRequests";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -32,6 +33,7 @@ const App = () => (
           <Route path="/leads" element={<Layout><Leads /></Layout>} />
           <Route path="/jobs" element={<Layout><Jobs /></Layout>} />
           <Route path="/employees" element={<Layout><Employees /></Layout>} />
+          <Route path="/employee-requests" element={<Layout><EmployeeRequests /></Layout>} />
           <Route path="/clients" element={<Layout><Clients /></Layout>} />
           <Route path="/financials" element={<Layout><Financials /></Layout>} />
           <Route path="/time-logs" element={<Layout><TimeLogs /></Layout>} />

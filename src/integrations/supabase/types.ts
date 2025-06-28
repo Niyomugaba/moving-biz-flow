@@ -39,6 +39,33 @@ export type Database = {
         }
         Relationships: []
       }
+      employee_requests: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          notes: string | null
+          phone: string
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          notes?: string | null
+          phone: string
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          notes?: string | null
+          phone?: string
+          status?: string
+        }
+        Relationships: []
+      }
       employees: {
         Row: {
           created_at: string
@@ -231,6 +258,8 @@ export type Database = {
           job_id: string | null
           manager_notes: string | null
           notes: string | null
+          paid: boolean
+          paid_at: string | null
           status: string
         }
         Insert: {
@@ -245,6 +274,8 @@ export type Database = {
           job_id?: string | null
           manager_notes?: string | null
           notes?: string | null
+          paid?: boolean
+          paid_at?: string | null
           status?: string
         }
         Update: {
@@ -259,6 +290,8 @@ export type Database = {
           job_id?: string | null
           manager_notes?: string | null
           notes?: string | null
+          paid?: boolean
+          paid_at?: string | null
           status?: string
         }
         Relationships: [
