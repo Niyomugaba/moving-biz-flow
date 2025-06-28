@@ -1,14 +1,12 @@
 
 import React, { useState } from 'react';
 import { useEmployeeRequests } from '@/hooks/useEmployeeRequests';
-import { useEmployees } from '@/hooks/useEmployees';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { UserPlus, CheckCircle, XCircle, Phone, Calendar } from 'lucide-react';
 
 export const EmployeeRequests = () => {
   const { employeeRequests, isLoading, updateRequestStatus } = useEmployeeRequests();
-  const { refetch: refetchEmployees } = useEmployees();
   const [selectedRequest, setSelectedRequest] = useState<any>(null);
   const [isReviewDialogOpen, setIsReviewDialogOpen] = useState(false);
   const [managerNotes, setManagerNotes] = useState('');
@@ -29,9 +27,6 @@ export const EmployeeRequests = () => {
       
       setIsReviewDialogOpen(false);
       setSelectedRequest(null);
-      
-      // Note: In a real app, you'd want to automatically create the employee record
-      // For now, we'll just approve the request and the admin can manually add them
     }
   };
 
