@@ -65,17 +65,21 @@ export const useEmployeeRequests = () => {
           .update({ status, notes })
           .eq('id', id)
           .select()
-          .single();
+          .maybeSingle();
         
         if (requestError) {
           console.error('Request update error:', requestError);
           throw new Error(`Failed to update request: ${requestError.message}`);
         }
 
+        if (!requestData) {
+          throw new Error('Employee request not found');
+        }
+
         console.log('Request updated successfully:', requestData);
 
         // If approved, create employee record
-        if (status === 'approved' && hourlyWage && requestData) {
+        if (status === 'approved' && hourlyWage) {
           console.log('Creating employee record...');
           
           const { data: employeeData, error: employeeError } = await supabase
@@ -88,7 +92,7 @@ export const useEmployeeRequests = () => {
               hire_date: new Date().toISOString().split('T')[0]
             })
             .select()
-            .single();
+            .maybeSingle();
           
           if (employeeError) {
             console.error('Employee creation error:', employeeError);
