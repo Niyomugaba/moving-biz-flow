@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,32 +9,32 @@ import { NewEmployeeRequestForm } from '@/components/NewEmployeeRequestForm';
 import { EmployeeDashboard } from './EmployeeDashboard';
 
 export const EmployeePortal = () => {
-  const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
   const [verificationCode, setVerificationCode] = useState('');
-  const [step, setStep] = useState<'phone' | 'verify' | 'request' | 'dashboard'>('phone');
+  const [step, setStep] = useState<'email' | 'verify' | 'request' | 'dashboard'>('email');
   const [isLoading, setIsLoading] = useState(false);
   const [employeeData, setEmployeeData] = useState<any>(null);
   const { toast } = useToast();
 
   const handleSendVerification = async () => {
-    if (!phone) {
+    if (!email) {
       toast({
-        title: "Phone Required",
-        description: "Please enter your phone number.",
+        title: "Email Required",
+        description: "Please enter your email address.",
         variant: "destructive",
       });
       return;
     }
 
     setIsLoading(true);
-    console.log('Checking for employee with phone:', phone);
+    console.log('Checking for employee with email:', email);
 
     try {
       // Check if employee exists in the employees table (approved employees)
       const { data: employee, error: employeeError } = await supabase
         .from('employees')
         .select('*')
-        .eq('phone', phone)
+        .eq('email', email)
         .eq('status', 'Active')
         .maybeSingle();
 
@@ -45,29 +46,25 @@ export const EmployeePortal = () => {
       console.log('Employee found:', employee);
 
       if (employee) {
-        // Employee exists - send real SMS verification
+        // Employee exists - send magic link
         setEmployeeData(employee);
         
-        const { data, error } = await supabase.functions.invoke('send-sms-verification', {
-          body: {
-            phone: phone,
-            action: 'send'
+        const { error } = await supabase.auth.signInWithOtp({
+          email: email,
+          options: {
+            shouldCreateUser: false,
           }
         });
 
         if (error) {
-          console.error('SMS sending error:', error);
-          throw new Error('Failed to send verification code');
-        }
-
-        if (!data?.success) {
-          throw new Error(data?.message || 'Failed to send verification code');
+          console.error('Magic link sending error:', error);
+          throw new Error('Failed to send verification email');
         }
 
         setStep('verify');
         toast({
-          title: "Verification Code Sent",
-          description: "Check your phone for a 6-digit verification code.",
+          title: "Verification Email Sent",
+          description: "Check your email for a magic link to access your dashboard.",
         });
       } else {
         // Employee doesn't exist - show request form
@@ -80,10 +77,10 @@ export const EmployeePortal = () => {
         });
       }
     } catch (error) {
-      console.error('Error during phone verification:', error);
+      console.error('Error during email verification:', error);
       toast({
         title: "Error",
-        description: "Failed to send verification code. Please try again.",
+        description: "Failed to send verification email. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -95,7 +92,7 @@ export const EmployeePortal = () => {
     if (!verificationCode) {
       toast({
         title: "Code Required",
-        description: "Please enter the verification code.",
+        description: "Please enter the verification code from your email.",
         variant: "destructive",
       });
       return;
@@ -113,12 +110,10 @@ export const EmployeePortal = () => {
     setIsLoading(true);
 
     try {
-      const { data, error } = await supabase.functions.invoke('send-sms-verification', {
-        body: {
-          phone: phone,
-          action: 'verify',
-          code: verificationCode
-        }
+      const { error } = await supabase.auth.verifyOtp({
+        email,
+        token: verificationCode,
+        type: 'email'
       });
 
       if (error) {
@@ -126,23 +121,15 @@ export const EmployeePortal = () => {
         throw new Error('Failed to verify code');
       }
 
-      if (data?.success) {
-        toast({
-          title: "Verification Successful!",
-          description: `Welcome ${employeeData?.name}! Redirecting to your dashboard...`,
-        });
-        
-        // Redirect to dashboard after successful verification
-        setTimeout(() => {
-          setStep('dashboard');
-        }, 1500);
-      } else {
-        toast({
-          title: "Invalid Code",
-          description: data?.message || "The verification code is invalid or expired.",
-          variant: "destructive",
-        });
-      }
+      toast({
+        title: "Verification Successful!",
+        description: `Welcome ${employeeData?.name}! Redirecting to your dashboard...`,
+      });
+      
+      // Redirect to dashboard after successful verification
+      setTimeout(() => {
+        setStep('dashboard');
+      }, 1500);
     } catch (error) {
       console.error('Verification error:', error);
       toast({
@@ -155,9 +142,10 @@ export const EmployeePortal = () => {
     }
   };
 
-  const handleLogout = () => {
-    setStep('phone');
-    setPhone('');
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    setStep('email');
+    setEmail('');
     setVerificationCode('');
     setEmployeeData(null);
     toast({
@@ -172,9 +160,9 @@ export const EmployeePortal = () => {
       description: "Your employee access request has been submitted for approval.",
     });
     
-    // Reset to phone step after successful submission
-    setStep('phone');
-    setPhone('');
+    // Reset to email step after successful submission
+    setStep('email');
+    setEmail('');
     setVerificationCode('');
     setEmployeeData(null);
   };
@@ -199,8 +187,8 @@ export const EmployeePortal = () => {
           </div>
           
           <NewEmployeeRequestForm 
-            phoneNumber={phone}
-            onBack={() => setStep('phone')}
+            phoneNumber=""
+            onBack={() => setStep('email')}
             onSuccess={handleRequestSubmitted}
           />
         </div>
@@ -216,25 +204,25 @@ export const EmployeePortal = () => {
             Employee Portal
           </CardTitle>
           <CardDescription>
-            {step === 'phone' 
-              ? 'Enter your phone number to access your dashboard'
-              : `Enter the 6-digit code sent to ${phone}`
+            {step === 'email' 
+              ? 'Enter your email address to access your dashboard'
+              : `Enter the 6-digit code sent to ${email}`
             }
           </CardDescription>
         </CardHeader>
         
         <CardContent className="space-y-4">
-          {step === 'phone' ? (
+          {step === 'email' ? (
             <>
               <div className="space-y-2">
                 <label className="text-sm font-medium text-gray-700">
-                  Phone Number
+                  Email Address
                 </label>
                 <Input
-                  type="tel"
-                  placeholder="(555) 123-4567"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
+                  type="email"
+                  placeholder="your.email@company.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   className="w-full"
                 />
               </div>
@@ -244,7 +232,7 @@ export const EmployeePortal = () => {
                 disabled={isLoading}
                 className="w-full"
               >
-                {isLoading ? 'Sending Code...' : 'Send Verification Code'}
+                {isLoading ? 'Sending Email...' : 'Send Verification Email'}
               </Button>
               
               <div className="text-center">
@@ -282,17 +270,17 @@ export const EmployeePortal = () => {
               
               <div className="text-center space-y-2">
                 <button 
-                  onClick={() => setStep('phone')}
+                  onClick={() => setStep('email')}
                   className="text-gray-600 hover:text-gray-700 text-sm block mx-auto"
                 >
-                  ← Change phone number
+                  ← Change email address
                 </button>
                 <button 
                   onClick={handleSendVerification}
                   disabled={isLoading}
                   className="text-purple-600 hover:text-purple-700 text-sm"
                 >
-                  {isLoading ? 'Sending...' : 'Resend code'}
+                  {isLoading ? 'Sending...' : 'Resend verification email'}
                 </button>
               </div>
             </>

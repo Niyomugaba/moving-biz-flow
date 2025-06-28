@@ -197,35 +197,55 @@ export const useEmployeeRequests = () => {
   const deleteRequestMutation = useMutation({
     mutationFn: async (id: string) => {
       console.log('Attempting to delete request with ID:', id);
-      const { error } = await supabase
+      
+      // First verify the request exists
+      const { data: existingRequest, error: fetchError } = await supabase
+        .from('employee_requests')
+        .select('id, name')
+        .eq('id', id)
+        .single();
+      
+      if (fetchError) {
+        console.error('Error fetching request for deletion:', fetchError);
+        throw new Error(`Request not found: ${fetchError.message}`);
+      }
+      
+      console.log('Found request to delete:', existingRequest);
+      
+      // Now delete the request
+      const { error: deleteError } = await supabase
         .from('employee_requests')
         .delete()
         .eq('id', id);
       
-      if (error) {
-        console.error('Delete error:', error);
-        throw error;
+      if (deleteError) {
+        console.error('Delete error:', deleteError);
+        throw new Error(`Failed to delete request: ${deleteError.message}`);
       }
-      console.log('Successfully deleted request with ID:', id);
-      return id;
-    },
-    onSuccess: (deletedId) => {
-      console.log('Delete mutation successful, updating cache...');
       
-      // Immediately remove from cache
+      console.log('Successfully deleted request with ID:', id);
+      return { id, name: existingRequest.name };
+    },
+    onSuccess: (deletedData) => {
+      console.log('Delete mutation successful, updating cache for ID:', deletedData.id);
+      
+      // Immediately remove from cache with optimistic update
       queryClient.setQueryData(['employeeRequests'], (oldData: EmployeeRequest[] | undefined) => {
         if (!oldData) return [];
-        const filtered = oldData.filter(request => request.id !== deletedId);
-        console.log('Updated cache after delete. New count:', filtered.length);
+        const filtered = oldData.filter(request => request.id !== deletedData.id);
+        console.log('Updated cache after delete. Removed request, new count:', filtered.length);
         return filtered;
       });
       
-      // Also invalidate to refetch fresh data
-      queryClient.invalidateQueries({ queryKey: ['employeeRequests'] });
+      // Don't invalidate immediately to prevent race conditions
+      // The cache update above should be sufficient
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ['employeeRequests'] });
+      }, 100);
       
       toast({
         title: "Request Deleted",
-        description: "The employee request has been permanently deleted.",
+        description: `${deletedData.name}'s request has been permanently deleted.`,
       });
     },
     onError: (error: any) => {
