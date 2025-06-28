@@ -8,7 +8,14 @@ export interface Client {
   name: string;
   phone: string;
   email: string | null;
-  address: string;
+  primary_address: string;
+  secondary_address: string | null;
+  company_name: string | null;
+  preferred_contact_method: string | null;
+  notes: string | null;
+  total_jobs_completed: number | null;
+  total_revenue: number | null;
+  rating: number | null;
   created_at: string;
   updated_at: string;
 }
@@ -31,7 +38,7 @@ export const useClients = () => {
   });
 
   const addClientMutation = useMutation({
-    mutationFn: async (clientData: Omit<Client, 'id' | 'created_at' | 'updated_at'>) => {
+    mutationFn: async (clientData: Omit<Client, 'id' | 'created_at' | 'updated_at' | 'total_jobs_completed' | 'total_revenue' | 'rating'>) => {
       const { data, error } = await supabase
         .from('clients')
         .insert([clientData])

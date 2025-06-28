@@ -5,20 +5,29 @@ import { useToast } from '@/hooks/use-toast';
 
 export interface Job {
   id: string;
+  job_number: string;
   client_id: string | null;
   client_name: string;
   client_phone: string;
   client_email: string | null;
-  address: string;
+  origin_address: string;
+  destination_address: string;
   job_date: string;
-  job_time: string;
+  start_time: string;
+  estimated_duration_hours: number;
+  actual_duration_hours: number | null;
   hourly_rate: number;
+  estimated_total: number;
+  actual_total: number | null;
   movers_needed: number;
-  actual_hours: number;
-  status: 'Scheduled' | 'In Progress' | 'Completed' | 'Cancelled';
-  notes: string | null;
-  paid: boolean;
+  truck_size: string | null;
+  special_requirements: string | null;
+  status: 'scheduled' | 'in_progress' | 'completed' | 'cancelled' | 'rescheduled';
+  completion_notes: string | null;
+  customer_satisfaction: number | null;
+  is_paid: boolean;
   paid_at: string | null;
+  payment_method: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -41,7 +50,7 @@ export const useJobs = () => {
   });
 
   const addJobMutation = useMutation({
-    mutationFn: async (jobData: Omit<Job, 'id' | 'created_at' | 'updated_at'>) => {
+    mutationFn: async (jobData: Omit<Job, 'id' | 'created_at' | 'updated_at' | 'job_number'>) => {
       const { data, error } = await supabase
         .from('jobs')
         .insert([jobData])

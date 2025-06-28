@@ -19,12 +19,12 @@ export const Financials = () => {
   const { employees } = useEmployees();
 
   // Calculate real financial metrics
-  const completedJobs = jobs.filter(job => job.status === 'Completed');
-  const paidJobs = completedJobs.filter(job => job.paid);
-  const unpaidJobs = completedJobs.filter(job => !job.paid);
+  const completedJobs = jobs.filter(job => job.status === 'completed');
+  const paidJobs = completedJobs.filter(job => job.is_paid);
+  const unpaidJobs = completedJobs.filter(job => !job.is_paid);
   
-  const monthlyRevenue = paidJobs.reduce((sum, job) => sum + (job.hourly_rate * job.actual_hours), 0);
-  const unpaidRevenue = unpaidJobs.reduce((sum, job) => sum + (job.hourly_rate * job.actual_hours), 0);
+  const monthlyRevenue = paidJobs.reduce((sum, job) => sum + (job.hourly_rate * (job.actual_duration_hours || 0)), 0);
+  const unpaidRevenue = unpaidJobs.reduce((sum, job) => sum + (job.hourly_rate * (job.actual_duration_hours || 0)), 0);
   
   const currentMonth = new Date().getMonth();
   const currentYear = new Date().getFullYear();
@@ -43,7 +43,7 @@ export const Financials = () => {
   const monthlyProfit = monthlyRevenue - monthlyExpenses;
   const profitMargin = monthlyRevenue > 0 ? Math.round((monthlyProfit / monthlyRevenue) * 100) : 0;
   
-  const convertedLeads = leads.filter(lead => lead.status === 'Converted').length;
+  const convertedLeads = leads.filter(lead => lead.status === 'converted').length;
   const conversionRate = leads.length > 0 ? Math.round((convertedLeads / leads.length) * 100) : 0;
   const averageJobValue = paidJobs.length > 0 ? Math.round(monthlyRevenue / paidJobs.length) : 0;
 
@@ -53,7 +53,7 @@ export const Financials = () => {
     const actualLaborCost = jobTimeEntries.reduce((sum, entry) => 
       sum + (entry.hours_worked * entry.hourly_rate), 0
     );
-    const revenue = job.hourly_rate * job.actual_hours;
+    const revenue = job.hourly_rate * (job.actual_duration_hours || 0);
     const profit = revenue - actualLaborCost;
     const margin = revenue > 0 ? Math.round((profit / revenue) * 100) : 0;
     
@@ -227,9 +227,9 @@ export const Financials = () => {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                      job.paid ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                      job.is_paid ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                     }`}>
-                      {job.paid ? 'Paid' : 'Unpaid'}
+                      {job.is_paid ? 'Paid' : 'Unpaid'}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-red-600">

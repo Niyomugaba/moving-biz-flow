@@ -5,12 +5,20 @@ import { useToast } from '@/hooks/use-toast';
 
 export interface Employee {
   id: string;
+  employee_number: string;
   name: string;
   phone: string;
   email: string | null;
+  address: string | null;
+  emergency_contact_name: string | null;
+  emergency_contact_phone: string | null;
   hourly_wage: number;
-  status: 'Active' | 'Inactive';
+  overtime_rate: number | null;
   hire_date: string;
+  status: 'active' | 'inactive' | 'terminated' | 'on_leave';
+  department: string | null;
+  position: string | null;
+  notes: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -33,7 +41,7 @@ export const useEmployees = () => {
   });
 
   const addEmployeeMutation = useMutation({
-    mutationFn: async (employeeData: Omit<Employee, 'id' | 'created_at' | 'updated_at'>) => {
+    mutationFn: async (employeeData: Omit<Employee, 'id' | 'created_at' | 'updated_at' | 'employee_number'>) => {
       const { data, error } = await supabase
         .from('employees')
         .insert([employeeData])
