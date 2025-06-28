@@ -19,12 +19,17 @@ export const useEmployeeRequests = () => {
   const { data: employeeRequests = [], isLoading, error } = useQuery({
     queryKey: ['employeeRequests'],
     queryFn: async () => {
+      console.log('Fetching employee requests...');
       const { data, error } = await supabase
         .from('employee_requests')
         .select('*')
         .order('created_at', { ascending: false });
       
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching employee requests:', error);
+        throw error;
+      }
+      console.log('Fetched employee requests:', data);
       return data as EmployeeRequest[];
     }
   });
@@ -182,22 +187,38 @@ export const useEmployeeRequests = () => {
 
   const deleteRequestMutation = useMutation({
     mutationFn: async (id: string) => {
+      console.log('Attempting to delete request with ID:', id);
       const { error } = await supabase
         .from('employee_requests')
         .delete()
         .eq('id', id);
       
-      if (error) throw error;
+      if (error) {
+        console.error('Delete error:', error);
+        throw error;
+      }
+      console.log('Successfully deleted request with ID:', id);
     },
-    onSuccess: () => {
+    onSuccess: (_, deletedId) => {
+      console.log('Delete mutation successful, invalidating queries...');
+      // Immediately update the cache to remove the deleted item
+      queryClient.setQueryData(['employeeRequests'], (oldData: EmployeeRequest[] | undefined) => {
+        if (!oldData) return [];
+        const filtered = oldData.filter(request => request.id !== deletedId);
+        console.log('Updated cache, removed request. New count:', filtered.length);
+        return filtered;
+      });
+      
+      // Also invalidate to refetch fresh data
       queryClient.invalidateQueries({ queryKey: ['employeeRequests'] });
+      
       toast({
         title: "Request Deleted",
         description: "The employee request has been permanently deleted.",
       });
     },
     onError: (error: any) => {
-      console.error('Delete error:', error);
+      console.error('Delete mutation error:', error);
       toast({
         title: "Error",
         description: error.message || "Failed to delete the employee request. Please try again.",
