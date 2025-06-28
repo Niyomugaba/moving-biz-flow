@@ -1,142 +1,282 @@
 
 import React, { useState } from 'react';
-import { Button } from './ui/button';
-import { Input } from './ui/input';
-import { Label } from './ui/label';
-import { Textarea } from './ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
-import { useToast } from '@/hooks/use-toast';
+import { Button } from './ui/button';
+import { useJobs } from '@/hooks/useJobs';
+import { useClients } from '@/hooks/useClients';
 
 interface ScheduleJobDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
-export const ScheduleJobDialog: React.FC<ScheduleJobDialogProps> = ({ open, onOpenChange }) => {
-  const [clientName, setClientName] = useState('');
-  const [address, setAddress] = useState('');
-  const [date, setDate] = useState('');
-  const [time, setTime] = useState('');
-  const [hourlyRate, setHourlyRate] = useState('');
-  const [moversNeeded, setMoversNeeded] = useState('');
-  const [notes, setNotes] = useState('');
-  const { toast } = useToast();
+export const ScheduleJobDialog = ({ open, onOpenChange }: ScheduleJobDialogProps) => {
+  const { addJob } = useJobs();
+  const { clients } = useClients();
+  const [useExistingClient, setUseExistingClient] = useState(false);
+  const [formData, setFormData] = useState({
+    clientId: '',
+    clientName: '',
+    clientPhone: '',
+    clientEmail: '',
+    address: '',
+    jobDate: '',
+    jobTime: '',
+    hourlyRate: '',
+    moversNeeded: '',
+    estimatedHours: '',
+    notes: ''
+  });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    console.log('New job:', { 
-      clientName, 
-      address, 
-      date, 
-      time, 
-      hourlyRate, 
-      moversNeeded, 
-      notes 
-    });
-    
-    toast({
-      title: "Job Scheduled Successfully",
-      description: `Job for ${clientName} has been scheduled for ${date}.`,
+    let clientData;
+    if (useExistingClient && formData.clientId) {
+      const selectedClient = clients.find(c => c.id === formData.clientId);
+      clientData = {
+        client_id: formData.clientId,
+        client_name: selectedClient?.name || '',
+        client_phone: selectedClient?.phone || '',
+        client_email: selectedClient?.email || null,
+        address: selectedClient?.address || formData.address
+      };
+    } else {
+      clientData = {
+        client_id: null,
+        client_name: formData.clientName,
+        client_phone: formData.clientPhone,
+        client_email: formData.clientEmail || null,
+        address: formData.address
+      };
+    }
+
+    addJob({
+      ...clientData,
+      job_date: formData.jobDate,
+      job_time: formData.jobTime,
+      hourly_rate: parseFloat(formData.hourlyRate),
+      movers_needed: parseInt(formData.moversNeeded),
+      estimated_hours: parseFloat(formData.estimatedHours),
+      status: 'Scheduled',
+      notes: formData.notes || null
     });
 
     // Reset form
-    setClientName('');
-    setAddress('');
-    setDate('');
-    setTime('');
-    setHourlyRate('');
-    setMoversNeeded('');
-    setNotes('');
+    setFormData({
+      clientId: '',
+      clientName: '',
+      clientPhone: '',
+      clientEmail: '',
+      address: '',
+      jobDate: '',
+      jobTime: '',
+      hourlyRate: '',
+      moversNeeded: '',
+      estimatedHours: '',
+      notes: ''
+    });
+    setUseExistingClient(false);
     onOpenChange(false);
+  };
+
+  const handleClientSelect = (clientId: string) => {
+    const selectedClient = clients.find(c => c.id === clientId);
+    if (selectedClient) {
+      setFormData({
+        ...formData,
+        clientId,
+        address: selectedClient.address
+      });
+    }
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Schedule New Job</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <Label htmlFor="clientName">Client Name *</Label>
-            <Input
-              id="clientName"
-              value={clientName}
-              onChange={(e) => setClientName(e.target.value)}
-              required
+          {/* Client Selection */}
+          <div className="flex items-center space-x-2 mb-4">
+            <input
+              type="checkbox"
+              id="useExistingClient"
+              checked={useExistingClient}
+              onChange={(e) => setUseExistingClient(e.target.checked)}
+              className="rounded border-gray-300"
             />
+            <label htmlFor="useExistingClient" className="text-sm font-medium text-gray-700">
+              Use existing client
+            </label>
           </div>
+
+          {useExistingClient ? (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Select Client
+              </label>
+              <select
+                required
+                value={formData.clientId}
+                onChange={(e) => handleClientSelect(e.target.value)}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="">Select a client...</option>
+                {clients.map((client) => (
+                  <option key={client.id} value={client.id}>
+                    {client.name} - {client.phone}
+                  </option>
+                ))}
+              </select>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Client Name
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={formData.clientName}
+                  onChange={(e) => setFormData({ ...formData, clientName: e.target.value })}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Client Phone
+                </label>
+                <input
+                  type="tel"
+                  required
+                  value={formData.clientPhone}
+                  onChange={(e) => setFormData({ ...formData, clientPhone: e.target.value })}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+              
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Client Email (Optional)
+                </label>
+                <input
+                  type="email"
+                  value={formData.clientEmail}
+                  onChange={(e) => setFormData({ ...formData, clientEmail: e.target.value })}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+            </div>
+          )}
+
           <div>
-            <Label htmlFor="address">Address *</Label>
-            <Textarea
-              id="address"
-              value={address}
-              onChange={(e) => setAddress(e.target.value)}
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Job Address
+            </label>
+            <textarea
               required
+              value={formData.address}
+              onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               rows={2}
             />
           </div>
-          <div className="grid grid-cols-2 gap-4">
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="date">Date *</Label>
-              <Input
-                id="date"
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Job Date
+              </label>
+              <input
                 type="date"
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
                 required
+                value={formData.jobDate}
+                onChange={(e) => setFormData({ ...formData, jobDate: e.target.value })}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
+            
             <div>
-              <Label htmlFor="time">Time *</Label>
-              <Input
-                id="time"
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Job Time
+              </label>
+              <input
                 type="time"
-                value={time}
-                onChange={(e) => setTime(e.target.value)}
                 required
+                value={formData.jobTime}
+                onChange={(e) => setFormData({ ...formData, jobTime: e.target.value })}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-4">
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <Label htmlFor="hourlyRate">Hourly Rate ($) *</Label>
-              <Input
-                id="hourlyRate"
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Hourly Rate ($)
+              </label>
+              <input
                 type="number"
                 step="0.01"
-                value={hourlyRate}
-                onChange={(e) => setHourlyRate(e.target.value)}
                 required
+                value={formData.hourlyRate}
+                onChange={(e) => setFormData({ ...formData, hourlyRate: e.target.value })}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
+            
             <div>
-              <Label htmlFor="moversNeeded">Movers Needed *</Label>
-              <Input
-                id="moversNeeded"
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Movers Needed
+              </label>
+              <input
                 type="number"
                 min="1"
-                value={moversNeeded}
-                onChange={(e) => setMoversNeeded(e.target.value)}
                 required
+                value={formData.moversNeeded}
+                onChange={(e) => setFormData({ ...formData, moversNeeded: e.target.value })}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Estimated Hours
+              </label>
+              <input
+                type="number"
+                step="0.25"
+                min="0.25"
+                required
+                value={formData.estimatedHours}
+                onChange={(e) => setFormData({ ...formData, estimatedHours: e.target.value })}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
           </div>
+
           <div>
-            <Label htmlFor="notes">Notes</Label>
-            <Textarea
-              id="notes"
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Notes (Optional)
+            </label>
+            <textarea
+              value={formData.notes}
+              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               rows={3}
-              placeholder="Any special instructions or notes..."
             />
           </div>
+
           <div className="flex gap-2 pt-4">
-            <Button type="submit" className="flex-1">Schedule Job</Button>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="flex-1">
               Cancel
+            </Button>
+            <Button type="submit" className="flex-1">
+              Schedule Job
             </Button>
           </div>
         </form>

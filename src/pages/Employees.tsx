@@ -1,73 +1,65 @@
 
 import React, { useState } from 'react';
 import { StatusBadge } from '../components/StatusBadge';
-import { Plus, Phone, Mail, DollarSign } from 'lucide-react';
-
-interface Employee {
-  id: number;
-  name: string;
-  phone: string;
-  email: string;
-  hourlyWage: number;
-  status: 'Active' | 'Inactive';
-  hireDate: string;
-  totalHoursThisMonth: number;
-  totalEarningsThisMonth: number;
-}
+import { AddEmployeeDialog } from '../components/AddEmployeeDialog';
+import { EmployeeTimeTrackingDialog } from '../components/EmployeeTimeTrackingDialog';
+import { Plus, Phone, Mail, DollarSign, Clock } from 'lucide-react';
+import { useEmployees } from '@/hooks/useEmployees';
+import { useTimeEntries } from '@/hooks/useTimeEntries';
 
 export const Employees = () => {
-  const [employees, setEmployees] = useState<Employee[]>([
-    {
-      id: 1,
-      name: 'Mike Johnson',
-      phone: '(555) 111-2222',
-      email: 'mike.j@company.com',
-      hourlyWage: 18,
+  const { employees, isLoading, addEmployee } = useEmployees();
+  const { timeEntries } = useTimeEntries();
+  const [isAddEmployeeDialogOpen, setIsAddEmployeeDialogOpen] = useState(false);
+  const [isTimeTrackingDialogOpen, setIsTimeTrackingDialogOpen] = useState(false);
+
+  const handleAddEmployee = (employeeData: any) => {
+    addEmployee({
+      name: employeeData.name,
+      phone: employeeData.phone,
+      email: employeeData.email || null,
+      hourly_wage: parseFloat(employeeData.hourlyWage),
       status: 'Active',
-      hireDate: '2023-03-15',
-      totalHoursThisMonth: 145,
-      totalEarningsThisMonth: 2610
-    },
-    {
-      id: 2,
-      name: 'Sarah Davis',
-      phone: '(555) 222-3333',
-      email: 'sarah.d@company.com',
-      hourlyWage: 20,
-      status: 'Active',
-      hireDate: '2023-01-20',
-      totalHoursThisMonth: 160,
-      totalEarningsThisMonth: 3200
-    },
-    {
-      id: 3,
-      name: 'Tom Wilson',
-      phone: '(555) 333-4444',
-      email: 'tom.w@company.com',
-      hourlyWage: 16,
-      status: 'Active',
-      hireDate: '2023-07-10',
-      totalHoursThisMonth: 120,
-      totalEarningsThisMonth: 1920
-    },
-    {
-      id: 4,
-      name: 'Alex Brown',
-      phone: '(555) 444-5555',
-      email: 'alex.b@company.com',
-      hourlyWage: 19,
-      status: 'Active',
-      hireDate: '2023-11-05',
-      totalHoursThisMonth: 135,
-      totalEarningsThisMonth: 2565
-    }
-  ]);
+      hire_date: employeeData.hireDate
+    });
+  };
+
+  const calculateMonthlyStats = (employeeId: string) => {
+    const currentMonth = new Date().getMonth();
+    const currentYear = new Date().getFullYear();
+    
+    const monthlyEntries = timeEntries.filter(entry => {
+      const entryDate = new Date(entry.entry_date);
+      return entry.employee_id === employeeId && 
+             entryDate.getMonth() === currentMonth && 
+             entryDate.getFullYear() === currentYear;
+    });
+
+    const totalHours = monthlyEntries.reduce((sum, entry) => sum + entry.hours_worked, 0);
+    const totalEarnings = monthlyEntries.reduce((sum, entry) => sum + (entry.hours_worked * entry.hourly_rate), 0);
+
+    return { totalHours, totalEarnings };
+  };
 
   const activeEmployees = employees.filter(emp => emp.status === 'Active').length;
-  const totalPayrollThisMonth = employees.reduce((sum, emp) => sum + emp.totalEarningsThisMonth, 0);
+  const totalPayrollThisMonth = employees.reduce((sum, emp) => {
+    const { totalEarnings } = calculateMonthlyStats(emp.id);
+    return sum + totalEarnings;
+  }, 0);
   const averageHoursPerEmployee = employees.length > 0 
-    ? Math.round(employees.reduce((sum, emp) => sum + emp.totalHoursThisMonth, 0) / employees.length)
+    ? Math.round(employees.reduce((sum, emp) => {
+        const { totalHours } = calculateMonthlyStats(emp.id);
+        return sum + totalHours;
+      }, 0) / employees.length)
     : 0;
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-lg text-gray-600">Loading employees...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -76,10 +68,22 @@ export const Employees = () => {
           <h1 className="text-3xl font-bold text-gray-900">Employee Management</h1>
           <p className="text-gray-600 mt-2">Manage your moving crew and track payroll</p>
         </div>
-        <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2">
-          <Plus className="h-4 w-4" />
-          Add Employee
-        </button>
+        <div className="flex gap-2">
+          <button 
+            onClick={() => setIsTimeTrackingDialogOpen(true)}
+            className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
+          >
+            <Clock className="h-4 w-4" />
+            Track Time
+          </button>
+          <button 
+            onClick={() => setIsAddEmployeeDialogOpen(true)}
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+          >
+            <Plus className="h-4 w-4" />
+            Add Employee
+          </button>
+        </div>
       </div>
 
       {/* Summary Cards */}
@@ -104,103 +108,77 @@ export const Employees = () => {
 
       {/* Employee Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {employees.map((employee) => (
-          <div key={employee.id} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-            <div className="p-6">
-              <div className="flex justify-between items-start mb-4">
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900">{employee.name}</h3>
-                  <p className="text-sm text-gray-500">Since {employee.hireDate}</p>
-                </div>
-                <StatusBadge status={employee.status} variant="employee" />
-              </div>
-              
-              <div className="space-y-3">
-                <div className="flex items-center text-sm text-gray-600">
-                  <Phone className="h-4 w-4 mr-2" />
-                  {employee.phone}
+        {employees.map((employee) => {
+          const { totalHours, totalEarnings } = calculateMonthlyStats(employee.id);
+          return (
+            <div key={employee.id} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+              <div className="p-6">
+                <div className="flex justify-between items-start mb-4">
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900">{employee.name}</h3>
+                    <p className="text-sm text-gray-500">Since {employee.hire_date}</p>
+                  </div>
+                  <StatusBadge status={employee.status} variant="employee" />
                 </div>
                 
-                <div className="flex items-center text-sm text-gray-600">
-                  <Mail className="h-4 w-4 mr-2" />
-                  {employee.email}
-                </div>
-                
-                <div className="flex items-center text-sm text-gray-600">
-                  <DollarSign className="h-4 w-4 mr-2" />
-                  ${employee.hourlyWage}/hour
-                </div>
-              </div>
-
-              <div className="mt-4 pt-4 border-t border-gray-200">
-                <div className="grid grid-cols-2 gap-4 text-center">
-                  <div>
-                    <p className="text-lg font-semibold text-gray-900">{employee.totalHoursThisMonth}h</p>
-                    <p className="text-xs text-gray-500">Hours This Month</p>
+                <div className="space-y-3">
+                  <div className="flex items-center text-sm text-gray-600">
+                    <Phone className="h-4 w-4 mr-2" />
+                    {employee.phone}
                   </div>
-                  <div>
-                    <p className="text-lg font-semibold text-green-600">
-                      ${employee.totalEarningsThisMonth.toLocaleString()}
-                    </p>
-                    <p className="text-xs text-gray-500">Earnings This Month</p>
+                  
+                  {employee.email && (
+                    <div className="flex items-center text-sm text-gray-600">
+                      <Mail className="h-4 w-4 mr-2" />
+                      {employee.email}
+                    </div>
+                  )}
+                  
+                  <div className="flex items-center text-sm text-gray-600">
+                    <DollarSign className="h-4 w-4 mr-2" />
+                    ${employee.hourly_wage}/hour
                   </div>
                 </div>
-              </div>
 
-              <div className="mt-4 flex gap-2">
-                <button className="flex-1 bg-blue-50 text-blue-700 py-2 px-3 rounded-lg text-sm font-medium hover:bg-blue-100 transition-colors">
-                  Edit Profile
-                </button>
-                <button className="flex-1 bg-green-50 text-green-700 py-2 px-3 rounded-lg text-sm font-medium hover:bg-green-100 transition-colors">
-                  View Hours
-                </button>
+                <div className="mt-4 pt-4 border-t border-gray-200">
+                  <div className="grid grid-cols-2 gap-4 text-center">
+                    <div>
+                      <p className="text-lg font-semibold text-gray-900">{totalHours}h</p>
+                      <p className="text-xs text-gray-500">Hours This Month</p>
+                    </div>
+                    <div>
+                      <p className="text-lg font-semibold text-green-600">
+                        ${totalEarnings.toLocaleString()}
+                      </p>
+                      <p className="text-xs text-gray-500">Earnings This Month</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-4 flex gap-2">
+                  <button className="flex-1 bg-blue-50 text-blue-700 py-2 px-3 rounded-lg text-sm font-medium hover:bg-blue-100 transition-colors">
+                    Edit Profile
+                  </button>
+                  <button className="flex-1 bg-green-50 text-green-700 py-2 px-3 rounded-lg text-sm font-medium hover:bg-green-100 transition-colors">
+                    View Hours
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
-      {/* Recent Time Submissions */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-        <div className="p-6 border-b border-gray-200">
-          <h2 className="text-lg font-semibold text-gray-900">Recent Time Submissions</h2>
-          <p className="text-sm text-gray-600 mt-1">Hours submitted by employees this week</p>
-        </div>
-        <div className="p-6">
-          <div className="space-y-4">
-            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-              <div>
-                <p className="font-medium text-gray-900">Mike Johnson</p>
-                <p className="text-sm text-gray-600">Johnson Residence Move - 8 hours</p>
-              </div>
-              <div className="text-right">
-                <p className="font-medium text-gray-900">$144.00</p>
-                <p className="text-sm text-gray-500">Jan 15, 2024</p>
-              </div>
-            </div>
-            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-              <div>
-                <p className="font-medium text-gray-900">Sarah Davis</p>
-                <p className="text-sm text-gray-600">Office Relocation - 6.5 hours</p>
-              </div>
-              <div className="text-right">
-                <p className="font-medium text-gray-900">$130.00</p>
-                <p className="text-sm text-gray-500">Jan 14, 2024</p>
-              </div>
-            </div>
-            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-              <div>
-                <p className="font-medium text-gray-900">Tom Wilson</p>
-                <p className="text-sm text-gray-600">Davis Family Move - 7 hours</p>
-              </div>
-              <div className="text-right">
-                <p className="font-medium text-gray-900">$112.00</p>
-                <p className="text-sm text-gray-500">Jan 13, 2024</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+      <AddEmployeeDialog 
+        open={isAddEmployeeDialogOpen} 
+        onOpenChange={setIsAddEmployeeDialogOpen}
+        onAddEmployee={handleAddEmployee}
+      />
+      
+      <EmployeeTimeTrackingDialog 
+        open={isTimeTrackingDialogOpen} 
+        onOpenChange={setIsTimeTrackingDialogOpen}
+      />
     </div>
   );
 };
