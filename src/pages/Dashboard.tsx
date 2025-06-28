@@ -1,7 +1,10 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { MetricCard } from '../components/MetricCard';
 import { StatusBadge } from '../components/StatusBadge';
+import { AddLeadDialog } from '../components/AddLeadDialog';
+import { ScheduleJobDialog } from '../components/ScheduleJobDialog';
+import { useNavigate } from 'react-router-dom';
 import { 
   Users, 
   Briefcase, 
@@ -12,6 +15,10 @@ import {
 } from 'lucide-react';
 
 export const Dashboard = () => {
+  const [isAddLeadOpen, setIsAddLeadOpen] = useState(false);
+  const [isScheduleJobOpen, setIsScheduleJobOpen] = useState(false);
+  const navigate = useNavigate();
+
   // Mock data - in real app this would come from your backend
   const metrics = {
     totalLeads: 45,
@@ -184,24 +191,46 @@ export const Dashboard = () => {
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
         <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <button className="p-4 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors">
+          <button 
+            onClick={() => setIsAddLeadOpen(true)}
+            className="p-4 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
+          >
             <Users className="h-6 w-6 text-blue-600 mx-auto mb-2" />
             <p className="text-sm font-medium text-blue-900">Add New Lead</p>
           </button>
-          <button className="p-4 bg-green-50 rounded-lg hover:bg-green-100 transition-colors">
+          <button 
+            onClick={() => setIsScheduleJobOpen(true)}
+            className="p-4 bg-green-50 rounded-lg hover:bg-green-100 transition-colors"
+          >
             <Briefcase className="h-6 w-6 text-green-600 mx-auto mb-2" />
             <p className="text-sm font-medium text-green-900">Schedule Job</p>
           </button>
-          <button className="p-4 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors">
+          <button 
+            onClick={() => navigate('/employees')}
+            className="p-4 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors"
+          >
             <Clock className="h-6 w-6 text-purple-600 mx-auto mb-2" />
             <p className="text-sm font-medium text-purple-900">Review Hours</p>
           </button>
-          <button className="p-4 bg-orange-50 rounded-lg hover:bg-orange-100 transition-colors">
+          <button 
+            onClick={() => navigate('/financials')}
+            className="p-4 bg-orange-50 rounded-lg hover:bg-orange-100 transition-colors"
+          >
             <DollarSign className="h-6 w-6 text-orange-600 mx-auto mb-2" />
             <p className="text-sm font-medium text-orange-900">View Reports</p>
           </button>
         </div>
       </div>
+
+      {/* Dialogs */}
+      <AddLeadDialog 
+        open={isAddLeadOpen} 
+        onOpenChange={setIsAddLeadOpen} 
+      />
+      <ScheduleJobDialog 
+        open={isScheduleJobOpen} 
+        onOpenChange={setIsScheduleJobOpen} 
+      />
     </div>
   );
 };
