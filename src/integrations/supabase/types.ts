@@ -113,53 +113,59 @@ export type Database = {
       }
       jobs: {
         Row: {
+          actual_hours: number
           address: string
           client_email: string | null
           client_id: string | null
           client_name: string
           client_phone: string
           created_at: string
-          estimated_hours: number
           hourly_rate: number
           id: string
           job_date: string
           job_time: string
           movers_needed: number
           notes: string | null
+          paid: boolean
+          paid_at: string | null
           status: string
           updated_at: string
         }
         Insert: {
+          actual_hours: number
           address: string
           client_email?: string | null
           client_id?: string | null
           client_name: string
           client_phone: string
           created_at?: string
-          estimated_hours: number
           hourly_rate: number
           id?: string
           job_date: string
           job_time: string
           movers_needed: number
           notes?: string | null
+          paid?: boolean
+          paid_at?: string | null
           status?: string
           updated_at?: string
         }
         Update: {
+          actual_hours?: number
           address?: string
           client_email?: string | null
           client_id?: string | null
           client_name?: string
           client_phone?: string
           created_at?: string
-          estimated_hours?: number
           hourly_rate?: number
           id?: string
           job_date?: string
           job_time?: string
           movers_needed?: number
           notes?: string | null
+          paid?: boolean
+          paid_at?: string | null
           status?: string
           updated_at?: string
         }

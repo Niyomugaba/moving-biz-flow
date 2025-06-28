@@ -20,7 +20,11 @@ export const Financials = () => {
 
   // Calculate real financial metrics
   const completedJobs = jobs.filter(job => job.status === 'Completed');
-  const monthlyRevenue = completedJobs.reduce((sum, job) => sum + (job.hourly_rate * job.estimated_hours), 0);
+  const paidJobs = completedJobs.filter(job => job.paid);
+  const unpaidJobs = completedJobs.filter(job => !job.paid);
+  
+  const monthlyRevenue = paidJobs.reduce((sum, job) => sum + (job.hourly_rate * job.actual_hours), 0);
+  const unpaidRevenue = unpaidJobs.reduce((sum, job) => sum + (job.hourly_rate * job.actual_hours), 0);
   
   const currentMonth = new Date().getMonth();
   const currentYear = new Date().getFullYear();
@@ -41,7 +45,7 @@ export const Financials = () => {
   
   const convertedLeads = leads.filter(lead => lead.status === 'Converted').length;
   const conversionRate = leads.length > 0 ? Math.round((convertedLeads / leads.length) * 100) : 0;
-  const averageJobValue = completedJobs.length > 0 ? Math.round(monthlyRevenue / completedJobs.length) : 0;
+  const averageJobValue = paidJobs.length > 0 ? Math.round(monthlyRevenue / paidJobs.length) : 0;
 
   // Recent job profitability
   const recentJobsWithProfitability = completedJobs.slice(0, 5).map(job => {
@@ -49,7 +53,7 @@ export const Financials = () => {
     const actualLaborCost = jobTimeEntries.reduce((sum, entry) => 
       sum + (entry.hours_worked * entry.hourly_rate), 0
     );
-    const revenue = job.hourly_rate * job.estimated_hours;
+    const revenue = job.hourly_rate * job.actual_hours;
     const profit = revenue - actualLaborCost;
     const margin = revenue > 0 ? Math.round((profit / revenue) * 100) : 0;
     
@@ -72,34 +76,34 @@ export const Financials = () => {
       {/* Key Financial Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <MetricCard
-          title="Monthly Revenue"
+          title="Paid Revenue"
           value={`$${monthlyRevenue.toLocaleString()}`}
           icon={DollarSign}
-          change={monthlyRevenue > 0 ? "From completed jobs" : "No completed jobs yet"}
+          change={`From ${paidJobs.length} paid jobs`}
           changeType={monthlyRevenue > 0 ? "positive" : "neutral"}
           bgColor="bg-green-50"
         />
         <MetricCard
+          title="Unpaid Revenue"
+          value={`$${unpaidRevenue.toLocaleString()}`}
+          icon={TrendingUp}
+          change={`From ${unpaidJobs.length} unpaid jobs`}
+          changeType={unpaidRevenue > 0 ? "neutral" : "positive"}
+          bgColor="bg-orange-50"
+        />
+        <MetricCard
           title="Monthly Profit"
           value={`$${monthlyProfit.toLocaleString()}`}
-          icon={TrendingUp}
-          change={monthlyProfit > 0 ? `${profitMargin}% margin` : "Complete jobs to see profit"}
-          changeType={monthlyProfit > 0 ? "positive" : "neutral"}
-          bgColor="bg-blue-50"
-        />
-        <MetricCard
-          title="Labor Costs"
-          value={`$${actualLaborCost.toLocaleString()}`}
           icon={Calculator}
-          change="Based on actual hours worked"
-          changeType="neutral"
+          change={monthlyProfit > 0 ? `${profitMargin}% margin` : "Complete and get paid for jobs"}
+          changeType={monthlyProfit > 0 ? "positive" : "neutral"}
         />
         <MetricCard
-          title="Avg Job Value"
+          title="Avg Paid Job Value"
           value={`$${averageJobValue}`}
           icon={Briefcase}
-          change={completedJobs.length > 0 ? `From ${completedJobs.length} completed jobs` : "No completed jobs"}
-          changeType={completedJobs.length > 0 ? "positive" : "neutral"}
+          change={paidJobs.length > 0 ? `From ${paidJobs.length} paid jobs` : "No paid jobs yet"}
+          changeType={paidJobs.length > 0 ? "positive" : "neutral"}
         />
       </div>
 
@@ -109,9 +113,15 @@ export const Financials = () => {
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Revenue Breakdown</h2>
           <div className="space-y-4">
             <div className="flex justify-between items-center">
-              <span className="text-gray-600">Total Revenue</span>
+              <span className="text-gray-600">Paid Revenue</span>
               <span className="font-semibold text-green-600">
                 ${monthlyRevenue.toLocaleString()}
+              </span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-gray-600">Unpaid Revenue</span>
+              <span className="font-semibold text-orange-600">
+                ${unpaidRevenue.toLocaleString()}
               </span>
             </div>
             <div className="flex justify-between items-center">
@@ -128,7 +138,7 @@ export const Financials = () => {
             </div>
             <div className="border-t pt-4">
               <div className="flex justify-between items-center">
-                <span className="text-lg font-semibold text-gray-900">Net Profit</span>
+                <span className="text-lg font-semibold text-gray-900">Net Profit (Paid Only)</span>
                 <span className={`text-lg font-bold ${monthlyProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                   ${monthlyProfit.toLocaleString()}
                 </span>
@@ -138,35 +148,31 @@ export const Financials = () => {
         </div>
 
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Lead Performance</h2>
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Payment Status</h2>
           <div className="space-y-4">
             <div className="flex justify-between items-center">
-              <span className="text-gray-600">Total Leads</span>
-              <span className="font-semibold">{leads.length}</span>
+              <span className="text-gray-600">Total Completed Jobs</span>
+              <span className="font-semibold">{completedJobs.length}</span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-gray-600">Converted Leads</span>
-              <span className="font-semibold text-green-600">{convertedLeads}</span>
+              <span className="text-gray-600">Paid Jobs</span>
+              <span className="font-semibold text-green-600">{paidJobs.length}</span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-gray-600">Conversion Rate</span>
-              <span className="font-semibold text-blue-600">{conversionRate}%</span>
+              <span className="text-gray-600">Unpaid Jobs</span>
+              <span className="font-semibold text-red-600">{unpaidJobs.length}</span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-gray-600">Total Lead Cost</span>
-              <span className="font-semibold">${leadCost.toLocaleString()}</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-gray-600">Cost Per Conversion</span>
-              <span className="font-semibold">
-                ${convertedLeads > 0 ? Math.round(leadCost / convertedLeads) : 0}
+              <span className="text-gray-600">Payment Rate</span>
+              <span className="font-semibold text-blue-600">
+                {completedJobs.length > 0 ? Math.round((paidJobs.length / completedJobs.length) * 100) : 0}%
               </span>
             </div>
             <div className="border-t pt-4">
               <div className="flex justify-between items-center">
-                <span className="text-lg font-semibold text-gray-900">ROI on Leads</span>
-                <span className="text-lg font-bold text-green-600">
-                  {leadCost > 0 ? Math.round((monthlyRevenue / leadCost) * 100) : 0}%
+                <span className="text-lg font-semibold text-gray-900">Outstanding Amount</span>
+                <span className="text-lg font-bold text-orange-600">
+                  ${unpaidRevenue.toLocaleString()}
                 </span>
               </div>
             </div>
@@ -194,6 +200,9 @@ export const Financials = () => {
                   Revenue
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Payment Status
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Actual Labor Cost
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -215,6 +224,13 @@ export const Financials = () => {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                     ${job.revenue.toLocaleString()}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                      job.paid ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                    }`}>
+                      {job.paid ? 'Paid' : 'Unpaid'}
+                    </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-red-600">
                     ${job.actualLaborCost.toLocaleString()}

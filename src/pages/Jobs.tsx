@@ -10,11 +10,15 @@ export const Jobs = () => {
   const [isScheduleDialogOpen, setIsScheduleDialogOpen] = useState(false);
 
   const totalRevenue = jobs
-    .filter(job => job.status === 'Completed')
-    .reduce((sum, job) => sum + (job.hourly_rate * job.estimated_hours), 0);
+    .filter(job => job.status === 'Completed' && job.paid)
+    .reduce((sum, job) => sum + (job.hourly_rate * job.actual_hours), 0);
 
   const activeJobs = jobs.filter(job => job.status !== 'Completed').length;
   const completedJobs = jobs.filter(job => job.status === 'Completed').length;
+  const paidJobs = jobs.filter(job => job.paid).length;
+  const unpaidRevenue = jobs
+    .filter(job => job.status === 'Completed' && !job.paid)
+    .reduce((sum, job) => sum + (job.hourly_rate * job.actual_hours), 0);
 
   if (isLoading) {
     return (
@@ -41,7 +45,7 @@ export const Jobs = () => {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
         <div className="bg-white p-4 rounded-lg shadow-sm border">
           <p className="text-sm text-gray-600">Total Jobs</p>
           <p className="text-2xl font-bold text-gray-900">{jobs.length}</p>
@@ -55,8 +59,12 @@ export const Jobs = () => {
           <p className="text-2xl font-bold text-green-600">{completedJobs}</p>
         </div>
         <div className="bg-white p-4 rounded-lg shadow-sm border">
-          <p className="text-sm text-gray-600">Revenue (Completed)</p>
-          <p className="text-2xl font-bold text-blue-600">${totalRevenue.toLocaleString()}</p>
+          <p className="text-sm text-gray-600">Paid Revenue</p>
+          <p className="text-2xl font-bold text-green-600">${totalRevenue.toLocaleString()}</p>
+        </div>
+        <div className="bg-white p-4 rounded-lg shadow-sm border">
+          <p className="text-sm text-gray-600">Unpaid Revenue</p>
+          <p className="text-2xl font-bold text-red-600">${unpaidRevenue.toLocaleString()}</p>
         </div>
       </div>
 
@@ -67,7 +75,18 @@ export const Jobs = () => {
             <div className="p-6">
               <div className="flex justify-between items-start mb-4">
                 <h3 className="text-lg font-semibold text-gray-900">{job.client_name}</h3>
-                <StatusBadge status={job.status} variant="job" />
+                <div className="flex flex-col items-end gap-2">
+                  <StatusBadge status={job.status} variant="job" />
+                  {job.paid ? (
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                      Paid
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                      Unpaid
+                    </span>
+                  )}
+                </div>
               </div>
               
               <div className="space-y-3">
@@ -93,13 +112,13 @@ export const Jobs = () => {
                   <span className="font-medium">${job.hourly_rate}/hr</span>
                 </div>
                 <div className="flex justify-between items-center text-sm mt-1">
-                  <span className="text-gray-600">Est. Hours:</span>
-                  <span className="font-medium">{job.estimated_hours}h</span>
+                  <span className="text-gray-600">Hours Worked:</span>
+                  <span className="font-medium">{job.actual_hours}h</span>
                 </div>
                 <div className="flex justify-between items-center text-sm mt-1">
-                  <span className="text-gray-600">Est. Total:</span>
-                  <span className="font-semibold text-green-600">
-                    ${(job.hourly_rate * job.estimated_hours).toLocaleString()}
+                  <span className="text-gray-600">Total Cost:</span>
+                  <span className={`font-semibold ${job.paid ? 'text-green-600' : 'text-orange-600'}`}>
+                    ${(job.hourly_rate * job.actual_hours).toLocaleString()}
                   </span>
                 </div>
               </div>

@@ -24,8 +24,9 @@ export const ScheduleJobDialog = ({ open, onOpenChange }: ScheduleJobDialogProps
     jobTime: '',
     hourlyRate: '',
     moversNeeded: '',
-    estimatedHours: '',
-    notes: ''
+    actualHours: '',
+    notes: '',
+    paid: false
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -57,9 +58,11 @@ export const ScheduleJobDialog = ({ open, onOpenChange }: ScheduleJobDialogProps
       job_time: formData.jobTime,
       hourly_rate: parseFloat(formData.hourlyRate),
       movers_needed: parseInt(formData.moversNeeded),
-      estimated_hours: parseFloat(formData.estimatedHours),
+      actual_hours: parseFloat(formData.actualHours),
       status: 'Scheduled',
-      notes: formData.notes || null
+      notes: formData.notes || null,
+      paid: formData.paid,
+      paid_at: formData.paid ? new Date().toISOString() : null
     });
 
     // Reset form
@@ -73,8 +76,9 @@ export const ScheduleJobDialog = ({ open, onOpenChange }: ScheduleJobDialogProps
       jobTime: '',
       hourlyRate: '',
       moversNeeded: '',
-      estimatedHours: '',
-      notes: ''
+      actualHours: '',
+      notes: '',
+      paid: false
     });
     setUseExistingClient(false);
     onOpenChange(false);
@@ -90,6 +94,10 @@ export const ScheduleJobDialog = ({ open, onOpenChange }: ScheduleJobDialogProps
       });
     }
   };
+
+  const totalCost = formData.hourlyRate && formData.actualHours 
+    ? (parseFloat(formData.hourlyRate) * parseFloat(formData.actualHours)).toFixed(2)
+    : '0.00';
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -245,18 +253,40 @@ export const ScheduleJobDialog = ({ open, onOpenChange }: ScheduleJobDialogProps
             
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Estimated Hours
+                Hours Worked
               </label>
               <input
                 type="number"
                 step="0.25"
                 min="0.25"
                 required
-                value={formData.estimatedHours}
-                onChange={(e) => setFormData({ ...formData, estimatedHours: e.target.value })}
+                value={formData.actualHours}
+                onChange={(e) => setFormData({ ...formData, actualHours: e.target.value })}
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
+          </div>
+
+          {/* Total Cost Display */}
+          <div className="bg-blue-50 p-4 rounded-lg">
+            <div className="flex justify-between items-center">
+              <span className="text-lg font-medium text-gray-900">Total Cost:</span>
+              <span className="text-2xl font-bold text-blue-600">${totalCost}</span>
+            </div>
+          </div>
+
+          {/* Payment Status */}
+          <div className="flex items-center space-x-2">
+            <input
+              type="checkbox"
+              id="paid"
+              checked={formData.paid}
+              onChange={(e) => setFormData({ ...formData, paid: e.target.checked })}
+              className="rounded border-gray-300"
+            />
+            <label htmlFor="paid" className="text-sm font-medium text-gray-700">
+              Mark as paid
+            </label>
           </div>
 
           <div>

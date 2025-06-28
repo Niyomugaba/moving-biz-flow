@@ -14,9 +14,11 @@ export interface Job {
   job_time: string;
   hourly_rate: number;
   movers_needed: number;
-  estimated_hours: number;
+  actual_hours: number;
   status: 'Scheduled' | 'In Progress' | 'Completed' | 'Cancelled';
   notes: string | null;
+  paid: boolean;
+  paid_at: string | null;
   created_at: string;
   updated_at: string;
 }
