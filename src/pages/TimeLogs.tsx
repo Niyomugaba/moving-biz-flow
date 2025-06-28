@@ -1,8 +1,7 @@
 
 import React, { useState } from 'react';
-import { StatusBadge } from '../components/StatusBadge';
 import { useTimeEntries } from '@/hooks/useTimeEntries';
-import { Clock, CheckCircle, XCircle, Edit, Filter, Search } from 'lucide-react';
+import { Clock, CheckCircle, XCircle, Edit, Filter, Search, Download, Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
@@ -10,21 +9,32 @@ export const TimeLogs = () => {
   const { timeEntries, isLoading, approveTimeEntry, rejectTimeEntry, updateTimeEntry } = useTimeEntries();
   const [statusFilter, setStatusFilter] = useState<string>('All');
   const [searchTerm, setSearchTerm] = useState('');
+  const [dateFilter, setDateFilter] = useState('');
   const [selectedEntry, setSelectedEntry] = useState<any>(null);
   const [isReviewDialogOpen, setIsReviewDialogOpen] = useState(false);
   const [managerNotes, setManagerNotes] = useState('');
   const [editedHours, setEditedHours] = useState<number>(0);
+  const [selectedEntries, setSelectedEntries] = useState<string[]>([]);
 
   const filteredEntries = timeEntries.filter(entry => {
     const matchesSearch = entry.employees?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          entry.jobs?.client_name.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'All' || entry.status === statusFilter.toLowerCase();
-    return matchesSearch && matchesStatus;
+    const matchesDate = !dateFilter || entry.entry_date === dateFilter;
+    return matchesSearch && matchesStatus && matchesDate;
   });
 
   const pendingCount = timeEntries.filter(entry => entry.status === 'pending').length;
   const approvedCount = timeEntries.filter(entry => entry.status === 'approved').length;
   const rejectedCount = timeEntries.filter(entry => entry.status === 'rejected').length;
+  const totalHoursThisWeek = timeEntries
+    .filter(entry => {
+      const entryDate = new Date(entry.entry_date);
+      const weekAgo = new Date();
+      weekAgo.setDate(weekAgo.getDate() - 7);
+      return entry.status === 'approved' && entryDate >= weekAgo;
+    })
+    .reduce((sum, entry) => sum + entry.hours_worked, 0);
 
   const handleReviewEntry = (entry: any) => {
     setSelectedEntry(entry);
@@ -35,7 +45,6 @@ export const TimeLogs = () => {
 
   const handleApprove = () => {
     if (selectedEntry) {
-      // Update hours if they were edited
       if (editedHours !== selectedEntry.hours_worked) {
         updateTimeEntry({
           id: selectedEntry.id,
@@ -65,6 +74,67 @@ export const TimeLogs = () => {
     }
   };
 
+  const handleBulkApprove = () => {
+    const pendingSelected = selectedEntries.filter(id => {
+      const entry = timeEntries.find(e => e.id === id);
+      return entry?.status === 'pending';
+    });
+    
+    pendingSelected.forEach(id => {
+      approveTimeEntry({ id, managerNotes: 'Bulk approved' });
+    });
+    
+    setSelectedEntries([]);
+  };
+
+  const handleSelectAll = () => {
+    if (selectedEntries.length === filteredEntries.length) {
+      setSelectedEntries([]);
+    } else {
+      setSelectedEntries(filteredEntries.map(entry => entry.id));
+    }
+  };
+
+  const handleSelectEntry = (entryId: string) => {
+    setSelectedEntries(prev => 
+      prev.includes(entryId) 
+        ? prev.filter(id => id !== entryId)
+        : [...prev, entryId]
+    );
+  };
+
+  const exportToCSV = () => {
+    const csvData = filteredEntries.map(entry => ({
+      'Employee': entry.employees?.name || 'Unknown',
+      'Client': entry.jobs?.client_name || 'Unknown',
+      'Date': entry.entry_date,
+      'Hours': entry.hours_worked,
+      'Rate': entry.hourly_rate,
+      'Total': (entry.hours_worked * entry.hourly_rate).toFixed(2),
+      'Status': entry.status,
+      'Notes': entry.notes || '',
+      'Manager Notes': entry.manager_notes || ''
+    }));
+
+    const headers = Object.keys(csvData[0] || {});
+    const csvString = [
+      headers.join(','),
+      ...csvData.map(row => 
+        headers.map(header => `"${row[header as keyof typeof row] || ''}"`).join(',')
+      )
+    ].join('\n');
+
+    const blob = new Blob([csvString], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `time-logs-${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'pending': return 'bg-yellow-100 text-yellow-800';
@@ -89,10 +159,21 @@ export const TimeLogs = () => {
           <h1 className="text-3xl font-bold text-gray-900">Time Logs Management</h1>
           <p className="text-gray-600 mt-2">Review and approve employee hour submissions</p>
         </div>
+        <div className="flex gap-2">
+          <Button onClick={exportToCSV} variant="outline" className="flex items-center gap-2">
+            <Download className="h-4 w-4" />
+            Export CSV
+          </Button>
+          {selectedEntries.length > 0 && (
+            <Button onClick={handleBulkApprove} className="bg-green-600 hover:bg-green-700">
+              Approve Selected ({selectedEntries.length})
+            </Button>
+          )}
+        </div>
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      {/* Enhanced Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
         <div className="bg-white p-4 rounded-lg shadow-sm border">
           <p className="text-sm text-gray-600">Total Submissions</p>
           <p className="text-2xl font-bold text-gray-900">{timeEntries.length}</p>
@@ -109,9 +190,13 @@ export const TimeLogs = () => {
           <p className="text-sm text-gray-600">Rejected</p>
           <p className="text-2xl font-bold text-red-600">{rejectedCount}</p>
         </div>
+        <div className="bg-white p-4 rounded-lg shadow-sm border">
+          <p className="text-sm text-gray-600">Hours This Week</p>
+          <p className="text-2xl font-bold text-blue-600">{totalHoursThisWeek}h</p>
+        </div>
       </div>
 
-      {/* Filters */}
+      {/* Enhanced Filters */}
       <div className="bg-white p-4 rounded-lg shadow-sm border">
         <div className="flex flex-col sm:flex-row gap-4">
           <div className="relative flex-1">
@@ -122,6 +207,15 @@ export const TimeLogs = () => {
               className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <Calendar className="h-4 w-4 text-gray-400" />
+            <input
+              type="date"
+              className="border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+              value={dateFilter}
+              onChange={(e) => setDateFilter(e.target.value)}
             />
           </div>
           <div className="flex items-center gap-2">
@@ -140,12 +234,20 @@ export const TimeLogs = () => {
         </div>
       </div>
 
-      {/* Time Entries Table */}
+      {/* Enhanced Time Entries Table */}
       <div className="bg-white rounded-lg shadow-sm border">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
+                <th className="px-6 py-3 text-left">
+                  <input
+                    type="checkbox"
+                    checked={selectedEntries.length === filteredEntries.length && filteredEntries.length > 0}
+                    onChange={handleSelectAll}
+                    className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                  />
+                </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Employee
                 </th>
@@ -175,6 +277,14 @@ export const TimeLogs = () => {
             <tbody className="bg-white divide-y divide-gray-200">
               {filteredEntries.map((entry) => (
                 <tr key={entry.id} className="hover:bg-gray-50">
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <input
+                      type="checkbox"
+                      checked={selectedEntries.includes(entry.id)}
+                      onChange={() => handleSelectEntry(entry.id)}
+                      className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                    />
+                  </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm font-medium text-gray-900">
                       {entry.employees?.name || 'Unknown Employee'}
@@ -210,9 +320,9 @@ export const TimeLogs = () => {
                       variant="outline"
                       size="sm"
                       onClick={() => handleReviewEntry(entry)}
-                      className="mr-2"
+                      className="flex items-center gap-1"
                     >
-                      <Edit className="h-4 w-4 mr-1" />
+                      <Edit className="h-4 w-4" />
                       Review
                     </Button>
                   </td>
@@ -257,7 +367,10 @@ export const TimeLogs = () => {
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                 />
                 <p className="text-xs text-gray-500 mt-1">
-                  Original: {selectedEntry.hours_worked}h
+                  Original: {selectedEntry.hours_worked}h | Rate: ${selectedEntry.hourly_rate}/hr
+                </p>
+                <p className="text-xs text-blue-600 mt-1">
+                  New Total: ${(editedHours * selectedEntry.hourly_rate).toFixed(2)}
                 </p>
               </div>
               

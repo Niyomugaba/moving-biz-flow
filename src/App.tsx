@@ -11,6 +11,8 @@ import { Jobs } from "./pages/Jobs";
 import { Employees } from "./pages/Employees";
 import { Clients } from "./pages/Clients";
 import { Financials } from "./pages/Financials";
+import { EmployeePortal } from "./pages/EmployeePortal";
+import { TimeLogs } from "./pages/TimeLogs";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -21,17 +23,20 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <Layout>
-          <Routes>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/leads" element={<Leads />} />
-            <Route path="/jobs" element={<Jobs />} />
-            <Route path="/employees" element={<Employees />} />
-            <Route path="/clients" element={<Clients />} />
-            <Route path="/financials" element={<Financials />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </Layout>
+        <Routes>
+          {/* Employee Portal - No Layout (standalone page) */}
+          <Route path="/employee-portal" element={<EmployeePortal />} />
+          
+          {/* Admin Routes with Layout */}
+          <Route path="/" element={<Layout><Dashboard /></Layout>} />
+          <Route path="/leads" element={<Layout><Leads /></Layout>} />
+          <Route path="/jobs" element={<Layout><Jobs /></Layout>} />
+          <Route path="/employees" element={<Layout><Employees /></Layout>} />
+          <Route path="/clients" element={<Layout><Clients /></Layout>} />
+          <Route path="/financials" element={<Layout><Financials /></Layout>} />
+          <Route path="/time-logs" element={<Layout><TimeLogs /></Layout>} />
+          <Route path="*" element={<Layout><NotFound /></Layout>} />
+        </Routes>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>

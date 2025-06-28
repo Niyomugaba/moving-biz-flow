@@ -1,10 +1,8 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import { Button } from './ui/button';
-import { useEmployees } from '@/hooks/useEmployees';
-import { useJobs } from '@/hooks/useJobs';
-import { useTimeEntries } from '@/hooks/useTimeEntries';
+import { Clock, ExternalLink, Smartphone } from 'lucide-react';
 
 interface EmployeeTimeTrackingDialogProps {
   open: boolean;
@@ -12,174 +10,89 @@ interface EmployeeTimeTrackingDialogProps {
 }
 
 export const EmployeeTimeTrackingDialog = ({ open, onOpenChange }: EmployeeTimeTrackingDialogProps) => {
-  const { employees } = useEmployees();
-  const { jobs } = useJobs();
-  const { addTimeEntry } = useTimeEntries();
-  const [step, setStep] = useState<'pin' | 'timeEntry'>('pin');
-  const [pin, setPin] = useState('');
-  const [selectedEmployee, setSelectedEmployee] = useState<any>(null);
-  const [timeEntryData, setTimeEntryData] = useState({
-    jobId: '',
-    hoursWorked: '',
-    notes: ''
-  });
+  const portalUrl = `${window.location.origin}/employee-portal`;
 
-  const handlePinSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    // Find employee by their ID (using last 4 digits as PIN)
-    const employee = employees.find(emp => emp.id.slice(-4) === pin);
-    if (employee) {
-      setSelectedEmployee(employee);
-      setStep('timeEntry');
-    } else {
-      alert('Invalid PIN. Please try again.');
-    }
+  const copyToClipboard = () => {
+    navigator.clipboard.writeText(portalUrl);
+    alert('Portal link copied to clipboard!');
   };
 
-  const handleTimeEntrySubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const selectedJob = jobs.find(job => job.id === timeEntryData.jobId);
-    
-    if (selectedJob && selectedEmployee) {
-      addTimeEntry({
-        employee_id: selectedEmployee.id,
-        job_id: timeEntryData.jobId,
-        hours_worked: parseFloat(timeEntryData.hoursWorked),
-        hourly_rate: selectedEmployee.hourly_wage,
-        entry_date: new Date().toISOString().split('T')[0],
-        notes: timeEntryData.notes || null
-      });
-      
-      // Reset form
-      setStep('pin');
-      setPin('');
-      setSelectedEmployee(null);
-      setTimeEntryData({
-        jobId: '',
-        hoursWorked: '',
-        notes: ''
-      });
-      onOpenChange(false);
-    }
+  const openPortal = () => {
+    window.open('/employee-portal', '_blank');
   };
-
-  const handleClose = () => {
-    setStep('pin');
-    setPin('');
-    setSelectedEmployee(null);
-    setTimeEntryData({
-      jobId: '',
-      hoursWorked: '',
-      notes: ''
-    });
-    onOpenChange(false);
-  };
-
-  const completedJobs = jobs.filter(job => job.status === 'Completed');
 
   return (
-    <Dialog open={open} onOpenChange={handleClose}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Employee Time Tracking</DialogTitle>
+          <DialogTitle className="flex items-center gap-2">
+            <Clock className="h-5 w-5" />
+            Employee Time Portal
+          </DialogTitle>
         </DialogHeader>
         
-        {step === 'pin' && (
-          <form onSubmit={handlePinSubmit} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Enter Your 4-Digit PIN
-              </label>
-              <p className="text-xs text-gray-500 mb-2">
-                Your PIN is the last 4 digits of your employee ID
-              </p>
-              <input
-                type="password"
-                maxLength={4}
-                required
-                value={pin}
-                onChange={(e) => setPin(e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-center text-2xl tracking-widest focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                placeholder="••••"
-              />
+        <div className="space-y-6">
+          <div className="text-center">
+            <div className="bg-blue-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
+              <Smartphone className="h-8 w-8 text-blue-600" />
             </div>
-            
-            <div className="flex gap-2 pt-4">
-              <Button type="button" variant="outline" onClick={handleClose} className="flex-1">
-                Cancel
-              </Button>
-              <Button type="submit" className="flex-1">
-                Continue
-              </Button>
-            </div>
-          </form>
-        )}
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              Share this link with your employees
+            </h3>
+            <p className="text-gray-600 text-sm">
+              Employees can securely submit their work hours using their phone number and SMS verification.
+            </p>
+          </div>
 
-        {step === 'timeEntry' && selectedEmployee && (
-          <form onSubmit={handleTimeEntrySubmit} className="space-y-4">
-            <div className="bg-green-50 p-3 rounded-lg">
-              <p className="text-sm text-green-800">
-                Welcome, <strong>{selectedEmployee.name}</strong>!
-              </p>
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Select Job
-              </label>
-              <select
-                required
-                value={timeEntryData.jobId}
-                onChange={(e) => setTimeEntryData({ ...timeEntryData, jobId: e.target.value })}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value="">Select a completed job...</option>
-                {completedJobs.map((job) => (
-                  <option key={job.id} value={job.id}>
-                    {job.client_name} - {job.job_date}
-                  </option>
-                ))}
-              </select>
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Hours Worked
-              </label>
+          <div className="bg-gray-50 p-4 rounded-lg">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Employee Portal URL
+            </label>
+            <div className="flex gap-2">
               <input
-                type="number"
-                step="0.25"
-                min="0"
-                max="24"
-                required
-                value={timeEntryData.hoursWorked}
-                onChange={(e) => setTimeEntryData({ ...timeEntryData, hoursWorked: e.target.value })}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                type="text"
+                readOnly
+                value={portalUrl}
+                className="flex-1 bg-white border border-gray-300 rounded-lg px-3 py-2 text-sm font-mono"
               />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Notes (Optional)
-              </label>
-              <textarea
-                value={timeEntryData.notes}
-                onChange={(e) => setTimeEntryData({ ...timeEntryData, notes: e.target.value })}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                rows={3}
-              />
-            </div>
-            
-            <div className="flex gap-2 pt-4">
-              <Button type="button" variant="outline" onClick={() => setStep('pin')} className="flex-1">
-                Back
-              </Button>
-              <Button type="submit" className="flex-1">
-                Submit Hours
+              <Button
+                onClick={copyToClipboard}
+                variant="outline"
+                size="sm"
+              >
+                Copy
               </Button>
             </div>
-          </form>
-        )}
+          </div>
+
+          <div className="bg-green-50 p-4 rounded-lg">
+            <h4 className="font-medium text-green-800 mb-2">How it works:</h4>
+            <ul className="text-sm text-green-700 space-y-1">
+              <li>• Employee enters their phone number</li>
+              <li>• System sends SMS with 6-digit code</li>
+              <li>• Employee enters verification code</li>
+              <li>• Employee submits start/end times and job</li>
+              <li>• You review and approve in Time Logs</li>
+            </ul>
+          </div>
+
+          <div className="flex gap-2">
+            <Button
+              onClick={() => onOpenChange(false)}
+              variant="outline"
+              className="flex-1"
+            >
+              Close
+            </Button>
+            <Button
+              onClick={openPortal}
+              className="flex-1 bg-blue-600 hover:bg-blue-700"
+            >
+              <ExternalLink className="h-4 w-4 mr-2" />
+              Test Portal
+            </Button>
+          </div>
+        </div>
       </DialogContent>
     </Dialog>
   );
