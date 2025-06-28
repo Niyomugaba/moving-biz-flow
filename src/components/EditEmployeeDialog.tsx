@@ -31,7 +31,7 @@ export const EditEmployeeDialog = ({
     phone: '',
     email: '',
     hourly_wage: '',
-    status: 'Active' as 'Active' | 'Inactive'
+    status: 'active' as 'active' | 'inactive' | 'terminated' | 'on_leave'
   });
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
@@ -134,13 +134,15 @@ export const EditEmployeeDialog = ({
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Status
             </label>
-            <Select value={formData.status} onValueChange={(value) => setFormData({ ...formData, status: value as 'Active' | 'Inactive' })}>
+            <Select value={formData.status} onValueChange={(value) => setFormData({ ...formData, status: value as 'active' | 'inactive' | 'terminated' | 'on_leave' })}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="Active">Active</SelectItem>
-                <SelectItem value="Inactive">Inactive</SelectItem>
+                <SelectItem value="active">Active</SelectItem>
+                <SelectItem value="inactive">Inactive</SelectItem>
+                <SelectItem value="terminated">Terminated</SelectItem>
+                <SelectItem value="on_leave">On Leave</SelectItem>
               </SelectContent>
             </Select>
           </div>

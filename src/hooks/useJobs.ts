@@ -53,7 +53,7 @@ export const useJobs = () => {
     mutationFn: async (jobData: Omit<Job, 'id' | 'created_at' | 'updated_at' | 'job_number'>) => {
       const { data, error } = await supabase
         .from('jobs')
-        .insert([jobData])
+        .insert(jobData)
         .select()
         .single();
       

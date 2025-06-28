@@ -44,7 +44,7 @@ export const useEmployees = () => {
     mutationFn: async (employeeData: Omit<Employee, 'id' | 'created_at' | 'updated_at' | 'employee_number'>) => {
       const { data, error } = await supabase
         .from('employees')
-        .insert([employeeData])
+        .insert(employeeData)
         .select()
         .single();
       

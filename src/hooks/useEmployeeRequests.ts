@@ -60,7 +60,7 @@ export const useEmployeeRequests = () => {
     }) => {
       const { data, error } = await supabase
         .from('employee_requests')
-        .insert([requestData])
+        .insert(requestData)
         .select()
         .single();
       
@@ -110,9 +110,9 @@ export const useEmployeeRequests = () => {
             .from('employees')
             .insert({
               name: currentRequest.name,
-              email: currentRequest.email,
+              email: currentRequest.email || null,
               phone: currentRequest.phone,
-              address: currentRequest.address,
+              address: currentRequest.address || null,
               position: currentRequest.position_applied || 'mover',
               hourly_wage: hourlyWage,
               status: 'active',

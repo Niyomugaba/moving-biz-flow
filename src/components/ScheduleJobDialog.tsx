@@ -19,12 +19,13 @@ export const ScheduleJobDialog = ({ open, onOpenChange }: ScheduleJobDialogProps
     clientName: '',
     clientPhone: '',
     clientEmail: '',
-    address: '',
+    originAddress: '',
+    destinationAddress: '',
     jobDate: '',
-    jobTime: '',
+    startTime: '',
     hourlyRate: '',
     moversNeeded: '',
-    actualHours: '',
+    estimatedHours: '',
     notes: '',
     paid: false
   });
@@ -40,7 +41,6 @@ export const ScheduleJobDialog = ({ open, onOpenChange }: ScheduleJobDialogProps
         client_name: selectedClient?.name || '',
         client_phone: selectedClient?.phone || '',
         client_email: selectedClient?.email || null,
-        address: selectedClient?.address || formData.address
       };
     } else {
       clientData = {
@@ -48,21 +48,32 @@ export const ScheduleJobDialog = ({ open, onOpenChange }: ScheduleJobDialogProps
         client_name: formData.clientName,
         client_phone: formData.clientPhone,
         client_email: formData.clientEmail || null,
-        address: formData.address
       };
     }
 
+    const estimatedHours = parseFloat(formData.estimatedHours);
+    const hourlyRate = parseFloat(formData.hourlyRate);
+
     addJob({
       ...clientData,
+      origin_address: formData.originAddress,
+      destination_address: formData.destinationAddress,
       job_date: formData.jobDate,
-      job_time: formData.jobTime,
-      hourly_rate: parseFloat(formData.hourlyRate),
+      start_time: formData.startTime,
+      hourly_rate: hourlyRate,
       movers_needed: parseInt(formData.moversNeeded),
-      actual_hours: parseFloat(formData.actualHours),
-      status: 'Scheduled',
-      notes: formData.notes || null,
-      paid: formData.paid,
-      paid_at: formData.paid ? new Date().toISOString() : null
+      estimated_duration_hours: estimatedHours,
+      estimated_total: estimatedHours * hourlyRate,
+      actual_duration_hours: null,
+      actual_total: null,
+      status: 'scheduled',
+      special_requirements: formData.notes || null,
+      is_paid: formData.paid,
+      paid_at: formData.paid ? new Date().toISOString() : null,
+      truck_size: null,
+      completion_notes: null,
+      customer_satisfaction: null,
+      payment_method: null
     });
 
     // Reset form
@@ -71,12 +82,13 @@ export const ScheduleJobDialog = ({ open, onOpenChange }: ScheduleJobDialogProps
       clientName: '',
       clientPhone: '',
       clientEmail: '',
-      address: '',
+      originAddress: '',
+      destinationAddress: '',
       jobDate: '',
-      jobTime: '',
+      startTime: '',
       hourlyRate: '',
       moversNeeded: '',
-      actualHours: '',
+      estimatedHours: '',
       notes: '',
       paid: false
     });
@@ -90,13 +102,13 @@ export const ScheduleJobDialog = ({ open, onOpenChange }: ScheduleJobDialogProps
       setFormData({
         ...formData,
         clientId,
-        address: selectedClient.address
+        originAddress: selectedClient.primary_address
       });
     }
   };
 
-  const totalCost = formData.hourlyRate && formData.actualHours 
-    ? (parseFloat(formData.hourlyRate) * parseFloat(formData.actualHours)).toFixed(2)
+  const totalCost = formData.hourlyRate && formData.estimatedHours 
+    ? (parseFloat(formData.hourlyRate) * parseFloat(formData.estimatedHours)).toFixed(2)
     : '0.00';
 
   return (
@@ -183,12 +195,25 @@ export const ScheduleJobDialog = ({ open, onOpenChange }: ScheduleJobDialogProps
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Job Address
+              Origin Address
             </label>
             <textarea
               required
-              value={formData.address}
-              onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+              value={formData.originAddress}
+              onChange={(e) => setFormData({ ...formData, originAddress: e.target.value })}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              rows={2}
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Destination Address
+            </label>
+            <textarea
+              required
+              value={formData.destinationAddress}
+              onChange={(e) => setFormData({ ...formData, destinationAddress: e.target.value })}
               className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               rows={2}
             />
@@ -210,13 +235,13 @@ export const ScheduleJobDialog = ({ open, onOpenChange }: ScheduleJobDialogProps
             
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Job Time
+                Start Time
               </label>
               <input
                 type="time"
                 required
-                value={formData.jobTime}
-                onChange={(e) => setFormData({ ...formData, jobTime: e.target.value })}
+                value={formData.startTime}
+                onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
@@ -253,15 +278,15 @@ export const ScheduleJobDialog = ({ open, onOpenChange }: ScheduleJobDialogProps
             
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Hours Worked
+                Estimated Hours
               </label>
               <input
                 type="number"
                 step="0.25"
                 min="0.25"
                 required
-                value={formData.actualHours}
-                onChange={(e) => setFormData({ ...formData, actualHours: e.target.value })}
+                value={formData.estimatedHours}
+                onChange={(e) => setFormData({ ...formData, estimatedHours: e.target.value })}
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
@@ -270,7 +295,7 @@ export const ScheduleJobDialog = ({ open, onOpenChange }: ScheduleJobDialogProps
           {/* Total Cost Display */}
           <div className="bg-blue-50 p-4 rounded-lg">
             <div className="flex justify-between items-center">
-              <span className="text-lg font-medium text-gray-900">Total Cost:</span>
+              <span className="text-lg font-medium text-gray-900">Estimated Total:</span>
               <span className="text-2xl font-bold text-blue-600">${totalCost}</span>
             </div>
           </div>
@@ -291,7 +316,7 @@ export const ScheduleJobDialog = ({ open, onOpenChange }: ScheduleJobDialogProps
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Notes (Optional)
+              Special Requirements (Optional)
             </label>
             <textarea
               value={formData.notes}

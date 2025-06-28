@@ -8,10 +8,12 @@ export interface Lead {
   name: string;
   phone: string;
   email: string | null;
-  source: string;
-  cost: number;
-  status: 'New' | 'Contacted' | 'Converted' | 'Lost';
+  source: 'website' | 'referral' | 'google_ads' | 'facebook' | 'phone' | 'walk_in' | 'other';
+  status: 'new' | 'contacted' | 'quoted' | 'converted' | 'lost';
+  estimated_value: number | null;
   notes: string | null;
+  follow_up_date: string | null;
+  assigned_to: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -37,7 +39,7 @@ export const useLeads = () => {
     mutationFn: async (leadData: Omit<Lead, 'id' | 'created_at' | 'updated_at'>) => {
       const { data, error } = await supabase
         .from('leads')
-        .insert([leadData])
+        .insert(leadData)
         .select()
         .single();
       
