@@ -66,7 +66,7 @@ export const useJobs = () => {
       special_requirements?: string;
       client_id?: string;
     }) => {
-      // Don't include auto-generated fields like job_number
+      // Only include fields that exist in the jobs table schema
       const { data, error } = await supabase
         .from('jobs')
         .insert({

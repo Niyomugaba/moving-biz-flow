@@ -13,33 +13,6 @@ export const Dashboard = () => {
   const { leads } = useLeads();
   const { timeEntries } = useTimeEntries();
 
-  // Sample data for demo
-  const sampleJob = {
-    id: '1',
-    client_name: 'Jane Doe',
-    origin: '123 Oak St',
-    destination: '456 Pine Ave',
-    date: '2024-01-15',
-    status: 'scheduled' as const,
-    estimated_hours: 4,
-    hourly_rate: 120
-  };
-
-  const sampleEmployee = {
-    name: 'Mike Johnson',
-    position: 'Senior Mover',
-    status: 'active' as const,
-    hourly_wage: 25
-  };
-
-  const sampleLead = {
-    name: 'Sarah Wilson',
-    phone: '(555) 234-5678',
-    source: 'website' as const,
-    status: 'new' as const,
-    estimated_value: 800
-  };
-
   // Calculate metrics
   const totalJobs = jobs.length;
   const newLeads = leads.filter(lead => lead.status === 'new').length;
@@ -64,29 +37,25 @@ export const Dashboard = () => {
       title: 'This Month Revenue',
       value: `$${monthlyRevenue.toLocaleString()}`,
       change: '+12%',
-      icon: DollarSign,
-      color: 'text-green-600' as const
+      icon: DollarSign
     },
     {
       title: 'Active Jobs',
       value: jobs.filter(job => job.status === 'scheduled' || job.status === 'in_progress').length.toString(),
       change: '+3',
-      icon: Briefcase,
-      color: 'text-blue-600' as const
+      icon: Briefcase
     },
     {
       title: 'New Leads',
       value: newLeads.toString(),
       change: '+8',
-      icon: Users,
-      color: 'text-purple-600' as const
+      icon: Users
     },
     {
       title: 'Pending Reviews',
       value: pendingTimeEntries.toString(),
       change: '-2',
-      icon: Calendar,
-      color: 'text-orange-600' as const
+      icon: Calendar
     }
   ];
 
@@ -110,7 +79,6 @@ export const Dashboard = () => {
             value={metric.value}
             change={metric.change}
             icon={metric.icon}
-            color={metric.color}
           />
         ))}
       </div>

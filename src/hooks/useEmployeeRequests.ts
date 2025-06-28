@@ -106,7 +106,7 @@ export const useEmployeeRequests = () => {
         if (status === 'approved' && hourlyWage) {
           console.log('Creating employee record...');
           
-          // Create employee record - don't include auto-generated fields like employee_number
+          // Create employee record - only include fields that exist in the employees table
           const { data: employeeData, error: employeeError } = await supabase
             .from('employees')
             .insert({

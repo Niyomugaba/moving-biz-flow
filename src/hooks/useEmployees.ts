@@ -52,7 +52,7 @@ export const useEmployees = () => {
       position?: string;
       department?: string;
     }) => {
-      // Don't include auto-generated fields like employee_number
+      // Only include fields that exist in the employees table schema
       const { data, error } = await supabase
         .from('employees')
         .insert({
