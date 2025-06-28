@@ -58,17 +58,41 @@ export const useEmployeeRequests = () => {
     }) => {
       console.log('Updating request status:', { id, status, notes, hourlyWage });
       
-      // First update the request status
+      // First, check if the request exists
+      const { data: existingRequest, error: checkError } = await supabase
+        .from('employee_requests')
+        .select('*')
+        .eq('id', id)
+        .maybeSingle();
+      
+      if (checkError) {
+        console.error('Error checking request:', checkError);
+        throw checkError;
+      }
+      
+      if (!existingRequest) {
+        console.error('Request not found with ID:', id);
+        throw new Error('Employee request not found');
+      }
+      
+      console.log('Found existing request:', existingRequest);
+      
+      // Update the request status
       const { data: requestData, error: requestError } = await supabase
         .from('employee_requests')
         .update({ status, notes })
         .eq('id', id)
         .select()
-        .single();
+        .maybeSingle();
       
       if (requestError) {
         console.error('Request update error:', requestError);
         throw requestError;
+      }
+
+      if (!requestData) {
+        console.error('No data returned from update');
+        throw new Error('Failed to update employee request');
       }
 
       console.log('Request updated successfully:', requestData);
@@ -87,7 +111,7 @@ export const useEmployeeRequests = () => {
             hire_date: new Date().toISOString().split('T')[0]
           }])
           .select()
-          .single();
+          .maybeSingle();
         
         if (employeeError) {
           console.error('Employee creation error:', employeeError);
@@ -125,7 +149,7 @@ export const useEmployeeRequests = () => {
       console.error('Mutation error:', error);
       toast({
         title: "Error",
-        description: "Failed to update the employee request. Please try again.",
+        description: `Failed to update the employee request: ${error.message}. Please try again.`,
         variant: "destructive",
       });
     }
