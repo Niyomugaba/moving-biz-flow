@@ -56,6 +56,8 @@ export const useEmployeeRequests = () => {
       notes?: string;
       hourlyWage?: number;
     }) => {
+      console.log('Updating request status:', { id, status, notes, hourlyWage });
+      
       // First update the request status
       const { data: requestData, error: requestError } = await supabase
         .from('employee_requests')
@@ -64,11 +66,18 @@ export const useEmployeeRequests = () => {
         .select()
         .single();
       
-      if (requestError) throw requestError;
+      if (requestError) {
+        console.error('Request update error:', requestError);
+        throw requestError;
+      }
+
+      console.log('Request updated successfully:', requestData);
 
       // If approved, create employee record
       if (status === 'approved' && hourlyWage) {
-        const { error: employeeError } = await supabase
+        console.log('Creating employee record...');
+        
+        const { data: employeeData, error: employeeError } = await supabase
           .from('employees')
           .insert([{
             name: requestData.name,
@@ -76,21 +85,34 @@ export const useEmployeeRequests = () => {
             hourly_wage: hourlyWage,
             status: 'Active',
             hire_date: new Date().toISOString().split('T')[0]
-          }]);
+          }])
+          .select()
+          .single();
         
-        if (employeeError) throw employeeError;
+        if (employeeError) {
+          console.error('Employee creation error:', employeeError);
+          throw employeeError;
+        }
+
+        console.log('Employee created successfully:', employeeData);
       }
 
       return requestData;
     },
     onSuccess: (data, variables) => {
+      console.log('Mutation success, invalidating queries...');
       queryClient.invalidateQueries({ queryKey: ['employeeRequests'] });
       queryClient.invalidateQueries({ queryKey: ['employees'] });
       
       if (variables.status === 'approved') {
         toast({
           title: "Request Approved",
-          description: `${data.name} has been approved and added as an employee.`,
+          description: `${data.name} has been approved and can now access the employee portal with their phone number.`,
+        });
+      } else if (variables.status === 'rejected') {
+        toast({
+          title: "Request Rejected",
+          description: `${data.name}'s request has been rejected.`,
         });
       } else {
         toast({
@@ -98,6 +120,14 @@ export const useEmployeeRequests = () => {
           description: "The employee request has been updated.",
         });
       }
+    },
+    onError: (error) => {
+      console.error('Mutation error:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update the employee request. Please try again.",
+        variant: "destructive",
+      });
     }
   });
 
