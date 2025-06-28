@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { StatusBadge } from '../components/StatusBadge';
 import { AddLeadDialog } from '../components/AddLeadDialog';
@@ -23,11 +22,15 @@ export const Leads = () => {
     });
   };
 
-  const handleUpdateLeadStatus = (leadId: string, newStatus: 'New' | 'Contacted' | 'Converted' | 'Lost') => {
+  const handleUpdateLeadStatus = (e: React.MouseEvent, leadId: string, newStatus: 'New' | 'Contacted' | 'Converted' | 'Lost') => {
+    e.stopPropagation();
+    e.preventDefault();
     updateLead({ id: leadId, updates: { status: newStatus } });
   };
 
-  const handleConvertLead = (leadId: string) => {
+  const handleConvertLead = (e: React.MouseEvent, leadId: string) => {
+    e.stopPropagation();
+    e.preventDefault();
     updateLead({ id: leadId, updates: { status: 'Converted' } });
   };
 
@@ -60,7 +63,7 @@ export const Leads = () => {
         </div>
         <button 
           onClick={() => setIsAddLeadDialogOpen(true)}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+          className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors flex items-center gap-2"
         >
           <Plus className="h-4 w-4" />
           Add New Lead
@@ -79,7 +82,7 @@ export const Leads = () => {
         </div>
         <div className="bg-white p-4 rounded-lg shadow-sm border">
           <p className="text-sm text-gray-600">Conversion Rate</p>
-          <p className="text-2xl font-bold text-blue-600">{conversionRate}%</p>
+          <p className="text-2xl font-bold text-purple-600">{conversionRate}%</p>
         </div>
         <div className="bg-white p-4 rounded-lg shadow-sm border">
           <p className="text-sm text-gray-600">Total Cost</p>
@@ -95,7 +98,7 @@ export const Leads = () => {
             <input
               type="text"
               placeholder="Search leads..."
-              className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
@@ -103,7 +106,7 @@ export const Leads = () => {
           <div className="flex items-center gap-2">
             <Filter className="h-4 w-4 text-gray-400" />
             <select
-              className="border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
             >
@@ -167,14 +170,14 @@ export const Leads = () => {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <button 
-                      onClick={() => handleUpdateLeadStatus(lead.id, lead.status === 'New' ? 'Contacted' : lead.status)}
-                      className="text-blue-600 hover:text-blue-900 mr-3"
+                      onClick={(e) => handleUpdateLeadStatus(e, lead.id, lead.status === 'New' ? 'Contacted' : lead.status)}
+                      className="text-purple-600 hover:text-purple-900 mr-3"
                     >
                       Edit
                     </button>
                     {lead.status !== 'Converted' && (
                       <button 
-                        onClick={() => handleConvertLead(lead.id)}
+                        onClick={(e) => handleConvertLead(e, lead.id)}
                         className="text-green-600 hover:text-green-900"
                       >
                         Convert
