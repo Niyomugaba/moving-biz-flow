@@ -59,7 +59,26 @@ export const useEmployeeRequests = () => {
       console.log('Updating request status:', { id, status, notes, hourlyWage });
       
       try {
-        // Update the request status first
+        // First, check if the request exists
+        const { data: existingRequest, error: checkError } = await supabase
+          .from('employee_requests')
+          .select('*')
+          .eq('id', id)
+          .maybeSingle();
+        
+        if (checkError) {
+          console.error('Error checking request:', checkError);
+          throw new Error(`Failed to check request: ${checkError.message}`);
+        }
+
+        if (!existingRequest) {
+          console.error('Request not found with ID:', id);
+          throw new Error('Employee request not found. It may have been already processed or deleted.');
+        }
+
+        console.log('Found existing request:', existingRequest);
+
+        // Update the request status
         const { data: requestData, error: requestError } = await supabase
           .from('employee_requests')
           .update({ status, notes })
@@ -73,7 +92,7 @@ export const useEmployeeRequests = () => {
         }
 
         if (!requestData) {
-          throw new Error('Employee request not found');
+          throw new Error('Failed to update employee request - no data returned');
         }
 
         console.log('Request updated successfully:', requestData);
@@ -97,6 +116,10 @@ export const useEmployeeRequests = () => {
           if (employeeError) {
             console.error('Employee creation error:', employeeError);
             throw new Error(`Failed to create employee: ${employeeError.message}`);
+          }
+
+          if (!employeeData) {
+            throw new Error('Failed to create employee record - no data returned');
           }
 
           console.log('Employee created successfully:', employeeData);
