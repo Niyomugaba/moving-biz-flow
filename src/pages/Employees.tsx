@@ -3,7 +3,8 @@ import React, { useState } from 'react';
 import { StatusBadge } from '../components/StatusBadge';
 import { AddEmployeeDialog } from '../components/AddEmployeeDialog';
 import { EmployeeTimeTrackingDialog } from '../components/EmployeeTimeTrackingDialog';
-import { Plus, Phone, Mail, DollarSign, Clock, UserCheck, Eye } from 'lucide-react';
+import { EditEmployeeDialog } from '../components/EditEmployeeDialog';
+import { Plus, Phone, Mail, DollarSign, Clock, UserCheck, Eye, Edit } from 'lucide-react';
 import { useEmployees } from '@/hooks/useEmployees';
 import { useTimeEntries } from '@/hooks/useTimeEntries';
 import { Link } from 'react-router-dom';
@@ -18,10 +19,12 @@ import {
 import { Button } from '@/components/ui/button';
 
 export const Employees = () => {
-  const { employees, isLoading, addEmployee } = useEmployees();
+  const { employees, isLoading, addEmployee, updateEmployee, deleteEmployee, isUpdatingEmployee, isDeletingEmployee } = useEmployees();
   const { timeEntries } = useTimeEntries();
   const [isAddEmployeeDialogOpen, setIsAddEmployeeDialogOpen] = useState(false);
   const [isTimeTrackingDialogOpen, setIsTimeTrackingDialogOpen] = useState(false);
+  const [isEditEmployeeDialogOpen, setIsEditEmployeeDialogOpen] = useState(false);
+  const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
 
   const handleAddEmployee = (employeeData: any) => {
@@ -33,6 +36,11 @@ export const Employees = () => {
       status: 'Active',
       hire_date: employeeData.hireDate
     });
+  };
+
+  const handleEditEmployee = (employee: any) => {
+    setSelectedEmployee(employee);
+    setIsEditEmployeeDialogOpen(true);
   };
 
   const calculateMonthlyStats = (employeeId: string) => {
@@ -209,8 +217,12 @@ export const Employees = () => {
                   </div>
 
                   <div className="mt-4 flex gap-2">
-                    <button className="flex-1 bg-purple-50 text-purple-700 py-2 px-3 rounded-lg text-sm font-medium hover:bg-purple-100 transition-colors">
-                      Edit Profile
+                    <button 
+                      onClick={() => handleEditEmployee(employee)}
+                      className="flex-1 bg-purple-50 text-purple-700 py-2 px-3 rounded-lg text-sm font-medium hover:bg-purple-100 transition-colors flex items-center justify-center gap-1"
+                    >
+                      <Edit className="h-3 w-3" />
+                      Edit
                     </button>
                     <button className="flex-1 bg-green-50 text-green-700 py-2 px-3 rounded-lg text-sm font-medium hover:bg-green-100 transition-colors">
                       View Hours
@@ -262,6 +274,13 @@ export const Employees = () => {
                     </TableCell>
                     <TableCell>
                       <div className="flex gap-1">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => handleEditEmployee(employee)}
+                        >
+                          <Edit className="h-3 w-3" />
+                        </Button>
                         <Button variant="outline" size="sm">
                           <Eye className="h-3 w-3" />
                         </Button>
@@ -289,6 +308,16 @@ export const Employees = () => {
       <EmployeeTimeTrackingDialog 
         open={isTimeTrackingDialogOpen} 
         onOpenChange={setIsTimeTrackingDialogOpen}
+      />
+
+      <EditEmployeeDialog
+        open={isEditEmployeeDialogOpen}
+        onOpenChange={setIsEditEmployeeDialogOpen}
+        employee={selectedEmployee}
+        onUpdateEmployee={updateEmployee}
+        onDeleteEmployee={deleteEmployee}
+        isUpdating={isUpdatingEmployee}
+        isDeleting={isDeletingEmployee}
       />
     </div>
   );

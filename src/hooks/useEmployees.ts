@@ -52,11 +52,68 @@ export const useEmployees = () => {
     }
   });
 
+  const updateEmployeeMutation = useMutation({
+    mutationFn: async ({ id, updates }: { id: string; updates: Partial<Employee> }) => {
+      const { data, error } = await supabase
+        .from('employees')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['employees'] });
+      toast({
+        title: "Employee Updated",
+        description: "Employee information has been updated successfully.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update employee. Please try again.",
+        variant: "destructive",
+      });
+    }
+  });
+
+  const deleteEmployeeMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('employees')
+        .delete()
+        .eq('id', id);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['employees'] });
+      toast({
+        title: "Employee Removed",
+        description: "Employee has been removed from your team.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to remove employee. Please try again.",
+        variant: "destructive",
+      });
+    }
+  });
+
   return {
     employees,
     isLoading,
     error,
     addEmployee: addEmployeeMutation.mutate,
-    isAddingEmployee: addEmployeeMutation.isPending
+    isAddingEmployee: addEmployeeMutation.isPending,
+    updateEmployee: updateEmployeeMutation.mutate,
+    isUpdatingEmployee: updateEmployeeMutation.isPending,
+    deleteEmployee: deleteEmployeeMutation.mutate,
+    isDeletingEmployee: deleteEmployeeMutation.isPending
   };
 };
