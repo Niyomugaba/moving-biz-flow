@@ -6,13 +6,13 @@ import { useTimeEntries } from '@/hooks/useTimeEntries';
 import { NewEmployeeRequestForm } from '@/components/NewEmployeeRequestForm';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Clock, CheckCircle, UserPlus } from 'lucide-react';
+import { Clock, CheckCircle, UserPlus, BarChart3, Calendar, DollarSign } from 'lucide-react';
 
 export const EmployeePortal = () => {
   const { employees } = useEmployees();
   const { jobs } = useJobs();
-  const { addTimeEntry } = useTimeEntries();
-  const [step, setStep] = useState<'phone' | 'pin' | 'timeEntry' | 'success' | 'newEmployee' | 'requestSubmitted'>('phone');
+  const { addTimeEntry, timeEntries } = useTimeEntries();
+  const [step, setStep] = useState<'phone' | 'pin' | 'timeEntry' | 'success' | 'newEmployee' | 'requestSubmitted' | 'dashboard'>('phone');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [pin, setPin] = useState('');
   const [generatedPin, setGeneratedPin] = useState('');
@@ -89,7 +89,7 @@ export const EmployeePortal = () => {
   const handlePinSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (pin === generatedPin) {
-      setStep('timeEntry');
+      setStep('dashboard');
     } else {
       alert('Invalid PIN. Please try again.');
       setPin('');
@@ -137,6 +137,18 @@ export const EmployeePortal = () => {
   };
 
   const completedJobs = jobs.filter(job => job.status === 'Completed');
+
+  // Get employee's paid time entries for dashboard
+  const employeeTimeEntries = selectedEmployee 
+    ? timeEntries.filter(entry => 
+        entry.employee_id === selectedEmployee.id && 
+        entry.status === 'approved' &&
+        entry.paid
+      )
+    : [];
+
+  const totalPaidHours = employeeTimeEntries.reduce((sum, entry) => sum + entry.hours_worked, 0);
+  const totalEarnings = employeeTimeEntries.reduce((sum, entry) => sum + (entry.hours_worked * entry.hourly_rate), 0);
 
   // Handle new employee request form
   if (step === 'newEmployee') {
@@ -252,13 +264,79 @@ export const EmployeePortal = () => {
           </form>
         )}
 
+        {step === 'dashboard' && selectedEmployee && (
+          <div className="space-y-6">
+            <div className="bg-green-50 p-4 rounded-lg mb-6">
+              <p className="text-sm text-green-800">
+                Welcome, <strong>{selectedEmployee.name}</strong>!
+              </p>
+            </div>
+
+            {/* Dashboard Stats */}
+            <div className="grid grid-cols-2 gap-4 mb-6">
+              <div className="bg-blue-50 p-4 rounded-lg text-center">
+                <Clock className="h-6 w-6 text-blue-600 mx-auto mb-2" />
+                <p className="text-2xl font-bold text-blue-900">{totalPaidHours}h</p>
+                <p className="text-xs text-blue-600">Total Paid Hours</p>
+              </div>
+              <div className="bg-green-50 p-4 rounded-lg text-center">
+                <DollarSign className="h-6 w-6 text-green-600 mx-auto mb-2" />
+                <p className="text-2xl font-bold text-green-900">${totalEarnings.toFixed(2)}</p>
+                <p className="text-xs text-green-600">Total Earnings</p>
+              </div>
+            </div>
+
+            {/* Recent Work History */}
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <h3 className="font-medium text-gray-900 mb-3 flex items-center">
+                <Calendar className="h-4 w-4 mr-2" />
+                Recent Paid Work
+              </h3>
+              {employeeTimeEntries.length > 0 ? (
+                <div className="space-y-2 max-h-32 overflow-y-auto">
+                  {employeeTimeEntries.slice(0, 5).map((entry) => {
+                    const job = jobs.find(j => j.id === entry.job_id);
+                    return (
+                      <div key={entry.id} className="flex justify-between items-center text-sm bg-white p-2 rounded">
+                        <div>
+                          <p className="font-medium">{job?.client_name || 'Unknown Job'}</p>
+                          <p className="text-gray-500 text-xs">{entry.entry_date}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-medium">{entry.hours_worked}h</p>
+                          <p className="text-green-600 text-xs">${(entry.hours_worked * entry.hourly_rate).toFixed(2)}</p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="text-sm text-gray-500">No paid work history yet</p>
+              )}
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex gap-3">
+              <Button 
+                onClick={() => setStep('timeEntry')} 
+                className="flex-1 bg-blue-600 hover:bg-blue-700"
+              >
+                <Clock className="h-4 w-4 mr-2" />
+                Log Hours
+              </Button>
+              <Button onClick={resetForm} variant="outline" className="flex-1">
+                Logout
+              </Button>
+            </div>
+          </div>
+        )}
+
         {step === 'timeEntry' && selectedEmployee && (
           <form onSubmit={handleTimeEntrySubmit} className="space-y-6">
             <div className="bg-green-50 p-4 rounded-lg mb-6">
               <p className="text-sm text-green-800">
                 Welcome, <strong>{selectedEmployee.name}</strong>!
               </p>
-              <p className="text-xs text-green-600">Rate: ${selectedEmployee.hourly_wage}/hour</p>
             </div>
             
             <div>
@@ -316,9 +394,6 @@ export const EmployeePortal = () => {
                 <p className="text-sm text-blue-800">
                   <strong>Total Hours: {timeEntryData.totalHours}h</strong>
                 </p>
-                <p className="text-xs text-blue-600">
-                  Estimated Pay: ${(timeEntryData.totalHours * selectedEmployee.hourly_wage).toFixed(2)}
-                </p>
               </div>
             )}
             
@@ -336,7 +411,7 @@ export const EmployeePortal = () => {
             </div>
             
             <div className="flex gap-3">
-              <Button type="button" variant="outline" onClick={() => setStep('pin')} className="flex-1">
+              <Button type="button" variant="outline" onClick={() => setStep('dashboard')} className="flex-1">
                 Back
               </Button>
               <Button type="submit" className="flex-1 bg-green-600 hover:bg-green-700">
@@ -357,9 +432,14 @@ export const EmployeePortal = () => {
                 Your {timeEntryData.totalHours} hours have been submitted for approval.
               </p>
             </div>
-            <Button onClick={resetForm} className="w-full bg-blue-600 hover:bg-blue-700">
-              Submit More Hours
-            </Button>
+            <div className="flex gap-3">
+              <Button onClick={() => setStep('dashboard')} className="flex-1 bg-blue-600 hover:bg-blue-700">
+                Back to Dashboard
+              </Button>
+              <Button onClick={() => setStep('timeEntry')} variant="outline" className="flex-1">
+                Log More Hours
+              </Button>
+            </div>
           </div>
         )}
       </div>
