@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { MetricCard } from '../components/MetricCard';
 import { StatusBadge } from '../components/StatusBadge';
@@ -41,7 +40,7 @@ export const Dashboard = () => {
   const activeJobs = jobs.filter(job => job.status !== 'Completed').length;
   const monthlyRevenue = jobs
     .filter(job => job.status === 'Completed')
-    .reduce((sum, job) => sum + (job.hourly_rate * job.estimated_hours), 0);
+    .reduce((sum, job) => sum + (job.hourly_rate * job.actual_hours), 0);
   const monthlyProfit = Math.round(monthlyRevenue * 0.65); // Assuming 65% profit margin
   const conversionRate = leads.length > 0 ? Math.round((convertedLeads / leads.length) * 100) : 0;
   const avgJobValue = convertedLeads > 0 ? Math.round(monthlyRevenue / convertedLeads) : 0;
@@ -55,7 +54,7 @@ export const Dashboard = () => {
       client: job.client_name,
       date: job.job_date,
       status: job.status,
-      value: job.hourly_rate * job.estimated_hours
+      value: job.hourly_rate * job.actual_hours
     }));
 
   // Recent leads (last 3)

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { AddClientDialog } from '../components/AddClientDialog';
 import { Plus, Search, Phone, Mail, MapPin, Star } from 'lucide-react';
@@ -28,7 +27,7 @@ export const Clients = () => {
     const totalJobs = clientJobs.length;
     const totalSpent = clientJobs
       .filter(job => job.status === 'Completed')
-      .reduce((sum, job) => sum + (job.hourly_rate * job.estimated_hours), 0);
+      .reduce((sum, job) => sum + (job.hourly_rate * job.actual_hours), 0);
     
     const lastJob = clientJobs
       .sort((a, b) => new Date(b.job_date).getTime() - new Date(a.job_date).getTime())[0];
