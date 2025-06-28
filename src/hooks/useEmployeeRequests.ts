@@ -83,7 +83,7 @@ export const useEmployeeRequests = () => {
 
         console.log('Current request data:', currentRequest);
 
-        // If approved, create employee record first
+        // If approved, create employee record and delete request
         if (status === 'approved' && hourlyWage) {
           console.log('Creating employee record with data:', {
             name: currentRequest.name,
@@ -111,7 +111,7 @@ export const useEmployeeRequests = () => {
 
           console.log('Employee created successfully:', employeeData);
           
-          // After successful employee creation, delete the request
+          // Delete the request after successful employee creation
           const { error: deleteError } = await supabase
             .from('employee_requests')
             .delete()
@@ -119,8 +119,10 @@ export const useEmployeeRequests = () => {
           
           if (deleteError) {
             console.error('Error deleting approved request:', deleteError);
-            // Don't throw error here as the employee was created successfully
+            throw new Error(`Failed to delete request after approval: ${deleteError.message}`);
           }
+
+          console.log('Request deleted successfully after approval');
 
           return {
             ...currentRequest,
@@ -131,14 +133,16 @@ export const useEmployeeRequests = () => {
           };
         }
 
-        // For rejected status, just update the status (don't delete yet)
-        const { error: updateError } = await supabase
+        // For rejected status, just update the status
+        const { data: updatedRequest, error: updateError } = await supabase
           .from('employee_requests')
           .update({ 
             status, 
             notes: notes || null 
           })
-          .eq('id', id);
+          .eq('id', id)
+          .select()
+          .single();
         
         if (updateError) {
           console.error('Request update error:', updateError);
@@ -146,12 +150,7 @@ export const useEmployeeRequests = () => {
         }
 
         console.log('Request updated successfully');
-
-        return {
-          ...currentRequest,
-          status,
-          notes: notes || null
-        };
+        return updatedRequest;
         
       } catch (error) {
         console.error('Error in updateRequestStatus:', error);
@@ -159,14 +158,20 @@ export const useEmployeeRequests = () => {
       }
     },
     onSuccess: (data, variables) => {
-      console.log('Mutation success, invalidating queries...');
-      queryClient.invalidateQueries({ queryKey: ['employeeRequests'] });
-      queryClient.invalidateQueries({ queryKey: ['employees'] });
+      console.log('Mutation success, updating cache...');
       
       if (variables.status === 'approved') {
+        // For approved requests, remove from cache immediately
+        queryClient.setQueryData(['employeeRequests'], (oldData: EmployeeRequest[] | undefined) => {
+          if (!oldData) return [];
+          const filtered = oldData.filter(request => request.id !== variables.id);
+          console.log('Removed approved request from cache. New count:', filtered.length);
+          return filtered;
+        });
+        
         toast({
           title: "Request Approved",
-          description: `${data.name} has been approved and added as an employee. Request has been removed.`,
+          description: `${data.name} has been approved and added as an employee.`,
         });
       } else if (variables.status === 'rejected') {
         toast({
@@ -174,6 +179,10 @@ export const useEmployeeRequests = () => {
           description: `${data.name}'s request has been rejected.`,
         });
       }
+      
+      // Invalidate both queries to ensure fresh data
+      queryClient.invalidateQueries({ queryKey: ['employeeRequests'] });
+      queryClient.invalidateQueries({ queryKey: ['employees'] });
     },
     onError: (error: any) => {
       console.error('Mutation error:', error);
@@ -198,14 +207,16 @@ export const useEmployeeRequests = () => {
         throw error;
       }
       console.log('Successfully deleted request with ID:', id);
+      return id;
     },
-    onSuccess: (_, deletedId) => {
-      console.log('Delete mutation successful, invalidating queries...');
-      // Immediately update the cache to remove the deleted item
+    onSuccess: (deletedId) => {
+      console.log('Delete mutation successful, updating cache...');
+      
+      // Immediately remove from cache
       queryClient.setQueryData(['employeeRequests'], (oldData: EmployeeRequest[] | undefined) => {
         if (!oldData) return [];
         const filtered = oldData.filter(request => request.id !== deletedId);
-        console.log('Updated cache, removed request. New count:', filtered.length);
+        console.log('Updated cache after delete. New count:', filtered.length);
         return filtered;
       });
       
