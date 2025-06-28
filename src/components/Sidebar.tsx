@@ -7,7 +7,8 @@ import {
   Briefcase, 
   UserCheck, 
   DollarSign, 
-  FileText 
+  FileText,
+  Clock
 } from 'lucide-react';
 
 const navigation = [
@@ -15,6 +16,7 @@ const navigation = [
   { name: 'Leads', href: '/leads', icon: Users },
   { name: 'Jobs', href: '/jobs', icon: Briefcase },
   { name: 'Employees', href: '/employees', icon: UserCheck },
+  { name: 'Time Logs', href: '/time-logs', icon: Clock },
   { name: 'Clients', href: '/clients', icon: FileText },
   { name: 'Financials', href: '/financials', icon: DollarSign },
 ];

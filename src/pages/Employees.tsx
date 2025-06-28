@@ -28,9 +28,11 @@ export const Employees = () => {
     const currentMonth = new Date().getMonth();
     const currentYear = new Date().getFullYear();
     
+    // Only count approved time entries for payroll calculations
     const monthlyEntries = timeEntries.filter(entry => {
       const entryDate = new Date(entry.entry_date);
       return entry.employee_id === employeeId && 
+             entry.status === 'approved' &&
              entryDate.getMonth() === currentMonth && 
              entryDate.getFullYear() === currentYear;
     });
@@ -38,7 +40,18 @@ export const Employees = () => {
     const totalHours = monthlyEntries.reduce((sum, entry) => sum + entry.hours_worked, 0);
     const totalEarnings = monthlyEntries.reduce((sum, entry) => sum + (entry.hours_worked * entry.hourly_rate), 0);
 
-    return { totalHours, totalEarnings };
+    // Also get pending hours for display
+    const pendingEntries = timeEntries.filter(entry => {
+      const entryDate = new Date(entry.entry_date);
+      return entry.employee_id === employeeId && 
+             entry.status === 'pending' &&
+             entryDate.getMonth() === currentMonth && 
+             entryDate.getFullYear() === currentYear;
+    });
+    
+    const pendingHours = pendingEntries.reduce((sum, entry) => sum + entry.hours_worked, 0);
+
+    return { totalHours, totalEarnings, pendingHours };
   };
 
   const activeEmployees = employees.filter(emp => emp.status === 'Active').length;
@@ -78,7 +91,7 @@ export const Employees = () => {
           </button>
           <button 
             onClick={() => setIsAddEmployeeDialogOpen(true)}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+            className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors flex items-center gap-2"
           >
             <Plus className="h-4 w-4" />
             Add Employee
@@ -99,17 +112,18 @@ export const Employees = () => {
         <div className="bg-white p-4 rounded-lg shadow-sm border">
           <p className="text-sm text-gray-600">Monthly Payroll</p>
           <p className="text-2xl font-bold text-red-600">${totalPayrollThisMonth.toLocaleString()}</p>
+          <p className="text-xs text-gray-500">Approved hours only</p>
         </div>
         <div className="bg-white p-4 rounded-lg shadow-sm border">
           <p className="text-sm text-gray-600">Avg Hours/Employee</p>
-          <p className="text-2xl font-bold text-blue-600">{averageHoursPerEmployee}h</p>
+          <p className="text-2xl font-bold text-purple-600">{averageHoursPerEmployee}h</p>
         </div>
       </div>
 
       {/* Employee Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {employees.map((employee) => {
-          const { totalHours, totalEarnings } = calculateMonthlyStats(employee.id);
+          const { totalHours, totalEarnings, pendingHours } = calculateMonthlyStats(employee.id);
           return (
             <div key={employee.id} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
               <div className="p-6">
@@ -144,19 +158,22 @@ export const Employees = () => {
                   <div className="grid grid-cols-2 gap-4 text-center">
                     <div>
                       <p className="text-lg font-semibold text-gray-900">{totalHours}h</p>
-                      <p className="text-xs text-gray-500">Hours This Month</p>
+                      <p className="text-xs text-gray-500">Approved Hours</p>
+                      {pendingHours > 0 && (
+                        <p className="text-xs text-yellow-600">+{pendingHours}h pending</p>
+                      )}
                     </div>
                     <div>
                       <p className="text-lg font-semibold text-green-600">
                         ${totalEarnings.toLocaleString()}
                       </p>
-                      <p className="text-xs text-gray-500">Earnings This Month</p>
+                      <p className="text-xs text-gray-500">Approved Earnings</p>
                     </div>
                   </div>
                 </div>
 
                 <div className="mt-4 flex gap-2">
-                  <button className="flex-1 bg-blue-50 text-blue-700 py-2 px-3 rounded-lg text-sm font-medium hover:bg-blue-100 transition-colors">
+                  <button className="flex-1 bg-purple-50 text-purple-700 py-2 px-3 rounded-lg text-sm font-medium hover:bg-purple-100 transition-colors">
                     Edit Profile
                   </button>
                   <button className="flex-1 bg-green-50 text-green-700 py-2 px-3 rounded-lg text-sm font-medium hover:bg-green-100 transition-colors">

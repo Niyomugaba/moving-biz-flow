@@ -11,6 +11,10 @@ export interface TimeEntry {
   hourly_rate: number;
   entry_date: string;
   notes: string | null;
+  status: 'pending' | 'approved' | 'rejected';
+  manager_notes: string | null;
+  approved_by: string | null;
+  approved_at: string | null;
   created_at: string;
 }
 
@@ -23,19 +27,26 @@ export const useTimeEntries = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('time_entries')
-        .select('*')
+        .select(`
+          *,
+          employees!inner(name),
+          jobs!inner(client_name, job_date)
+        `)
         .order('entry_date', { ascending: false });
       
       if (error) throw error;
-      return data as TimeEntry[];
+      return data as (TimeEntry & { 
+        employees: { name: string };
+        jobs: { client_name: string; job_date: string };
+      })[];
     }
   });
 
   const addTimeEntryMutation = useMutation({
-    mutationFn: async (timeEntryData: Omit<TimeEntry, 'id' | 'created_at'>) => {
+    mutationFn: async (timeEntryData: Omit<TimeEntry, 'id' | 'created_at' | 'status' | 'manager_notes' | 'approved_by' | 'approved_at'>) => {
       const { data, error } = await supabase
         .from('time_entries')
-        .insert([timeEntryData])
+        .insert([{ ...timeEntryData, status: 'pending' }])
         .select()
         .single();
       
@@ -45,8 +56,78 @@ export const useTimeEntries = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['timeEntries'] });
       toast({
-        title: "Time Entry Added",
-        description: "Hours have been recorded successfully.",
+        title: "Hours Submitted",
+        description: "Your hours have been submitted for approval.",
+      });
+    }
+  });
+
+  const updateTimeEntryMutation = useMutation({
+    mutationFn: async ({ id, updates }: { id: string; updates: Partial<TimeEntry> }) => {
+      const { data, error } = await supabase
+        .from('time_entries')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['timeEntries'] });
+      toast({
+        title: "Time Entry Updated",
+        description: "The time entry has been updated successfully.",
+      });
+    }
+  });
+
+  const approveTimeEntryMutation = useMutation({
+    mutationFn: async ({ id, managerNotes }: { id: string; managerNotes?: string }) => {
+      const { data, error } = await supabase
+        .from('time_entries')
+        .update({
+          status: 'approved',
+          manager_notes: managerNotes,
+          approved_at: new Date().toISOString()
+        })
+        .eq('id', id)
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['timeEntries'] });
+      toast({
+        title: "Hours Approved",
+        description: "The time entry has been approved.",
+      });
+    }
+  });
+
+  const rejectTimeEntryMutation = useMutation({
+    mutationFn: async ({ id, managerNotes }: { id: string; managerNotes: string }) => {
+      const { data, error } = await supabase
+        .from('time_entries')
+        .update({
+          status: 'rejected',
+          manager_notes: managerNotes
+        })
+        .eq('id', id)
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['timeEntries'] });
+      toast({
+        title: "Hours Rejected",
+        description: "The time entry has been rejected.",
       });
     }
   });
@@ -56,6 +137,12 @@ export const useTimeEntries = () => {
     isLoading,
     error,
     addTimeEntry: addTimeEntryMutation.mutate,
-    isAddingTimeEntry: addTimeEntryMutation.isPending
+    isAddingTimeEntry: addTimeEntryMutation.isPending,
+    updateTimeEntry: updateTimeEntryMutation.mutate,
+    isUpdatingTimeEntry: updateTimeEntryMutation.isPending,
+    approveTimeEntry: approveTimeEntryMutation.mutate,
+    isApprovingTimeEntry: approveTimeEntryMutation.isPending,
+    rejectTimeEntry: rejectTimeEntryMutation.mutate,
+    isRejectingTimeEntry: rejectTimeEntryMutation.isPending
   };
 };

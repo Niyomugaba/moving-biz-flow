@@ -214,6 +214,8 @@ export type Database = {
       }
       time_entries: {
         Row: {
+          approved_at: string | null
+          approved_by: string | null
           created_at: string
           employee_id: string | null
           entry_date: string
@@ -221,9 +223,13 @@ export type Database = {
           hours_worked: number
           id: string
           job_id: string | null
+          manager_notes: string | null
           notes: string | null
+          status: string
         }
         Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
           created_at?: string
           employee_id?: string | null
           entry_date?: string
@@ -231,9 +237,13 @@ export type Database = {
           hours_worked: number
           id?: string
           job_id?: string | null
+          manager_notes?: string | null
           notes?: string | null
+          status?: string
         }
         Update: {
+          approved_at?: string | null
+          approved_by?: string | null
           created_at?: string
           employee_id?: string | null
           entry_date?: string
@@ -241,7 +251,9 @@ export type Database = {
           hours_worked?: number
           id?: string
           job_id?: string | null
+          manager_notes?: string | null
           notes?: string | null
+          status?: string
         }
         Relationships: [
           {
