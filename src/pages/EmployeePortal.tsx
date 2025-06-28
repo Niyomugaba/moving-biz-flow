@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -44,12 +45,29 @@ export const EmployeePortal = () => {
       console.log('Employee found:', employee);
 
       if (employee) {
-        // Employee exists - they can access the portal
+        // Employee exists - send real SMS verification
         setEmployeeData(employee);
+        
+        const { data, error } = await supabase.functions.invoke('send-sms-verification', {
+          body: {
+            phone: phone,
+            action: 'send'
+          }
+        });
+
+        if (error) {
+          console.error('SMS sending error:', error);
+          throw new Error('Failed to send verification code');
+        }
+
+        if (!data?.success) {
+          throw new Error(data?.message || 'Failed to send verification code');
+        }
+
         setStep('verify');
         toast({
-          title: "Verification Sent",
-          description: "Enter the verification code sent to your phone.",
+          title: "Verification Code Sent",
+          description: "Check your phone for a 6-digit verification code.",
         });
       } else {
         // Employee doesn't exist - show request form
@@ -65,7 +83,7 @@ export const EmployeePortal = () => {
       console.error('Error during phone verification:', error);
       toast({
         title: "Error",
-        description: "Failed to verify phone number. Please try again.",
+        description: "Failed to send verification code. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -83,14 +101,35 @@ export const EmployeePortal = () => {
       return;
     }
 
+    if (verificationCode.length !== 6) {
+      toast({
+        title: "Invalid Code",
+        description: "Please enter the complete 6-digit verification code.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsLoading(true);
 
     try {
-      // For demo purposes, accept any 4-digit code
-      if (verificationCode.length === 4) {
+      const { data, error } = await supabase.functions.invoke('send-sms-verification', {
+        body: {
+          phone: phone,
+          action: 'verify',
+          code: verificationCode
+        }
+      });
+
+      if (error) {
+        console.error('Verification error:', error);
+        throw new Error('Failed to verify code');
+      }
+
+      if (data?.success) {
         toast({
           title: "Welcome!",
-          description: `Welcome back, ${employeeData?.name}!`,
+          description: `Welcome back, ${employeeData?.name}! You're now logged in.`,
         });
         
         // Here you would typically redirect to the employee dashboard
@@ -99,7 +138,7 @@ export const EmployeePortal = () => {
       } else {
         toast({
           title: "Invalid Code",
-          description: "Please enter a valid 4-digit verification code.",
+          description: data?.message || "The verification code is invalid or expired.",
           variant: "destructive",
         });
       }
@@ -107,7 +146,7 @@ export const EmployeePortal = () => {
       console.error('Verification error:', error);
       toast({
         title: "Verification Failed",
-        description: "Invalid verification code. Please try again.",
+        description: "Failed to verify code. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -157,7 +196,7 @@ export const EmployeePortal = () => {
           <CardDescription>
             {step === 'phone' 
               ? 'Enter your phone number to access your dashboard'
-              : `Enter the verification code sent to ${phone}`
+              : `Enter the 6-digit code sent to ${phone}`
             }
           </CardDescription>
         </CardHeader>
@@ -183,7 +222,7 @@ export const EmployeePortal = () => {
                 disabled={isLoading}
                 className="w-full"
               >
-                {isLoading ? 'Checking...' : 'Send Verification Code'}
+                {isLoading ? 'Sending Code...' : 'Send Verification Code'}
               </Button>
               
               <div className="text-center">
@@ -203,10 +242,10 @@ export const EmployeePortal = () => {
                 </label>
                 <Input
                   type="text"
-                  placeholder="Enter 4-digit code"
+                  placeholder="Enter 6-digit code"
                   value={verificationCode}
-                  onChange={(e) => setVerificationCode(e.target.value)}
-                  maxLength={4}
+                  onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  maxLength={6}
                   className="w-full text-center text-lg tracking-widest"
                 />
               </div>
@@ -228,9 +267,10 @@ export const EmployeePortal = () => {
                 </button>
                 <button 
                   onClick={handleSendVerification}
+                  disabled={isLoading}
                   className="text-purple-600 hover:text-purple-700 text-sm"
                 >
-                  Resend code
+                  {isLoading ? 'Sending...' : 'Resend code'}
                 </button>
               </div>
             </>

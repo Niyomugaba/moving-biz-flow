@@ -245,6 +245,33 @@ export type Database = {
         }
         Relationships: []
       }
+      sms_verification_codes: {
+        Row: {
+          code: string
+          created_at: string
+          expires_at: string
+          id: string
+          phone: string
+          used: boolean
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          phone: string
+          used?: boolean
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          phone?: string
+          used?: boolean
+        }
+        Relationships: []
+      }
       time_entries: {
         Row: {
           approved_at: string | null
