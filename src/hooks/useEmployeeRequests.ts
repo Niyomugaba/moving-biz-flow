@@ -59,73 +59,84 @@ export const useEmployeeRequests = () => {
       console.log('Updating request status:', { id, status, notes, hourlyWage });
       
       try {
-        // First, check if the request exists
-        const { data: existingRequest, error: checkError } = await supabase
+        // First, get the current request data
+        const { data: currentRequest, error: fetchError } = await supabase
           .from('employee_requests')
           .select('*')
           .eq('id', id)
-          .maybeSingle();
+          .single();
         
-        if (checkError) {
-          console.error('Error checking request:', checkError);
-          throw new Error(`Failed to check request: ${checkError.message}`);
+        if (fetchError) {
+          console.error('Error fetching request:', fetchError);
+          throw new Error(`Failed to fetch request: ${fetchError.message}`);
         }
 
-        if (!existingRequest) {
+        if (!currentRequest) {
           console.error('Request not found with ID:', id);
-          throw new Error('Employee request not found. It may have been already processed or deleted.');
+          throw new Error('Employee request not found');
         }
 
-        console.log('Found existing request:', existingRequest);
+        console.log('Current request data:', currentRequest);
 
-        // Update the request status
-        const { data: requestData, error: requestError } = await supabase
+        // Update the request status - use direct update without select
+        const { error: updateError } = await supabase
           .from('employee_requests')
-          .update({ status, notes })
-          .eq('id', id)
-          .select()
-          .maybeSingle();
+          .update({ 
+            status, 
+            notes: notes || null 
+          })
+          .eq('id', id);
         
-        if (requestError) {
-          console.error('Request update error:', requestError);
-          throw new Error(`Failed to update request: ${requestError.message}`);
+        if (updateError) {
+          console.error('Request update error:', updateError);
+          throw new Error(`Failed to update request: ${updateError.message}`);
         }
 
-        if (!requestData) {
-          throw new Error('Failed to update employee request - no data returned');
-        }
-
-        console.log('Request updated successfully:', requestData);
+        console.log('Request updated successfully');
 
         // If approved, create employee record
         if (status === 'approved' && hourlyWage) {
-          console.log('Creating employee record...');
+          console.log('Creating employee record with data:', {
+            name: currentRequest.name,
+            phone: currentRequest.phone,
+            hourly_wage: hourlyWage,
+            status: 'Active'
+          });
           
           const { data: employeeData, error: employeeError } = await supabase
             .from('employees')
             .insert({
-              name: requestData.name,
-              phone: requestData.phone,
+              name: currentRequest.name,
+              phone: currentRequest.phone,
               hourly_wage: hourlyWage,
               status: 'Active',
               hire_date: new Date().toISOString().split('T')[0]
             })
             .select()
-            .maybeSingle();
+            .single();
           
           if (employeeError) {
             console.error('Employee creation error:', employeeError);
             throw new Error(`Failed to create employee: ${employeeError.message}`);
           }
 
-          if (!employeeData) {
-            throw new Error('Failed to create employee record - no data returned');
-          }
-
           console.log('Employee created successfully:', employeeData);
+          
+          return {
+            ...currentRequest,
+            status,
+            notes: notes || null,
+            employee: employeeData
+          };
         }
 
-        return requestData;
+        // Return the updated request data
+        return {
+          ...currentRequest,
+          status,
+          notes: notes || null
+        };
+        
       } catch (error) {
         console.error('Error in updateRequestStatus:', error);
         throw error;
