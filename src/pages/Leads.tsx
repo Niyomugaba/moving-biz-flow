@@ -1,7 +1,9 @@
 
 import React, { useState } from 'react';
 import { StatusBadge } from '../components/StatusBadge';
+import { AddLeadDialog } from '../components/AddLeadDialog';
 import { Plus, Search, Filter } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 interface Lead {
   id: number;
@@ -54,6 +56,45 @@ export const Leads = () => {
 
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('All');
+  const [isAddLeadDialogOpen, setIsAddLeadDialogOpen] = useState(false);
+  const { toast } = useToast();
+
+  const addNewLead = (leadData: any) => {
+    const newLead: Lead = {
+      id: Math.max(...leads.map(l => l.id)) + 1,
+      name: leadData.name,
+      phone: leadData.phone,
+      email: leadData.email,
+      source: leadData.source,
+      cost: parseFloat(leadData.cost) || 0,
+      status: 'New',
+      notes: '',
+      dateAdded: new Date().toISOString().split('T')[0]
+    };
+    
+    setLeads([newLead, ...leads]);
+  };
+
+  const updateLeadStatus = (leadId: number, newStatus: 'New' | 'Contacted' | 'Converted' | 'Lost') => {
+    setLeads(leads.map(lead => 
+      lead.id === leadId ? { ...lead, status: newStatus } : lead
+    ));
+    
+    const lead = leads.find(l => l.id === leadId);
+    toast({
+      title: "Lead Updated",
+      description: `${lead?.name}'s status changed to ${newStatus}`,
+    });
+  };
+
+  const convertLead = (leadId: number) => {
+    updateLeadStatus(leadId, 'Converted');
+    toast({
+      title: "Lead Converted!",
+      description: "Lead has been converted to a job. Redirecting to schedule job...",
+    });
+    // Here you would typically redirect to create a job
+  };
 
   const filteredLeads = leads.filter(lead => {
     const matchesSearch = lead.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -73,7 +114,10 @@ export const Leads = () => {
           <h1 className="text-3xl font-bold text-gray-900">Leads Management</h1>
           <p className="text-gray-600 mt-2">Track and manage your lead pipeline</p>
         </div>
-        <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2">
+        <button 
+          onClick={() => setIsAddLeadDialogOpen(true)}
+          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+        >
           <Plus className="h-4 w-4" />
           Add New Lead
         </button>
@@ -178,9 +222,19 @@ export const Leads = () => {
                     {lead.dateAdded}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <button className="text-blue-600 hover:text-blue-900 mr-3">Edit</button>
+                    <button 
+                      onClick={() => updateLeadStatus(lead.id, lead.status === 'New' ? 'Contacted' : lead.status)}
+                      className="text-blue-600 hover:text-blue-900 mr-3"
+                    >
+                      Edit
+                    </button>
                     {lead.status !== 'Converted' && (
-                      <button className="text-green-600 hover:text-green-900">Convert</button>
+                      <button 
+                        onClick={() => convertLead(lead.id)}
+                        className="text-green-600 hover:text-green-900"
+                      >
+                        Convert
+                      </button>
                     )}
                   </td>
                 </tr>
@@ -189,6 +243,12 @@ export const Leads = () => {
           </table>
         </div>
       </div>
+
+      <AddLeadDialog 
+        open={isAddLeadDialogOpen} 
+        onOpenChange={setIsAddLeadDialogOpen}
+        onAddLead={addNewLead}
+      />
     </div>
   );
 };

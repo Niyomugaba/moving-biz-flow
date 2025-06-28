@@ -10,9 +10,10 @@ import { useToast } from '@/hooks/use-toast';
 interface AddLeadDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onAddLead?: (leadData: any) => void;
 }
 
-export const AddLeadDialog: React.FC<AddLeadDialogProps> = ({ open, onOpenChange }) => {
+export const AddLeadDialog: React.FC<AddLeadDialogProps> = ({ open, onOpenChange, onAddLead }) => {
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
@@ -23,8 +24,14 @@ export const AddLeadDialog: React.FC<AddLeadDialogProps> = ({ open, onOpenChange
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Here you would normally save to your backend
-    console.log('New lead:', { name, phone, email, source, cost });
+    const leadData = { name, phone, email, source, cost };
+    
+    // Call the callback if provided
+    if (onAddLead) {
+      onAddLead(leadData);
+    }
+    
+    console.log('New lead:', leadData);
     
     toast({
       title: "Lead Added Successfully",
