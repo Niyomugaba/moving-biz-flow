@@ -50,23 +50,54 @@ export const useEmployeeRequests = () => {
   });
 
   const updateRequestStatusMutation = useMutation({
-    mutationFn: async ({ id, status, notes }: { id: string; status: string; notes?: string }) => {
-      const { data, error } = await supabase
+    mutationFn: async ({ id, status, notes, hourlyWage }: { 
+      id: string; 
+      status: string; 
+      notes?: string;
+      hourlyWage?: number;
+    }) => {
+      // First update the request status
+      const { data: requestData, error: requestError } = await supabase
         .from('employee_requests')
         .update({ status, notes })
         .eq('id', id)
         .select()
         .single();
       
-      if (error) throw error;
-      return data;
+      if (requestError) throw requestError;
+
+      // If approved, create employee record
+      if (status === 'approved' && hourlyWage) {
+        const { error: employeeError } = await supabase
+          .from('employees')
+          .insert([{
+            name: requestData.name,
+            phone: requestData.phone,
+            hourly_wage: hourlyWage,
+            status: 'Active',
+            hire_date: new Date().toISOString().split('T')[0]
+          }]);
+        
+        if (employeeError) throw employeeError;
+      }
+
+      return requestData;
     },
-    onSuccess: () => {
+    onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['employeeRequests'] });
-      toast({
-        title: "Request Updated",
-        description: "The employee request has been updated.",
-      });
+      queryClient.invalidateQueries({ queryKey: ['employees'] });
+      
+      if (variables.status === 'approved') {
+        toast({
+          title: "Request Approved",
+          description: `${data.name} has been approved and added as an employee.`,
+        });
+      } else {
+        toast({
+          title: "Request Updated",
+          description: "The employee request has been updated.",
+        });
+      }
     }
   });
 
