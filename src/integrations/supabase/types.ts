@@ -11,93 +11,171 @@ export type Database = {
     Tables: {
       clients: {
         Row: {
-          address: string
+          company_name: string | null
           created_at: string
           email: string | null
           id: string
           name: string
+          notes: string | null
           phone: string
+          preferred_contact_method: string | null
+          primary_address: string
+          rating: number | null
+          secondary_address: string | null
+          total_jobs_completed: number | null
+          total_revenue: number | null
           updated_at: string
         }
         Insert: {
-          address: string
+          company_name?: string | null
           created_at?: string
           email?: string | null
           id?: string
           name: string
+          notes?: string | null
           phone: string
+          preferred_contact_method?: string | null
+          primary_address: string
+          rating?: number | null
+          secondary_address?: string | null
+          total_jobs_completed?: number | null
+          total_revenue?: number | null
           updated_at?: string
         }
         Update: {
-          address?: string
+          company_name?: string | null
           created_at?: string
           email?: string | null
           id?: string
           name?: string
+          notes?: string | null
           phone?: string
+          preferred_contact_method?: string | null
+          primary_address?: string
+          rating?: number | null
+          secondary_address?: string | null
+          total_jobs_completed?: number | null
+          total_revenue?: number | null
           updated_at?: string
         }
         Relationships: []
       }
       employee_requests: {
         Row: {
+          address: string | null
+          availability: string | null
           created_at: string
+          email: string | null
+          expected_hourly_wage: number | null
+          experience_years: number | null
           id: string
+          interview_date: string | null
+          interview_notes: string | null
           name: string
           notes: string | null
           phone: string
+          position_applied: string | null
+          reference_contacts: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
           status: string
         }
         Insert: {
+          address?: string | null
+          availability?: string | null
           created_at?: string
+          email?: string | null
+          expected_hourly_wage?: number | null
+          experience_years?: number | null
           id?: string
+          interview_date?: string | null
+          interview_notes?: string | null
           name: string
           notes?: string | null
           phone: string
+          position_applied?: string | null
+          reference_contacts?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           status?: string
         }
         Update: {
+          address?: string | null
+          availability?: string | null
           created_at?: string
+          email?: string | null
+          expected_hourly_wage?: number | null
+          experience_years?: number | null
           id?: string
+          interview_date?: string | null
+          interview_notes?: string | null
           name?: string
           notes?: string | null
           phone?: string
+          position_applied?: string | null
+          reference_contacts?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           status?: string
         }
         Relationships: []
       }
       employees: {
         Row: {
+          address: string | null
           created_at: string
+          department: string | null
           email: string | null
+          emergency_contact_name: string | null
+          emergency_contact_phone: string | null
+          employee_number: string
           hire_date: string
           hourly_wage: number
           id: string
           name: string
+          notes: string | null
+          overtime_rate: number | null
           phone: string
-          status: string
+          position: string | null
+          status: Database["public"]["Enums"]["employee_status"]
           updated_at: string
         }
         Insert: {
+          address?: string | null
           created_at?: string
+          department?: string | null
           email?: string | null
+          emergency_contact_name?: string | null
+          emergency_contact_phone?: string | null
+          employee_number: string
           hire_date?: string
           hourly_wage: number
           id?: string
           name: string
+          notes?: string | null
+          overtime_rate?: number | null
           phone: string
-          status?: string
+          position?: string | null
+          status?: Database["public"]["Enums"]["employee_status"]
           updated_at?: string
         }
         Update: {
+          address?: string | null
           created_at?: string
+          department?: string | null
           email?: string | null
+          emergency_contact_name?: string | null
+          emergency_contact_phone?: string | null
+          employee_number?: string
           hire_date?: string
           hourly_wage?: number
           id?: string
           name?: string
+          notes?: string | null
+          overtime_rate?: number | null
           phone?: string
-          status?: string
+          position?: string | null
+          status?: Database["public"]["Enums"]["employee_status"]
           updated_at?: string
         }
         Relationships: []
@@ -105,21 +183,27 @@ export type Database = {
       job_assignments: {
         Row: {
           created_at: string
-          employee_id: string | null
+          employee_id: string
+          hourly_rate: number
           id: string
-          job_id: string | null
+          job_id: string
+          role: string | null
         }
         Insert: {
           created_at?: string
-          employee_id?: string | null
+          employee_id: string
+          hourly_rate: number
           id?: string
-          job_id?: string | null
+          job_id: string
+          role?: string | null
         }
         Update: {
           created_at?: string
-          employee_id?: string | null
+          employee_id?: string
+          hourly_rate?: number
           id?: string
-          job_id?: string | null
+          job_id?: string
+          role?: string | null
         }
         Relationships: [
           {
@@ -140,60 +224,87 @@ export type Database = {
       }
       jobs: {
         Row: {
-          actual_hours: number
-          address: string
+          actual_duration_hours: number | null
+          actual_total: number | null
           client_email: string | null
           client_id: string | null
           client_name: string
           client_phone: string
+          completion_notes: string | null
           created_at: string
+          customer_satisfaction: number | null
+          destination_address: string
+          estimated_duration_hours: number
+          estimated_total: number
           hourly_rate: number
           id: string
+          is_paid: boolean
           job_date: string
-          job_time: string
+          job_number: string
           movers_needed: number
-          notes: string | null
-          paid: boolean
+          origin_address: string
           paid_at: string | null
-          status: string
+          payment_method: string | null
+          special_requirements: string | null
+          start_time: string
+          status: Database["public"]["Enums"]["job_status"]
+          truck_size: string | null
           updated_at: string
         }
         Insert: {
-          actual_hours: number
-          address: string
+          actual_duration_hours?: number | null
+          actual_total?: number | null
           client_email?: string | null
           client_id?: string | null
           client_name: string
           client_phone: string
+          completion_notes?: string | null
           created_at?: string
+          customer_satisfaction?: number | null
+          destination_address: string
+          estimated_duration_hours: number
+          estimated_total: number
           hourly_rate: number
           id?: string
+          is_paid?: boolean
           job_date: string
-          job_time: string
-          movers_needed: number
-          notes?: string | null
-          paid?: boolean
+          job_number: string
+          movers_needed?: number
+          origin_address: string
           paid_at?: string | null
-          status?: string
+          payment_method?: string | null
+          special_requirements?: string | null
+          start_time: string
+          status?: Database["public"]["Enums"]["job_status"]
+          truck_size?: string | null
           updated_at?: string
         }
         Update: {
-          actual_hours?: number
-          address?: string
+          actual_duration_hours?: number | null
+          actual_total?: number | null
           client_email?: string | null
           client_id?: string | null
           client_name?: string
           client_phone?: string
+          completion_notes?: string | null
           created_at?: string
+          customer_satisfaction?: number | null
+          destination_address?: string
+          estimated_duration_hours?: number
+          estimated_total?: number
           hourly_rate?: number
           id?: string
+          is_paid?: boolean
           job_date?: string
-          job_time?: string
+          job_number?: string
           movers_needed?: number
-          notes?: string | null
-          paid?: boolean
+          origin_address?: string
           paid_at?: string | null
-          status?: string
+          payment_method?: string | null
+          special_requirements?: string | null
+          start_time?: string
+          status?: Database["public"]["Enums"]["job_status"]
+          truck_size?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -208,118 +319,126 @@ export type Database = {
       }
       leads: {
         Row: {
-          cost: number | null
+          assigned_to: string | null
           created_at: string
           email: string | null
+          estimated_value: number | null
+          follow_up_date: string | null
           id: string
           name: string
           notes: string | null
           phone: string
-          source: string
-          status: string
+          source: Database["public"]["Enums"]["lead_source"]
+          status: Database["public"]["Enums"]["lead_status"]
           updated_at: string
         }
         Insert: {
-          cost?: number | null
+          assigned_to?: string | null
           created_at?: string
           email?: string | null
+          estimated_value?: number | null
+          follow_up_date?: string | null
           id?: string
           name: string
           notes?: string | null
           phone: string
-          source: string
-          status?: string
+          source?: Database["public"]["Enums"]["lead_source"]
+          status?: Database["public"]["Enums"]["lead_status"]
           updated_at?: string
         }
         Update: {
-          cost?: number | null
+          assigned_to?: string | null
           created_at?: string
           email?: string | null
+          estimated_value?: number | null
+          follow_up_date?: string | null
           id?: string
           name?: string
           notes?: string | null
           phone?: string
-          source?: string
-          status?: string
+          source?: Database["public"]["Enums"]["lead_source"]
+          status?: Database["public"]["Enums"]["lead_status"]
           updated_at?: string
         }
-        Relationships: []
-      }
-      sms_verification_codes: {
-        Row: {
-          code: string
-          created_at: string
-          expires_at: string
-          id: string
-          phone: string
-          used: boolean
-        }
-        Insert: {
-          code: string
-          created_at?: string
-          expires_at?: string
-          id?: string
-          phone: string
-          used?: boolean
-        }
-        Update: {
-          code?: string
-          created_at?: string
-          expires_at?: string
-          id?: string
-          phone?: string
-          used?: boolean
-        }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "leads_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       time_entries: {
         Row: {
           approved_at: string | null
           approved_by: string | null
+          break_duration_minutes: number | null
+          clock_in_time: string
+          clock_out_time: string | null
           created_at: string
-          employee_id: string | null
+          employee_id: string
           entry_date: string
           hourly_rate: number
-          hours_worked: number
           id: string
+          is_paid: boolean
           job_id: string | null
           manager_notes: string | null
           notes: string | null
-          paid: boolean
+          overtime_hours: number | null
+          overtime_rate: number | null
           paid_at: string | null
-          status: string
+          regular_hours: number | null
+          status: Database["public"]["Enums"]["time_entry_status"]
+          total_pay: number | null
+          updated_at: string
         }
         Insert: {
           approved_at?: string | null
           approved_by?: string | null
+          break_duration_minutes?: number | null
+          clock_in_time: string
+          clock_out_time?: string | null
           created_at?: string
-          employee_id?: string | null
+          employee_id: string
           entry_date?: string
           hourly_rate: number
-          hours_worked: number
           id?: string
+          is_paid?: boolean
           job_id?: string | null
           manager_notes?: string | null
           notes?: string | null
-          paid?: boolean
+          overtime_hours?: number | null
+          overtime_rate?: number | null
           paid_at?: string | null
-          status?: string
+          regular_hours?: number | null
+          status?: Database["public"]["Enums"]["time_entry_status"]
+          total_pay?: number | null
+          updated_at?: string
         }
         Update: {
           approved_at?: string | null
           approved_by?: string | null
+          break_duration_minutes?: number | null
+          clock_in_time?: string
+          clock_out_time?: string | null
           created_at?: string
-          employee_id?: string | null
+          employee_id?: string
           entry_date?: string
           hourly_rate?: number
-          hours_worked?: number
           id?: string
+          is_paid?: boolean
           job_id?: string | null
           manager_notes?: string | null
           notes?: string | null
-          paid?: boolean
+          overtime_hours?: number | null
+          overtime_rate?: number | null
           paid_at?: string | null
-          status?: string
+          regular_hours?: number | null
+          status?: Database["public"]["Enums"]["time_entry_status"]
+          total_pay?: number | null
+          updated_at?: string
         }
         Relationships: [
           {
@@ -338,15 +457,81 @@ export type Database = {
           },
         ]
       }
+      user_roles: {
+        Row: {
+          employee_id: string | null
+          granted_at: string
+          granted_by: string | null
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          employee_id?: string | null
+          granted_at?: string
+          granted_by?: string | null
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          employee_id?: string | null
+          granted_at?: string
+          granted_by?: string | null
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_roles_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      generate_employee_number: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
+      generate_job_number: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
+      has_role: {
+        Args: {
+          _user_id: string
+          _role: Database["public"]["Enums"]["app_role"]
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "super_admin" | "admin" | "manager" | "employee"
+      employee_status: "active" | "inactive" | "terminated" | "on_leave"
+      job_status:
+        | "scheduled"
+        | "in_progress"
+        | "completed"
+        | "cancelled"
+        | "rescheduled"
+      lead_source:
+        | "website"
+        | "referral"
+        | "google_ads"
+        | "facebook"
+        | "phone"
+        | "walk_in"
+        | "other"
+      lead_status: "new" | "contacted" | "quoted" | "converted" | "lost"
+      time_entry_status: "pending" | "approved" | "rejected"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -461,6 +646,27 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["super_admin", "admin", "manager", "employee"],
+      employee_status: ["active", "inactive", "terminated", "on_leave"],
+      job_status: [
+        "scheduled",
+        "in_progress",
+        "completed",
+        "cancelled",
+        "rescheduled",
+      ],
+      lead_source: [
+        "website",
+        "referral",
+        "google_ads",
+        "facebook",
+        "phone",
+        "walk_in",
+        "other",
+      ],
+      lead_status: ["new", "contacted", "quoted", "converted", "lost"],
+      time_entry_status: ["pending", "approved", "rejected"],
+    },
   },
 } as const

@@ -7,6 +7,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { NewEmployeeRequestForm } from '@/components/NewEmployeeRequestForm';
 import { EmployeeDashboard } from './EmployeeDashboard';
+import { Truck, Shield, Users } from 'lucide-react';
 
 export const EmployeePortal = () => {
   const [email, setEmail] = useState('');
@@ -30,12 +31,12 @@ export const EmployeePortal = () => {
     console.log('Checking for employee with email:', email);
 
     try {
-      // Check if employee exists in the employees table (approved employees)
+      // Check if employee exists in the employees table
       const { data: employee, error: employeeError } = await supabase
         .from('employees')
         .select('*')
         .eq('email', email)
-        .eq('status', 'Active')
+        .eq('status', 'active')
         .maybeSingle();
 
       if (employeeError) {
@@ -43,10 +44,7 @@ export const EmployeePortal = () => {
         throw employeeError;
       }
 
-      console.log('Employee found:', employee);
-
       if (employee) {
-        // Employee exists - send magic link
         setEmployeeData(employee);
         
         const { error } = await supabase.auth.signInWithOtp({
@@ -67,8 +65,6 @@ export const EmployeePortal = () => {
           description: "Check your email for a magic link to access your dashboard.",
         });
       } else {
-        // Employee doesn't exist - show request form
-        console.log('No employee found, showing request form');
         setStep('request');
         toast({
           title: "Employee Not Found",
@@ -122,11 +118,10 @@ export const EmployeePortal = () => {
       }
 
       toast({
-        title: "Verification Successful!",
-        description: `Welcome ${employeeData?.name}! Redirecting to your dashboard...`,
+        title: "Welcome to Bantu Movers!",
+        description: `Hello ${employeeData?.name}! Redirecting to your dashboard...`,
       });
       
-      // Redirect to dashboard after successful verification
       setTimeout(() => {
         setStep('dashboard');
       }, 1500);
@@ -160,14 +155,12 @@ export const EmployeePortal = () => {
       description: "Your employee access request has been submitted for approval.",
     });
     
-    // Reset to email step after successful submission
     setStep('email');
     setEmail('');
     setVerificationCode('');
     setEmployeeData(null);
   };
 
-  // Show dashboard if employee is verified
   if (step === 'dashboard' && employeeData) {
     return (
       <EmployeeDashboard 
@@ -179,11 +172,16 @@ export const EmployeePortal = () => {
 
   if (step === 'request') {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-gradient-to-br from-purple-900 via-purple-800 to-amber-600 flex items-center justify-center p-4">
         <div className="max-w-md w-full space-y-6">
           <div className="text-center">
-            <h1 className="text-2xl font-bold text-gray-900">Request Employee Access</h1>
-            <p className="text-gray-600 mt-2">Fill out the form below to request access</p>
+            <div className="flex justify-center mb-4">
+              <div className="w-16 h-16 bg-amber-400 rounded-full flex items-center justify-center">
+                <Truck className="w-8 h-8 text-purple-900" />
+              </div>
+            </div>
+            <h1 className="text-3xl font-bold text-white">Join Bantu Movers</h1>
+            <p className="text-purple-200 mt-2">Fill out the form below to request access</p>
           </div>
           
           <NewEmployeeRequestForm 
@@ -197,96 +195,138 @@ export const EmployeePortal = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold text-gray-900">
-            Employee Portal
-          </CardTitle>
-          <CardDescription>
-            {step === 'email' 
-              ? 'Enter your email address to access your dashboard'
-              : `Enter the 6-digit code sent to ${email}`
-            }
-          </CardDescription>
-        </CardHeader>
-        
-        <CardContent className="space-y-4">
-          {step === 'email' ? (
-            <>
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-700">
-                  Email Address
-                </label>
-                <Input
-                  type="email"
-                  placeholder="your.email@company.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full"
-                />
-              </div>
-              
-              <Button 
-                onClick={handleSendVerification}
-                disabled={isLoading}
-                className="w-full"
-              >
-                {isLoading ? 'Sending Email...' : 'Send Verification Email'}
-              </Button>
-              
-              <div className="text-center">
-                <button 
-                  onClick={() => setStep('request')}
-                  className="text-purple-600 hover:text-purple-700 text-sm"
-                >
-                  Request access as new employee
-                </button>
-              </div>
-            </>
-          ) : (
-            <>
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-700">
-                  Verification Code
-                </label>
-                <Input
-                  type="text"
-                  placeholder="Enter 6-digit code"
-                  value={verificationCode}
-                  onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                  maxLength={6}
-                  className="w-full text-center text-lg tracking-widest"
-                />
-              </div>
-              
-              <Button 
-                onClick={handleVerifyCode}
-                disabled={isLoading}
-                className="w-full"
-              >
-                {isLoading ? 'Verifying...' : 'Verify & Access Dashboard'}
-              </Button>
-              
-              <div className="text-center space-y-2">
-                <button 
-                  onClick={() => setStep('email')}
-                  className="text-gray-600 hover:text-gray-700 text-sm block mx-auto"
-                >
-                  ← Change email address
-                </button>
-                <button 
+    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-purple-800 to-amber-600 flex items-center justify-center p-4">
+      <div className="max-w-md w-full">
+        {/* Bantu Movers Branding Header */}
+        <div className="text-center mb-8">
+          <div className="flex justify-center mb-4">
+            <div className="w-20 h-20 bg-amber-400 rounded-full flex items-center justify-center shadow-xl">
+              <Truck className="w-10 h-10 text-purple-900" />
+            </div>
+          </div>
+          <h1 className="text-4xl font-bold text-white mb-2">Bantu Movers</h1>
+          <p className="text-purple-200 text-lg">Employee Portal</p>
+        </div>
+
+        {/* Features showcase */}
+        <div className="grid grid-cols-3 gap-4 mb-8">
+          <div className="text-center">
+            <div className="w-12 h-12 bg-purple-700 rounded-lg flex items-center justify-center mx-auto mb-2">
+              <Shield className="w-6 h-6 text-amber-400" />
+            </div>
+            <p className="text-purple-200 text-sm">Secure Access</p>
+          </div>
+          <div className="text-center">
+            <div className="w-12 h-12 bg-purple-700 rounded-lg flex items-center justify-center mx-auto mb-2">
+              <Users className="w-6 h-6 text-amber-400" />
+            </div>
+            <p className="text-purple-200 text-sm">Team Portal</p>
+          </div>
+          <div className="text-center">
+            <div className="w-12 h-12 bg-purple-700 rounded-lg flex items-center justify-center mx-auto mb-2">
+              <Truck className="w-6 h-6 text-amber-400" />
+            </div>
+            <p className="text-purple-200 text-sm">Job Tracking</p>
+          </div>
+        </div>
+
+        <Card className="border-0 shadow-2xl bg-white/10 backdrop-blur-md">
+          <CardHeader className="text-center">
+            <CardTitle className="text-2xl font-bold text-white">
+              {step === 'email' ? 'Employee Login' : 'Verify Your Email'}
+            </CardTitle>
+            <CardDescription className="text-purple-200">
+              {step === 'email' 
+                ? 'Enter your email address to access your dashboard'
+                : `Enter the 6-digit code sent to ${email}`
+              }
+            </CardDescription>
+          </CardHeader>
+          
+          <CardContent className="space-y-6">
+            {step === 'email' ? (
+              <>
+                <div className="space-y-3">
+                  <label className="text-sm font-medium text-purple-200">
+                    Email Address
+                  </label>
+                  <Input
+                    type="email"
+                    placeholder="your.email@bantumovers.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="bg-white/20 border-purple-400 text-white placeholder:text-purple-300 focus:border-amber-400 focus:ring-amber-400"
+                  />
+                </div>
+                
+                <Button 
                   onClick={handleSendVerification}
                   disabled={isLoading}
-                  className="text-purple-600 hover:text-purple-700 text-sm"
+                  className="w-full bg-amber-500 hover:bg-amber-600 text-purple-900 font-semibold"
                 >
-                  {isLoading ? 'Sending...' : 'Resend verification email'}
-                </button>
-              </div>
-            </>
-          )}
-        </CardContent>
-      </Card>
+                  {isLoading ? 'Sending Email...' : 'Send Verification Email'}
+                </Button>
+                
+                <div className="text-center">
+                  <button 
+                    onClick={() => setStep('request')}
+                    className="text-amber-300 hover:text-amber-200 text-sm underline"
+                  >
+                    New to Bantu Movers? Request access here
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="space-y-3">
+                  <label className="text-sm font-medium text-purple-200">
+                    Verification Code
+                  </label>
+                  <Input
+                    type="text"
+                    placeholder="Enter 6-digit code"
+                    value={verificationCode}
+                    onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                    maxLength={6}
+                    className="bg-white/20 border-purple-400 text-white placeholder:text-purple-300 focus:border-amber-400 focus:ring-amber-400 text-center text-lg tracking-widest"
+                  />
+                </div>
+                
+                <Button 
+                  onClick={handleVerifyCode}
+                  disabled={isLoading}
+                  className="w-full bg-amber-500 hover:bg-amber-600 text-purple-900 font-semibold"
+                >
+                  {isLoading ? 'Verifying...' : 'Verify & Access Dashboard'}
+                </Button>
+                
+                <div className="text-center space-y-3">
+                  <button 
+                    onClick={() => setStep('email')}
+                    className="text-purple-200 hover:text-white text-sm block mx-auto"
+                  >
+                    ← Change email address
+                  </button>
+                  <button 
+                    onClick={handleSendVerification}
+                    disabled={isLoading}
+                    className="text-amber-300 hover:text-amber-200 text-sm underline"
+                  >
+                    {isLoading ? 'Sending...' : 'Resend verification email'}
+                  </button>
+                </div>
+              </>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Footer */}
+        <div className="text-center mt-8">
+          <p className="text-purple-300 text-sm">
+            © 2024 Bantu Movers. Professional Moving Services.
+          </p>
+        </div>
+      </div>
     </div>
   );
 };

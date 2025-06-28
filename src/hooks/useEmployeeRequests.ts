@@ -6,10 +6,21 @@ import { useToast } from '@/hooks/use-toast';
 export interface EmployeeRequest {
   id: string;
   name: string;
+  email: string | null;
   phone: string;
-  status: 'pending' | 'approved' | 'rejected';
-  created_at: string;
+  address: string | null;
+  position_applied: string | null;
+  expected_hourly_wage: number | null;
+  availability: string | null;
+  experience_years: number | null;
+  reference_contacts: string | null;
+  status: string;
+  interview_date: string | null;
+  interview_notes: string | null;
+  reviewed_by: string | null;
+  reviewed_at: string | null;
   notes: string | null;
+  created_at: string;
 }
 
 export const useEmployeeRequests = () => {
@@ -35,7 +46,18 @@ export const useEmployeeRequests = () => {
   });
 
   const addEmployeeRequestMutation = useMutation({
-    mutationFn: async (requestData: { name: string; phone: string; notes?: string }) => {
+    mutationFn: async (requestData: { 
+      name: string; 
+      email?: string;
+      phone: string; 
+      address?: string;
+      position_applied?: string;
+      expected_hourly_wage?: number;
+      availability?: string;
+      experience_years?: number;
+      reference_contacts?: string;
+      notes?: string;
+    }) => {
       const { data, error } = await supabase
         .from('employee_requests')
         .insert([requestData])
@@ -64,7 +86,7 @@ export const useEmployeeRequests = () => {
       console.log('Updating request status:', { id, status, notes, hourlyWage });
       
       try {
-        // First, get the current request data
+        // Get the current request data
         const { data: currentRequest, error: fetchError } = await supabase
           .from('employee_requests')
           .select('*')
@@ -77,28 +99,23 @@ export const useEmployeeRequests = () => {
         }
 
         if (!currentRequest) {
-          console.error('Request not found with ID:', id);
           throw new Error('Employee request not found');
         }
 
-        console.log('Current request data:', currentRequest);
-
         // If approved, create employee record and delete request
         if (status === 'approved' && hourlyWage) {
-          console.log('Creating employee record with data:', {
-            name: currentRequest.name,
-            phone: currentRequest.phone,
-            hourly_wage: hourlyWage,
-            status: 'Active'
-          });
+          console.log('Creating employee record...');
           
           const { data: employeeData, error: employeeError } = await supabase
             .from('employees')
             .insert({
               name: currentRequest.name,
+              email: currentRequest.email,
               phone: currentRequest.phone,
+              address: currentRequest.address,
+              position: currentRequest.position_applied || 'mover',
               hourly_wage: hourlyWage,
-              status: 'Active',
+              status: 'active',
               hire_date: new Date().toISOString().split('T')[0]
             })
             .select()
@@ -122,8 +139,6 @@ export const useEmployeeRequests = () => {
             throw new Error(`Failed to delete request after approval: ${deleteError.message}`);
           }
 
-          console.log('Request deleted successfully after approval');
-
           return {
             ...currentRequest,
             status: 'approved',
@@ -138,7 +153,9 @@ export const useEmployeeRequests = () => {
           .from('employee_requests')
           .update({ 
             status, 
-            notes: notes || null 
+            notes: notes || null,
+            reviewed_at: new Date().toISOString(),
+            reviewed_by: (await supabase.auth.getUser()).data.user?.id
           })
           .eq('id', id)
           .select()
@@ -149,7 +166,6 @@ export const useEmployeeRequests = () => {
           throw new Error(`Failed to update request: ${updateError.message}`);
         }
 
-        console.log('Request updated successfully');
         return updatedRequest;
         
       } catch (error) {
@@ -161,12 +177,10 @@ export const useEmployeeRequests = () => {
       console.log('Mutation success, updating cache...');
       
       if (variables.status === 'approved') {
-        // For approved requests, remove from cache immediately
+        // Remove approved request from cache
         queryClient.setQueryData(['employeeRequests'], (oldData: EmployeeRequest[] | undefined) => {
           if (!oldData) return [];
-          const filtered = oldData.filter(request => request.id !== variables.id);
-          console.log('Removed approved request from cache. New count:', filtered.length);
-          return filtered;
+          return oldData.filter(request => request.id !== variables.id);
         });
         
         toast({
@@ -180,7 +194,7 @@ export const useEmployeeRequests = () => {
         });
       }
       
-      // Invalidate both queries to ensure fresh data
+      // Invalidate queries to ensure fresh data
       queryClient.invalidateQueries({ queryKey: ['employeeRequests'] });
       queryClient.invalidateQueries({ queryKey: ['employees'] });
     },
@@ -198,7 +212,6 @@ export const useEmployeeRequests = () => {
     mutationFn: async (id: string) => {
       console.log('Attempting to delete request with ID:', id);
       
-      // First verify the request exists
       const { data: existingRequest, error: fetchError } = await supabase
         .from('employee_requests')
         .select('id, name')
@@ -210,9 +223,6 @@ export const useEmployeeRequests = () => {
         throw new Error(`Request not found: ${fetchError.message}`);
       }
       
-      console.log('Found request to delete:', existingRequest);
-      
-      // Now delete the request
       const { error: deleteError } = await supabase
         .from('employee_requests')
         .delete()
@@ -223,22 +233,16 @@ export const useEmployeeRequests = () => {
         throw new Error(`Failed to delete request: ${deleteError.message}`);
       }
       
-      console.log('Successfully deleted request with ID:', id);
       return { id, name: existingRequest.name };
     },
     onSuccess: (deletedData) => {
-      console.log('Delete mutation successful, updating cache for ID:', deletedData.id);
+      console.log('Delete mutation successful:', deletedData.id);
       
-      // Immediately remove from cache with optimistic update
       queryClient.setQueryData(['employeeRequests'], (oldData: EmployeeRequest[] | undefined) => {
         if (!oldData) return [];
-        const filtered = oldData.filter(request => request.id !== deletedData.id);
-        console.log('Updated cache after delete. Removed request, new count:', filtered.length);
-        return filtered;
+        return oldData.filter(request => request.id !== deletedData.id);
       });
       
-      // Don't invalidate immediately to prevent race conditions
-      // The cache update above should be sufficient
       setTimeout(() => {
         queryClient.invalidateQueries({ queryKey: ['employeeRequests'] });
       }, 100);

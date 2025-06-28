@@ -4,7 +4,7 @@ import { useEmployeeRequests } from '@/hooks/useEmployeeRequests';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { UserPlus, CheckCircle, XCircle, Phone, Calendar, DollarSign, Trash2 } from 'lucide-react';
+import { UserPlus, CheckCircle, XCircle, Phone, Calendar, DollarSign, Trash2, Mail, MapPin, Clock, Users, Truck } from 'lucide-react';
 
 export const EmployeeRequests = () => {
   const { employeeRequests, isLoading, updateRequestStatus, deleteRequest, isDeletingRequest } = useEmployeeRequests();
@@ -13,7 +13,6 @@ export const EmployeeRequests = () => {
   const [managerNotes, setManagerNotes] = useState('');
   const [hourlyWage, setHourlyWage] = useState('');
 
-  // Filter out approved requests - only show pending and rejected
   const visibleRequests = employeeRequests.filter(request => request.status !== 'approved');
 
   const handleReviewRequest = (request: any) => {
@@ -57,115 +56,201 @@ export const EmployeeRequests = () => {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'pending': return 'bg-yellow-100 text-yellow-800';
-      case 'approved': return 'bg-green-100 text-green-800';
-      case 'rejected': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'pending': return 'bg-amber-100 text-amber-800 border-amber-200';
+      case 'approved': return 'bg-green-100 text-green-800 border-green-200';
+      case 'rejected': return 'bg-red-100 text-red-800 border-red-200';
+      default: return 'bg-gray-100 text-gray-800 border-gray-200';
     }
   };
 
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-lg text-gray-600">Loading employee requests...</div>
+        <div className="text-center">
+          <div className="w-12 h-12 bg-purple-600 rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse">
+            <Truck className="w-6 h-6 text-white" />
+          </div>
+          <div className="text-lg text-gray-600">Loading employee requests...</div>
+        </div>
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Employee Requests</h1>
-          <p className="text-gray-600 mt-2">Manage new employee access requests</p>
+      {/* Header with Bantu Movers branding */}
+      <div className="bg-gradient-to-r from-purple-600 to-amber-500 rounded-lg p-6 text-white">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
+              <UserPlus className="w-6 h-6" />
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold">Employee Requests</h1>
+              <p className="text-purple-100 mt-1">Manage new team member applications for Bantu Movers</p>
+            </div>
+          </div>
+          <div className="hidden md:flex items-center space-x-2">
+            <Truck className="w-8 h-8 text-amber-300" />
+            <span className="text-xl font-bold">Bantu Movers</span>
+          </div>
         </div>
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-white p-4 rounded-lg shadow-sm border">
-          <p className="text-sm text-gray-600">Total Requests</p>
-          <p className="text-2xl font-bold text-gray-900">{employeeRequests.length}</p>
+      {/* Enhanced Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div className="bg-white p-6 rounded-lg shadow-sm border border-purple-100">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-600 font-medium">Total Requests</p>
+              <p className="text-3xl font-bold text-purple-600">{employeeRequests.length}</p>
+            </div>
+            <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
+              <Users className="w-6 h-6 text-purple-600" />
+            </div>
+          </div>
         </div>
-        <div className="bg-white p-4 rounded-lg shadow-sm border">
-          <p className="text-sm text-gray-600">Pending Review</p>
-          <p className="text-2xl font-bold text-yellow-600">
-            {employeeRequests.filter(req => req.status === 'pending').length}
-          </p>
+        
+        <div className="bg-white p-6 rounded-lg shadow-sm border border-amber-100">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-600 font-medium">Pending Review</p>
+              <p className="text-3xl font-bold text-amber-600">
+                {employeeRequests.filter(req => req.status === 'pending').length}
+              </p>
+            </div>
+            <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center">
+              <Clock className="w-6 h-6 text-amber-600" />
+            </div>
+          </div>
         </div>
-        <div className="bg-white p-4 rounded-lg shadow-sm border">
-          <p className="text-sm text-gray-600">Approved</p>
-          <p className="text-2xl font-bold text-green-600">
-            {employeeRequests.filter(req => req.status === 'approved').length}
-          </p>
+        
+        <div className="bg-white p-6 rounded-lg shadow-sm border border-green-100">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-600 font-medium">Approved</p>
+              <p className="text-3xl font-bold text-green-600">
+                {employeeRequests.filter(req => req.status === 'approved').length}
+              </p>
+            </div>
+            <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
+              <CheckCircle className="w-6 h-6 text-green-600" />
+            </div>
+          </div>
+        </div>
+        
+        <div className="bg-white p-6 rounded-lg shadow-sm border border-red-100">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-600 font-medium">Rejected</p>
+              <p className="text-3xl font-bold text-red-600">
+                {employeeRequests.filter(req => req.status === 'rejected').length}
+              </p>
+            </div>
+            <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+              <XCircle className="w-6 h-6 text-red-600" />
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Requests Table */}
-      <div className="bg-white rounded-lg shadow-sm border">
+      {/* Enhanced Requests Table */}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+        <div className="px-6 py-4 border-b border-gray-200">
+          <h2 className="text-lg font-semibold text-gray-900">Recent Applications</h2>
+        </div>
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Employee
+                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Applicant
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Phone
+                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Contact Info
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Request Date
+                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Position & Experience
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Status
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Actions
                 </th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {visibleRequests.map((request) => (
-                <tr key={request.id} className="hover:bg-gray-50">
+                <tr key={request.id} className="hover:bg-gray-50 transition-colors">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
-                      <div className="flex-shrink-0 h-10 w-10">
-                        <div className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center">
-                          <UserPlus className="h-5 w-5 text-gray-500" />
+                      <div className="flex-shrink-0 h-12 w-12">
+                        <div className="h-12 w-12 rounded-full bg-gradient-to-r from-purple-400 to-amber-400 flex items-center justify-center">
+                          <span className="text-white font-semibold text-sm">
+                            {request.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+                          </span>
                         </div>
                       </div>
                       <div className="ml-4">
-                        <div className="text-sm font-medium text-gray-900">
+                        <div className="text-sm font-semibold text-gray-900">
                           {request.name}
+                        </div>
+                        <div className="text-sm text-gray-500 flex items-center mt-1">
+                          <Calendar className="h-3 w-3 mr-1" />
+                          Applied {new Date(request.created_at).toLocaleDateString()}
                         </div>
                       </div>
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center text-sm text-gray-900">
-                      <Phone className="h-4 w-4 mr-2 text-gray-400" />
-                      {request.phone}
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <div className="space-y-1">
+                      <div className="flex items-center">
+                        <Phone className="h-4 w-4 mr-2 text-gray-400" />
+                        {request.phone}
+                      </div>
+                      {request.email && (
+                        <div className="flex items-center">
+                          <Mail className="h-4 w-4 mr-2 text-gray-400" />
+                          {request.email}
+                        </div>
+                      )}
+                      {request.address && (
+                        <div className="flex items-center">
+                          <MapPin className="h-4 w-4 mr-2 text-gray-400" />
+                          {request.address}
+                        </div>
+                      )}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <div className="space-y-1">
+                      <div className="font-medium capitalize">
+                        {request.position_applied || 'Mover'}
+                      </div>
+                      <div className="text-gray-500">
+                        {request.experience_years || 0} years experience
+                      </div>
+                      {request.expected_hourly_wage && (
+                        <div className="text-green-600 font-medium">
+                          ${request.expected_hourly_wage}/hr expected
+                        </div>
+                      )}
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center text-sm text-gray-500">
-                      <Calendar className="h-4 w-4 mr-2 text-gray-400" />
-                      {new Date(request.created_at).toLocaleDateString()}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize ${getStatusColor(request.status)}`}>
+                    <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium capitalize border ${getStatusColor(request.status)}`}>
                       {request.status}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <div className="flex gap-2">
+                    <div className="flex items-center space-x-2">
                       {request.status === 'pending' && (
                         <Button
                           variant="outline"
                           size="sm"
                           onClick={() => handleReviewRequest(request)}
-                          className="flex items-center gap-1"
+                          className="text-purple-600 border-purple-200 hover:bg-purple-50"
                         >
                           Review
                         </Button>
@@ -176,7 +261,7 @@ export const EmployeeRequests = () => {
                           <Button
                             variant="outline"
                             size="sm"
-                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                            className="text-red-600 border-red-200 hover:bg-red-50"
                             disabled={isDeletingRequest}
                           >
                             <Trash2 className="h-3 w-3" />
@@ -186,7 +271,7 @@ export const EmployeeRequests = () => {
                           <AlertDialogHeader>
                             <AlertDialogTitle>Delete Employee Request</AlertDialogTitle>
                             <AlertDialogDescription>
-                              Are you sure you want to permanently delete {request.name}'s employee request? 
+                              Are you sure you want to permanently delete {request.name}'s application? 
                               This action cannot be undone.
                             </AlertDialogDescription>
                           </AlertDialogHeader>
@@ -209,43 +294,88 @@ export const EmployeeRequests = () => {
           </table>
         </div>
         {visibleRequests.length === 0 && (
-          <div className="p-6 text-center text-gray-500">
-            No pending employee requests found.
+          <div className="p-12 text-center">
+            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <UserPlus className="w-8 h-8 text-gray-400" />
+            </div>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">No pending requests</h3>
+            <p className="text-gray-500">All employee requests have been processed.</p>
           </div>
         )}
       </div>
 
-      {/* Review Dialog */}
+      {/* Enhanced Review Dialog */}
       <Dialog open={isReviewDialogOpen} onOpenChange={setIsReviewDialogOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>Review Employee Request</DialogTitle>
+            <DialogTitle className="flex items-center space-x-2">
+              <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-amber-500 rounded-full flex items-center justify-center">
+                <UserPlus className="w-4 h-4 text-white" />
+              </div>
+              <span>Review Application</span>
+            </DialogTitle>
           </DialogHeader>
           
           {selectedRequest && (
-            <div className="space-y-4">
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <h3 className="font-medium text-gray-900">{selectedRequest.name}</h3>
-                <p className="text-sm text-gray-600">{selectedRequest.phone}</p>
-                <p className="text-sm text-gray-600">
-                  Requested: {new Date(selectedRequest.created_at).toLocaleDateString()}
-                </p>
+            <div className="space-y-6">
+              <div className="bg-gradient-to-r from-purple-50 to-amber-50 p-4 rounded-lg border">
+                <div className="flex items-center space-x-3 mb-3">
+                  <div className="w-12 h-12 bg-gradient-to-r from-purple-400 to-amber-400 rounded-full flex items-center justify-center">
+                    <span className="text-white font-semibold">
+                      {selectedRequest.name.split(' ').map((n: string) => n[0]).join('').toUpperCase()}
+                    </span>
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-gray-900">{selectedRequest.name}</h3>
+                    <p className="text-sm text-gray-600 capitalize">
+                      {selectedRequest.position_applied || 'Mover'} Position
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <span className="text-gray-500">Phone:</span>
+                    <p className="font-medium">{selectedRequest.phone}</p>
+                  </div>
+                  {selectedRequest.email && (
+                    <div>
+                      <span className="text-gray-500">Email:</span>
+                      <p className="font-medium">{selectedRequest.email}</p>
+                    </div>
+                  )}
+                  <div>
+                    <span className="text-gray-500">Experience:</span>
+                    <p className="font-medium">{selectedRequest.experience_years || 0} years</p>
+                  </div>
+                  <div>
+                    <span className="text-gray-500">Applied:</span>
+                    <p className="font-medium">{new Date(selectedRequest.created_at).toLocaleDateString()}</p>
+                  </div>
+                </div>
+
+                {selectedRequest.expected_hourly_wage && (
+                  <div className="mt-3 p-2 bg-green-50 rounded border border-green-200">
+                    <span className="text-sm text-green-700">Expected Wage: </span>
+                    <span className="font-semibold text-green-800">${selectedRequest.expected_hourly_wage}/hr</span>
+                  </div>
+                )}
               </div>
               
               {selectedRequest.notes && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Employee Notes
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Applicant Notes
                   </label>
-                  <p className="text-sm text-gray-600 bg-gray-50 p-2 rounded">
+                  <div className="text-sm text-gray-700 bg-gray-50 p-3 rounded border">
                     {selectedRequest.notes}
-                  </p>
+                  </div>
                 </div>
               )}
               
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Hourly Wage (Required for Approval)
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Set Hourly Wage <span className="text-red-500">*</span>
                 </label>
                 <div className="relative">
                   <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -262,7 +392,7 @@ export const EmployeeRequests = () => {
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
                   Manager Notes
                 </label>
                 <textarea
@@ -270,18 +400,18 @@ export const EmployeeRequests = () => {
                   onChange={(e) => setManagerNotes(e.target.value)}
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                   rows={3}
-                  placeholder="Add notes about this request..."
+                  placeholder="Add notes about this application..."
                 />
               </div>
 
-              <div className="bg-green-50 p-3 rounded-lg">
-                <p className="text-xs text-green-800">
-                  <strong>Note:</strong> When you approve this request, the employee will be 
-                  automatically added to your team and this request will be removed from the list.
+              <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                <p className="text-sm text-blue-800">
+                  <strong>Note:</strong> Approving this request will automatically add the applicant 
+                  as a team member and remove this request from the pending list.
                 </p>
               </div>
               
-              <div className="flex gap-2 pt-4">
+              <div className="flex gap-3 pt-4">
                 <Button 
                   variant="outline" 
                   onClick={() => setIsReviewDialogOpen(false)}
@@ -299,11 +429,11 @@ export const EmployeeRequests = () => {
                 </Button>
                 <Button 
                   onClick={handleApprove}
-                  className="flex-1 bg-green-600 hover:bg-green-700"
+                  className="flex-1 bg-gradient-to-r from-purple-600 to-amber-500 hover:from-purple-700 hover:to-amber-600"
                   disabled={!hourlyWage || parseFloat(hourlyWage) <= 0}
                 >
                   <CheckCircle className="h-4 w-4 mr-1" />
-                  Approve & Add Employee
+                  Approve & Hire
                 </Button>
               </div>
             </div>
