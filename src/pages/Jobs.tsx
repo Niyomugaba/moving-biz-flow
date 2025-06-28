@@ -10,15 +10,15 @@ export const Jobs = () => {
   const [isScheduleDialogOpen, setIsScheduleDialogOpen] = useState(false);
 
   const totalRevenue = jobs
-    .filter(job => job.status === 'Completed' && job.paid)
-    .reduce((sum, job) => sum + (job.hourly_rate * job.actual_hours), 0);
+    .filter(job => job.status === 'completed' && job.is_paid)
+    .reduce((sum, job) => sum + (job.hourly_rate * (job.actual_duration_hours || 0)), 0);
 
-  const activeJobs = jobs.filter(job => job.status !== 'Completed').length;
-  const completedJobs = jobs.filter(job => job.status === 'Completed').length;
-  const paidJobs = jobs.filter(job => job.paid).length;
+  const activeJobs = jobs.filter(job => job.status !== 'completed').length;
+  const completedJobs = jobs.filter(job => job.status === 'completed').length;
+  const paidJobs = jobs.filter(job => job.is_paid).length;
   const unpaidRevenue = jobs
-    .filter(job => job.status === 'Completed' && !job.paid)
-    .reduce((sum, job) => sum + (job.hourly_rate * job.actual_hours), 0);
+    .filter(job => job.status === 'completed' && !job.is_paid)
+    .reduce((sum, job) => sum + (job.hourly_rate * (job.actual_duration_hours || 0)), 0);
 
   if (isLoading) {
     return (
@@ -77,7 +77,7 @@ export const Jobs = () => {
                 <h3 className="text-lg font-semibold text-gray-900">{job.client_name}</h3>
                 <div className="flex flex-col items-end gap-2">
                   <StatusBadge status={job.status} variant="job" />
-                  {job.paid ? (
+                  {job.is_paid ? (
                     <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
                       Paid
                     </span>
@@ -92,12 +92,12 @@ export const Jobs = () => {
               <div className="space-y-3">
                 <div className="flex items-center text-sm text-gray-600">
                   <Calendar className="h-4 w-4 mr-2" />
-                  {job.job_date} at {job.job_time}
+                  {job.job_date} at {job.start_time}
                 </div>
                 
                 <div className="flex items-start text-sm text-gray-600">
                   <MapPin className="h-4 w-4 mr-2 mt-0.5 flex-shrink-0" />
-                  <span>{job.address}</span>
+                  <span>{job.origin_address}</span>
                 </div>
                 
                 <div className="flex items-center text-sm text-gray-600">
@@ -113,19 +113,19 @@ export const Jobs = () => {
                 </div>
                 <div className="flex justify-between items-center text-sm mt-1">
                   <span className="text-gray-600">Hours Worked:</span>
-                  <span className="font-medium">{job.actual_hours}h</span>
+                  <span className="font-medium">{job.actual_duration_hours || 0}h</span>
                 </div>
                 <div className="flex justify-between items-center text-sm mt-1">
                   <span className="text-gray-600">Total Cost:</span>
-                  <span className={`font-semibold ${job.paid ? 'text-green-600' : 'text-orange-600'}`}>
-                    ${(job.hourly_rate * job.actual_hours).toLocaleString()}
+                  <span className={`font-semibold ${job.is_paid ? 'text-green-600' : 'text-orange-600'}`}>
+                    ${(job.hourly_rate * (job.actual_duration_hours || 0)).toLocaleString()}
                   </span>
                 </div>
               </div>
 
-              {job.notes && (
+              {job.completion_notes && (
                 <div className="mt-4 p-3 bg-gray-50 rounded-lg">
-                  <p className="text-sm text-gray-700">{job.notes}</p>
+                  <p className="text-sm text-gray-700">{job.completion_notes}</p>
                 </div>
               )}
 

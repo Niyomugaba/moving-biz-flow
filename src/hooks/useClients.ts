@@ -13,9 +13,9 @@ export interface Client {
   company_name: string | null;
   preferred_contact_method: string | null;
   notes: string | null;
+  rating: number | null;
   total_jobs_completed: number | null;
   total_revenue: number | null;
-  rating: number | null;
   created_at: string;
   updated_at: string;
 }
@@ -38,7 +38,7 @@ export const useClients = () => {
   });
 
   const addClientMutation = useMutation({
-    mutationFn: async (clientData: Omit<Client, 'id' | 'created_at' | 'updated_at' | 'total_jobs_completed' | 'total_revenue' | 'rating'>) => {
+    mutationFn: async (clientData: Omit<Client, 'id' | 'created_at' | 'updated_at' | 'rating' | 'total_jobs_completed' | 'total_revenue'>) => {
       const { data, error } = await supabase
         .from('clients')
         .insert([clientData])
@@ -57,11 +57,34 @@ export const useClients = () => {
     }
   });
 
+  const updateClientMutation = useMutation({
+    mutationFn: async ({ id, updates }: { id: string; updates: Partial<Client> }) => {
+      const { data, error } = await supabase
+        .from('clients')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['clients'] });
+      toast({
+        title: "Client Updated",
+        description: "Client information has been updated successfully.",
+      });
+    }
+  });
+
   return {
     clients,
     isLoading,
     error,
     addClient: addClientMutation.mutate,
-    isAddingClient: addClientMutation.isPending
+    updateClient: updateClientMutation.mutate,
+    isAddingClient: addClientMutation.isPending,
+    isUpdatingClient: updateClientMutation.isPending
   };
 };
