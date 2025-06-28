@@ -8,13 +8,14 @@ import { UserPlus, ArrowLeft } from 'lucide-react';
 interface NewEmployeeRequestFormProps {
   onBack: () => void;
   onSuccess: () => void;
+  phoneNumber?: string; // Optional pre-filled phone number
 }
 
-export const NewEmployeeRequestForm = ({ onBack, onSuccess }: NewEmployeeRequestFormProps) => {
+export const NewEmployeeRequestForm = ({ onBack, onSuccess, phoneNumber = '' }: NewEmployeeRequestFormProps) => {
   const { addEmployeeRequest, isAddingRequest } = useEmployeeRequests();
   const [formData, setFormData] = useState({
     name: '',
-    phone: '',
+    phone: phoneNumber, // Pre-fill if provided
     notes: ''
   });
 
@@ -69,6 +70,11 @@ export const NewEmployeeRequestForm = ({ onBack, onSuccess }: NewEmployeeRequest
               onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
               placeholder="(555) 123-4567"
             />
+            {phoneNumber && (
+              <p className="text-xs text-blue-600 mt-1">
+                Phone number pre-filled from verification attempt
+              </p>
+            )}
           </div>
 
           <div>

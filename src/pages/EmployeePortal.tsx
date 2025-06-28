@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useEmployees } from '@/hooks/useEmployees';
 import { useJobs } from '@/hooks/useJobs';
@@ -17,6 +16,7 @@ export const EmployeePortal = () => {
   const [pin, setPin] = useState('');
   const [generatedPin, setGeneratedPin] = useState('');
   const [selectedEmployee, setSelectedEmployee] = useState<any>(null);
+  const [fromPhoneVerification, setFromPhoneVerification] = useState(false); // Track if coming from phone verification
   const [timeEntryData, setTimeEntryData] = useState({
     jobId: '',
     startTime: '',
@@ -81,7 +81,8 @@ export const EmployeePortal = () => {
       
       setStep('pin');
     } else {
-      // Redirect to new employee request
+      // Redirect to new employee request and mark that we came from phone verification
+      setFromPhoneVerification(true);
       setStep('newEmployee');
     }
   };
@@ -127,6 +128,7 @@ export const EmployeePortal = () => {
     setPin('');
     setGeneratedPin('');
     setSelectedEmployee(null);
+    setFromPhoneVerification(false);
     setTimeEntryData({
       jobId: '',
       startTime: '',
@@ -134,6 +136,22 @@ export const EmployeePortal = () => {
       totalHours: 0,
       notes: ''
     });
+  };
+
+  const handleNewEmployeeBack = () => {
+    if (fromPhoneVerification) {
+      // If we came from phone verification, go back to phone step
+      setStep('phone');
+      setFromPhoneVerification(false);
+    } else {
+      // If we came from the direct "Request Access" button, go back to phone step
+      setStep('phone');
+    }
+  };
+
+  const handleNewEmployeeSuccess = () => {
+    setStep('requestSubmitted');
+    setFromPhoneVerification(false);
   };
 
   const completedJobs = jobs.filter(job => job.status === 'Completed');
@@ -154,8 +172,9 @@ export const EmployeePortal = () => {
   if (step === 'newEmployee') {
     return (
       <NewEmployeeRequestForm 
-        onBack={() => setStep('phone')} 
-        onSuccess={() => setStep('requestSubmitted')}
+        onBack={handleNewEmployeeBack}
+        onSuccess={handleNewEmployeeSuccess}
+        phoneNumber={fromPhoneVerification ? phoneNumber : ''}
       />
     );
   }
@@ -223,7 +242,10 @@ export const EmployeePortal = () => {
               <Button 
                 type="button"
                 variant="outline"
-                onClick={() => setStep('newEmployee')}
+                onClick={() => {
+                  setFromPhoneVerification(false);
+                  setStep('newEmployee');
+                }}
                 className="w-full border-green-200 text-green-700 hover:bg-green-50"
               >
                 <UserPlus className="h-4 w-4 mr-2" />
