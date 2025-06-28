@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -139,18 +138,10 @@ export const EmployeePortal = () => {
           </div>
           
           <NewEmployeeRequestForm 
-            initialPhone={phone}
+            phoneNumber={phone}
+            onBack={() => setStep('phone')}
             onSuccess={handleRequestSubmitted}
           />
-          
-          <div className="text-center">
-            <button 
-              onClick={() => setStep('phone')}
-              className="text-purple-600 hover:text-purple-700 text-sm"
-            >
-              ← Back to phone verification
-            </button>
-          </div>
         </div>
       </div>
     );
