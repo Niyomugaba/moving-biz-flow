@@ -12,6 +12,9 @@ export const EmployeeRequests = () => {
   const [managerNotes, setManagerNotes] = useState('');
   const [hourlyWage, setHourlyWage] = useState('');
 
+  // Filter out approved requests - only show pending and rejected
+  const visibleRequests = employeeRequests.filter(request => request.status !== 'approved');
+
   const handleReviewRequest = (request: any) => {
     setSelectedRequest(request);
     setManagerNotes(request.notes || '');
@@ -117,7 +120,7 @@ export const EmployeeRequests = () => {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {employeeRequests.map((request) => (
+              {visibleRequests.map((request) => (
                 <tr key={request.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
@@ -165,9 +168,9 @@ export const EmployeeRequests = () => {
             </tbody>
           </table>
         </div>
-        {employeeRequests.length === 0 && (
+        {visibleRequests.length === 0 && (
           <div className="p-6 text-center text-gray-500">
-            No employee requests found.
+            No pending employee requests found.
           </div>
         )}
       </div>
