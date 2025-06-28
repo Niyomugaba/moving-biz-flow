@@ -3,10 +3,11 @@ import React, { useState } from 'react';
 import { useEmployeeRequests } from '@/hooks/useEmployeeRequests';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { UserPlus, CheckCircle, XCircle, Phone, Calendar, DollarSign } from 'lucide-react';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { UserPlus, CheckCircle, XCircle, Phone, Calendar, DollarSign, Trash2 } from 'lucide-react';
 
 export const EmployeeRequests = () => {
-  const { employeeRequests, isLoading, updateRequestStatus } = useEmployeeRequests();
+  const { employeeRequests, isLoading, updateRequestStatus, deleteRequest, isDeletingRequest } = useEmployeeRequests();
   const [selectedRequest, setSelectedRequest] = useState<any>(null);
   const [isReviewDialogOpen, setIsReviewDialogOpen] = useState(false);
   const [managerNotes, setManagerNotes] = useState('');
@@ -48,6 +49,10 @@ export const EmployeeRequests = () => {
       setIsReviewDialogOpen(false);
       setSelectedRequest(null);
     }
+  };
+
+  const handleDeleteRequest = (requestId: string) => {
+    deleteRequest(requestId);
   };
 
   const getStatusColor = (status: string) => {
@@ -154,14 +159,49 @@ export const EmployeeRequests = () => {
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleReviewRequest(request)}
-                      className="flex items-center gap-1"
-                    >
-                      Review
-                    </Button>
+                    <div className="flex gap-2">
+                      {request.status === 'pending' && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleReviewRequest(request)}
+                          className="flex items-center gap-1"
+                        >
+                          Review
+                        </Button>
+                      )}
+                      
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                            disabled={isDeletingRequest}
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Delete Employee Request</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Are you sure you want to permanently delete {request.name}'s employee request? 
+                              This action cannot be undone.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() => handleDeleteRequest(request.id)}
+                              className="bg-red-600 hover:bg-red-700"
+                            >
+                              Delete Permanently
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -237,7 +277,7 @@ export const EmployeeRequests = () => {
               <div className="bg-green-50 p-3 rounded-lg">
                 <p className="text-xs text-green-800">
                   <strong>Note:</strong> When you approve this request, the employee will be 
-                  automatically added to your team with the specified hourly wage.
+                  automatically added to your team and this request will be removed from the list.
                 </p>
               </div>
               

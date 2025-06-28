@@ -78,23 +78,7 @@ export const useEmployeeRequests = () => {
 
         console.log('Current request data:', currentRequest);
 
-        // Update the request status - use direct update without select
-        const { error: updateError } = await supabase
-          .from('employee_requests')
-          .update({ 
-            status, 
-            notes: notes || null 
-          })
-          .eq('id', id);
-        
-        if (updateError) {
-          console.error('Request update error:', updateError);
-          throw new Error(`Failed to update request: ${updateError.message}`);
-        }
-
-        console.log('Request updated successfully');
-
-        // If approved, create employee record
+        // If approved, create employee record first
         if (status === 'approved' && hourlyWage) {
           console.log('Creating employee record with data:', {
             name: currentRequest.name,
@@ -122,15 +106,42 @@ export const useEmployeeRequests = () => {
 
           console.log('Employee created successfully:', employeeData);
           
+          // After successful employee creation, delete the request
+          const { error: deleteError } = await supabase
+            .from('employee_requests')
+            .delete()
+            .eq('id', id);
+          
+          if (deleteError) {
+            console.error('Error deleting approved request:', deleteError);
+            // Don't throw error here as the employee was created successfully
+          }
+
           return {
             ...currentRequest,
-            status,
+            status: 'approved',
             notes: notes || null,
-            employee: employeeData
+            employee: employeeData,
+            deleted: true
           };
         }
 
-        // Return the updated request data
+        // For rejected status, just update the status (don't delete yet)
+        const { error: updateError } = await supabase
+          .from('employee_requests')
+          .update({ 
+            status, 
+            notes: notes || null 
+          })
+          .eq('id', id);
+        
+        if (updateError) {
+          console.error('Request update error:', updateError);
+          throw new Error(`Failed to update request: ${updateError.message}`);
+        }
+
+        console.log('Request updated successfully');
+
         return {
           ...currentRequest,
           status,
@@ -150,7 +161,7 @@ export const useEmployeeRequests = () => {
       if (variables.status === 'approved') {
         toast({
           title: "Request Approved",
-          description: `${data.name} has been approved and added as an employee.`,
+          description: `${data.name} has been approved and added as an employee. Request has been removed.`,
         });
       } else if (variables.status === 'rejected') {
         toast({
@@ -169,6 +180,32 @@ export const useEmployeeRequests = () => {
     }
   });
 
+  const deleteRequestMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('employee_requests')
+        .delete()
+        .eq('id', id);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['employeeRequests'] });
+      toast({
+        title: "Request Deleted",
+        description: "The employee request has been permanently deleted.",
+      });
+    },
+    onError: (error: any) => {
+      console.error('Delete error:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete the employee request. Please try again.",
+        variant: "destructive",
+      });
+    }
+  });
+
   return {
     employeeRequests,
     isLoading,
@@ -176,6 +213,8 @@ export const useEmployeeRequests = () => {
     addEmployeeRequest: addEmployeeRequestMutation.mutate,
     isAddingRequest: addEmployeeRequestMutation.isPending,
     updateRequestStatus: updateRequestStatusMutation.mutate,
-    isUpdatingRequest: updateRequestStatusMutation.isPending
+    isUpdatingRequest: updateRequestStatusMutation.isPending,
+    deleteRequest: deleteRequestMutation.mutate,
+    isDeletingRequest: deleteRequestMutation.isPending
   };
 };
