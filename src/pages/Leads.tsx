@@ -1,8 +1,15 @@
 import React, { useState } from 'react';
 import { StatusBadge } from '../components/StatusBadge';
 import { AddLeadDialog } from '../components/AddLeadDialog';
-import { Plus, Search, Filter } from 'lucide-react';
+import { Plus, Search, Filter, MoreHorizontal } from 'lucide-react';
 import { useLeads } from '@/hooks/useLeads';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
 
 export const Leads = () => {
   const { leads, isLoading, addLead, updateLead } = useLeads();
@@ -22,16 +29,35 @@ export const Leads = () => {
     });
   };
 
-  const handleUpdateLeadStatus = (e: React.MouseEvent, leadId: string, newStatus: 'New' | 'Contacted' | 'Converted' | 'Lost') => {
-    e.stopPropagation();
-    e.preventDefault();
+  const handleUpdateLeadStatus = (leadId: string, newStatus: 'New' | 'Contacted' | 'Converted' | 'Lost') => {
     updateLead({ id: leadId, updates: { status: newStatus } });
   };
 
-  const handleConvertLead = (e: React.MouseEvent, leadId: string) => {
-    e.stopPropagation();
-    e.preventDefault();
-    updateLead({ id: leadId, updates: { status: 'Converted' } });
+  const getAvailableStatusOptions = (currentStatus: string) => {
+    const statusOptions = [];
+    
+    switch (currentStatus) {
+      case 'New':
+        statusOptions.push({ label: 'Mark as Contacted', value: 'Contacted' });
+        statusOptions.push({ label: 'Mark as Lost', value: 'Lost' });
+        break;
+      case 'Contacted':
+        statusOptions.push({ label: 'Mark as Converted', value: 'Converted' });
+        statusOptions.push({ label: 'Mark as Lost', value: 'Lost' });
+        statusOptions.push({ label: 'Back to New', value: 'New' });
+        break;
+      case 'Converted':
+        statusOptions.push({ label: 'Mark as Lost', value: 'Lost' });
+        break;
+      case 'Lost':
+        statusOptions.push({ label: 'Back to New', value: 'New' });
+        statusOptions.push({ label: 'Mark as Contacted', value: 'Contacted' });
+        break;
+      default:
+        break;
+    }
+    
+    return statusOptions;
   };
 
   const filteredLeads = leads.filter(lead => {
@@ -120,7 +146,7 @@ export const Leads = () => {
         </div>
       </div>
 
-      {/* Leads Table */}
+      {/* Leads Table with Dropdown Actions */}
       <div className="bg-white rounded-lg shadow-sm border">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
@@ -169,20 +195,25 @@ export const Leads = () => {
                     {new Date(lead.created_at).toLocaleDateString()}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <button 
-                      onClick={(e) => handleUpdateLeadStatus(e, lead.id, lead.status === 'New' ? 'Contacted' : lead.status)}
-                      className="text-purple-600 hover:text-purple-900 mr-3"
-                    >
-                      Edit
-                    </button>
-                    {lead.status !== 'Converted' && (
-                      <button 
-                        onClick={(e) => handleConvertLead(e, lead.id)}
-                        className="text-green-600 hover:text-green-900"
-                      >
-                        Convert
-                      </button>
-                    )}
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" className="h-8 w-8 p-0">
+                          <span className="sr-only">Open menu</span>
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        {getAvailableStatusOptions(lead.status).map((option) => (
+                          <DropdownMenuItem
+                            key={option.value}
+                            onClick={() => handleUpdateLeadStatus(lead.id, option.value as 'New' | 'Contacted' | 'Converted' | 'Lost')}
+                            className="cursor-pointer"
+                          >
+                            {option.label}
+                          </DropdownMenuItem>
+                        ))}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </td>
                 </tr>
               ))}
