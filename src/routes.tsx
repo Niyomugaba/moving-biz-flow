@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Routes, Route } from 'react-router-dom';
-import { Index } from './pages/Index';
+import Index from './pages/Index';
 import { Dashboard } from './pages/Dashboard';
 import { Leads } from './pages/Leads';
 import { Jobs } from './pages/Jobs';
@@ -9,7 +9,7 @@ import { Employees } from './pages/Employees';
 import { TimeLogs } from './pages/TimeLogs';
 import { Clients } from './pages/Clients';
 import { Financials } from './pages/Financials';
-import { NotFound } from './pages/NotFound';
+import NotFound from './pages/NotFound';
 
 export const AppRoutes = () => {
   return (
