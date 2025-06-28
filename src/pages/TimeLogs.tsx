@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useTimeEntries } from '@/hooks/useTimeEntries';
 import { Clock, CheckCircle, XCircle, Edit, Filter, Search, Download, Calendar, DollarSign } from 'lucide-react';
@@ -22,8 +21,8 @@ export const TimeLogs = () => {
                          entry.jobs?.client_name.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'All' || entry.status === statusFilter.toLowerCase();
     const matchesPayment = paymentFilter === 'All' || 
-                          (paymentFilter === 'Paid' && entry.paid) ||
-                          (paymentFilter === 'Unpaid' && !entry.paid);
+                          (paymentFilter === 'Paid' && entry.is_paid) ||
+                          (paymentFilter === 'Unpaid' && !entry.is_paid);
     const matchesDate = !dateFilter || entry.entry_date === dateFilter;
     return matchesSearch && matchesStatus && matchesPayment && matchesDate;
   });
@@ -31,32 +30,52 @@ export const TimeLogs = () => {
   const pendingCount = timeEntries.filter(entry => entry.status === 'pending').length;
   const approvedCount = timeEntries.filter(entry => entry.status === 'approved').length;
   const rejectedCount = timeEntries.filter(entry => entry.status === 'rejected').length;
-  const paidCount = timeEntries.filter(entry => entry.paid).length;
-  const unpaidCount = timeEntries.filter(entry => entry.status === 'approved' && !entry.paid).length;
+  const paidCount = timeEntries.filter(entry => entry.is_paid).length;
+  const unpaidCount = timeEntries.filter(entry => entry.status === 'approved' && !entry.is_paid).length;
+  
+  // Calculate total hours from clock in/out times
   const totalHoursThisWeek = timeEntries
     .filter(entry => {
       const entryDate = new Date(entry.entry_date);
       const weekAgo = new Date();
       weekAgo.setDate(weekAgo.getDate() - 7);
-      return entry.status === 'approved' && entryDate >= weekAgo;
+      return entry.status === 'approved' && entryDate >= weekAgo && entry.clock_in_time && entry.clock_out_time;
     })
-    .reduce((sum, entry) => sum + entry.hours_worked, 0);
+    .reduce((sum, entry) => {
+      if (entry.clock_in_time && entry.clock_out_time) {
+        const clockIn = new Date(entry.clock_in_time);
+        const clockOut = new Date(entry.clock_out_time);
+        const hours = (clockOut.getTime() - clockIn.getTime()) / (1000 * 60 * 60);
+        return sum + hours;
+      }
+      return sum;
+    }, 0);
 
   const handleReviewEntry = (entry: any) => {
     setSelectedEntry(entry);
-    setEditedHours(entry.hours_worked);
+    // Calculate hours from clock times
+    if (entry.clock_in_time && entry.clock_out_time) {
+      const clockIn = new Date(entry.clock_in_time);
+      const clockOut = new Date(entry.clock_out_time);
+      const hours = (clockOut.getTime() - clockIn.getTime()) / (1000 * 60 * 60);
+      setEditedHours(hours);
+    } else {
+      setEditedHours(0);
+    }
     setManagerNotes(entry.manager_notes || '');
     setIsReviewDialogOpen(true);
   };
 
   const handleApprove = () => {
     if (selectedEntry) {
-      if (editedHours !== selectedEntry.hours_worked) {
-        updateTimeEntry({
-          id: selectedEntry.id,
-          updates: { hours_worked: editedHours }
-        });
-      }
+      // Update clock_out_time if hours were edited
+      const clockIn = new Date(selectedEntry.clock_in_time);
+      const newClockOut = new Date(clockIn.getTime() + editedHours * 60 * 60 * 1000);
+      
+      updateTimeEntry({
+        id: selectedEntry.id,
+        updates: { clock_out_time: newClockOut.toISOString() }
+      });
       
       approveTimeEntry({
         id: selectedEntry.id,
@@ -117,19 +136,28 @@ export const TimeLogs = () => {
   };
 
   const exportToCSV = () => {
-    const csvData = filteredEntries.map(entry => ({
-      'Employee': entry.employees?.name || 'Unknown',
-      'Client': entry.jobs?.client_name || 'Unknown',
-      'Date': entry.entry_date,
-      'Hours': entry.hours_worked,
-      'Rate': entry.hourly_rate,
-      'Total': (entry.hours_worked * entry.hourly_rate).toFixed(2),
-      'Status': entry.status,
-      'Paid': entry.paid ? 'Yes' : 'No',
-      'Paid Date': entry.paid_at ? new Date(entry.paid_at).toLocaleDateString() : '',
-      'Notes': entry.notes || '',
-      'Manager Notes': entry.manager_notes || ''
-    }));
+    const csvData = filteredEntries.map(entry => {
+      let hours = 0;
+      if (entry.clock_in_time && entry.clock_out_time) {
+        const clockIn = new Date(entry.clock_in_time);
+        const clockOut = new Date(entry.clock_out_time);
+        hours = (clockOut.getTime() - clockIn.getTime()) / (1000 * 60 * 60);
+      }
+      
+      return {
+        'Employee': entry.employees?.name || 'Unknown',
+        'Client': entry.jobs?.client_name || 'Unknown',
+        'Date': entry.entry_date,
+        'Hours': hours.toFixed(2),
+        'Rate': entry.hourly_rate,
+        'Total': (hours * entry.hourly_rate).toFixed(2),
+        'Status': entry.status,
+        'Paid': entry.is_paid ? 'Yes' : 'No',
+        'Paid Date': entry.paid_at ? new Date(entry.paid_at).toLocaleDateString() : '',
+        'Notes': entry.notes || '',
+        'Manager Notes': entry.manager_notes || ''
+      };
+    });
 
     const headers = Object.keys(csvData[0] || {});
     const csvString = [
@@ -211,7 +239,7 @@ export const TimeLogs = () => {
         </div>
         <div className="bg-white p-4 rounded-lg shadow-sm border">
           <p className="text-sm text-gray-600">Hours This Week</p>
-          <p className="text-2xl font-bold text-purple-600">{totalHoursThisWeek}h</p>
+          <p className="text-2xl font-bold text-purple-600">{totalHoursThisWeek.toFixed(1)}h</p>
         </div>
       </div>
 
@@ -309,71 +337,80 @@ export const TimeLogs = () => {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {filteredEntries.map((entry) => (
-                <tr key={entry.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <input
-                      type="checkbox"
-                      checked={selectedEntries.includes(entry.id)}
-                      onChange={() => handleSelectEntry(entry.id)}
-                      className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
-                    />
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900">
-                      {entry.employees?.name || 'Unknown Employee'}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">
-                      {entry.jobs?.client_name || 'Unknown Client'}
-                    </div>
-                    <div className="text-sm text-gray-500">
-                      {entry.jobs?.job_date}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {entry.entry_date}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {entry.hours_worked}h
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    ${entry.hourly_rate}/hr
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                    ${(entry.hours_worked * entry.hourly_rate).toLocaleString()}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize ${getStatusColor(entry.status)}`}>
-                      {entry.status}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    {entry.status === 'approved' && (
+              {filteredEntries.map((entry) => {
+                let hours = 0;
+                if (entry.clock_in_time && entry.clock_out_time) {
+                  const clockIn = new Date(entry.clock_in_time);
+                  const clockOut = new Date(entry.clock_out_time);
+                  hours = (clockOut.getTime() - clockIn.getTime()) / (1000 * 60 * 60);
+                }
+                
+                return (
+                  <tr key={entry.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <input
+                        type="checkbox"
+                        checked={selectedEntries.includes(entry.id)}
+                        onChange={() => handleSelectEntry(entry.id)}
+                        className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                      />
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm font-medium text-gray-900">
+                        {entry.employees?.name || 'Unknown Employee'}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900">
+                        {entry.jobs?.client_name || 'Unknown Client'}
+                      </div>
+                      <div className="text-sm text-gray-500">
+                        {entry.jobs?.job_date}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {entry.entry_date}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {hours.toFixed(2)}h
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      ${entry.hourly_rate}/hr
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                      ${(hours * entry.hourly_rate).toLocaleString()}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize ${getStatusColor(entry.status)}`}>
+                        {entry.status}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {entry.status === 'approved' && (
+                        <Button
+                          variant={entry.is_paid ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => handleTogglePayment(entry.id, entry.is_paid)}
+                          className={entry.is_paid ? "bg-green-600 hover:bg-green-700" : "border-green-200 text-green-700 hover:bg-green-50"}
+                        >
+                          {entry.is_paid ? 'Paid' : 'Mark Paid'}
+                        </Button>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <Button
-                        variant={entry.paid ? "default" : "outline"}
+                        variant="outline"
                         size="sm"
-                        onClick={() => handleTogglePayment(entry.id, entry.paid)}
-                        className={entry.paid ? "bg-green-600 hover:bg-green-700" : "border-green-200 text-green-700 hover:bg-green-50"}
+                        onClick={() => handleReviewEntry(entry)}
+                        className="flex items-center gap-1"
                       >
-                        {entry.paid ? 'Paid' : 'Mark Paid'}
+                        <Edit className="h-4 w-4" />
+                        Review
                       </Button>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleReviewEntry(entry)}
-                      className="flex items-center gap-1"
-                    >
-                      <Edit className="h-4 w-4" />
-                      Review
-                    </Button>
-                  </td>
-                </tr>
-              ))}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -398,8 +435,8 @@ export const TimeLogs = () => {
                 <p className="text-sm text-gray-600">{selectedEntry.jobs?.client_name} - {selectedEntry.jobs?.job_date}</p>
                 <p className="text-sm text-gray-600">Submitted: {selectedEntry.entry_date}</p>
                 <div className="flex items-center gap-2 mt-2">
-                  <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${selectedEntry.paid ? 'bg-green-100 text-green-800' : 'bg-orange-100 text-orange-800'}`}>
-                    {selectedEntry.paid ? 'Paid' : 'Unpaid'}
+                  <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${selectedEntry.is_paid ? 'bg-green-100 text-green-800' : 'bg-orange-100 text-orange-800'}`}>
+                    {selectedEntry.is_paid ? 'Paid' : 'Unpaid'}
                   </span>
                 </div>
               </div>
@@ -418,7 +455,10 @@ export const TimeLogs = () => {
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                 />
                 <p className="text-xs text-gray-500 mt-1">
-                  Original: {selectedEntry.hours_worked}h | Rate: ${selectedEntry.hourly_rate}/hr
+                  Clock In: {selectedEntry.clock_in_time ? new Date(selectedEntry.clock_in_time).toLocaleTimeString() : 'N/A'}
+                </p>
+                <p className="text-xs text-gray-500">
+                  Clock Out: {selectedEntry.clock_out_time ? new Date(selectedEntry.clock_out_time).toLocaleTimeString() : 'N/A'}
                 </p>
                 <p className="text-xs text-blue-600 mt-1">
                   New Total: ${(editedHours * selectedEntry.hourly_rate).toFixed(2)}
