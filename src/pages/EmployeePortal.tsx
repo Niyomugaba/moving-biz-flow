@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useEmployees } from '@/hooks/useEmployees';
 import { useJobs } from '@/hooks/useJobs';
@@ -29,6 +28,11 @@ export const EmployeePortal = () => {
     return Math.floor(100000 + Math.random() * 900000).toString();
   };
 
+  // Normalize phone number by removing all non-digits
+  const normalizePhoneNumber = (phone: string) => {
+    return phone.replace(/\D/g, '');
+  };
+
   // Calculate hours between start and end time
   const calculateHours = (start: string, end: string) => {
     if (!start || !end) return 0;
@@ -48,8 +52,22 @@ export const EmployeePortal = () => {
 
   const handlePhoneSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Find employee by phone number
-    const employee = employees.find(emp => emp.phone === phoneNumber);
+    console.log('Looking for phone number:', phoneNumber);
+    console.log('Available employees:', employees);
+    
+    // Normalize the input phone number
+    const normalizedInput = normalizePhoneNumber(phoneNumber);
+    console.log('Normalized input:', normalizedInput);
+    
+    // Find employee by normalized phone number
+    const employee = employees.find(emp => {
+      const normalizedEmpPhone = normalizePhoneNumber(emp.phone);
+      console.log('Checking employee phone:', emp.phone, 'normalized:', normalizedEmpPhone);
+      return normalizedEmpPhone === normalizedInput;
+    });
+    
+    console.log('Found employee:', employee);
+    
     if (employee) {
       const newPin = generatePin();
       setGeneratedPin(newPin);
@@ -142,6 +160,9 @@ export const EmployeePortal = () => {
                 placeholder="(555) 123-4567"
                 className="text-center"
               />
+              <p className="text-xs text-gray-500 mt-1">
+                Enter any format: (555) 123-4567, 555-123-4567, or 5551234567
+              </p>
             </div>
             
             <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700">
