@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -6,11 +5,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { NewEmployeeRequestForm } from '@/components/NewEmployeeRequestForm';
+import { EmployeeDashboard } from './EmployeeDashboard';
 
 export const EmployeePortal = () => {
   const [phone, setPhone] = useState('');
   const [verificationCode, setVerificationCode] = useState('');
-  const [step, setStep] = useState<'phone' | 'verify' | 'request'>('phone');
+  const [step, setStep] = useState<'phone' | 'verify' | 'request' | 'dashboard'>('phone');
   const [isLoading, setIsLoading] = useState(false);
   const [employeeData, setEmployeeData] = useState<any>(null);
   const { toast } = useToast();
@@ -128,13 +128,14 @@ export const EmployeePortal = () => {
 
       if (data?.success) {
         toast({
-          title: "Welcome!",
-          description: `Welcome back, ${employeeData?.name}! You're now logged in.`,
+          title: "Verification Successful!",
+          description: `Welcome ${employeeData?.name}! Redirecting to your dashboard...`,
         });
         
-        // Here you would typically redirect to the employee dashboard
-        // For now, we'll just show a success message
-        console.log('Employee verified successfully:', employeeData);
+        // Redirect to dashboard after successful verification
+        setTimeout(() => {
+          setStep('dashboard');
+        }, 1500);
       } else {
         toast({
           title: "Invalid Code",
@@ -154,6 +155,17 @@ export const EmployeePortal = () => {
     }
   };
 
+  const handleLogout = () => {
+    setStep('phone');
+    setPhone('');
+    setVerificationCode('');
+    setEmployeeData(null);
+    toast({
+      title: "Logged Out",
+      description: "You have been successfully logged out.",
+    });
+  };
+
   const handleRequestSubmitted = () => {
     toast({
       title: "Request Submitted",
@@ -166,6 +178,16 @@ export const EmployeePortal = () => {
     setVerificationCode('');
     setEmployeeData(null);
   };
+
+  // Show dashboard if employee is verified
+  if (step === 'dashboard' && employeeData) {
+    return (
+      <EmployeeDashboard 
+        employee={employeeData} 
+        onLogout={handleLogout}
+      />
+    );
+  }
 
   if (step === 'request') {
     return (
