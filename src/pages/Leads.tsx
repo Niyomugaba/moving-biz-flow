@@ -27,16 +27,15 @@ export const Leads = () => {
       const clientData = {
         name: lead.name,
         phone: lead.phone,
-        email: lead.email,
-        primary_address: '', // This would need to be collected from the lead
+        email: lead.email || null,
+        primary_address: 'Address not provided', // Default address since leads don't have addresses
         company_name: null,
         secondary_address: null,
         notes: `Converted from lead. Original notes: ${lead.notes || 'None'}`,
         preferred_contact_method: 'phone',
-        rating: null,
-        total_revenue: 0,
-        total_jobs_completed: 0
       };
+
+      console.log('Converting lead to client:', clientData);
 
       // Add client
       addClient(clientData);
@@ -52,6 +51,7 @@ export const Leads = () => {
         description: `${lead.name} has been converted to a client.`,
       });
     } catch (error) {
+      console.error('Lead conversion error:', error);
       toast({
         title: "Conversion Failed",
         description: "Failed to convert lead to client. Please try again.",
