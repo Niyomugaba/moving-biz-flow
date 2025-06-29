@@ -50,7 +50,7 @@ export const NewEmployeeRequestForm = ({ onBack, onSuccess }: NewEmployeeRequest
           <UserPlus className="h-8 w-8 text-green-600" />
         </div>
         <h1 className="text-2xl font-bold text-gray-900">New Mover Request</h1>
-        <p className="text-gray-600 mt-2">Apply to join the Bantu Movers team</p>
+        <p className="text-gray-600 mt-2 italic">Bantu Movers: Moving done for you</p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
