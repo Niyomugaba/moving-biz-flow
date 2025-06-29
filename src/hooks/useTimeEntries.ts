@@ -33,18 +33,6 @@ export const useTimeEntries = () => {
   const { data: timeEntries = [], isLoading, error } = useQuery({
     queryKey: ['timeEntries'],
     queryFn: async () => {
-      console.log('Fetching time entries...');
-      
-      // First, let's try to get all time entries without the join to see if they exist
-      const { data: allEntries, error: allEntriesError } = await supabase
-        .from('time_entries')
-        .select('*')
-        .order('entry_date', { ascending: false });
-      
-      console.log('All time entries (no join):', allEntries);
-      console.log('All entries error:', allEntriesError);
-      
-      // Now try with the join
       const { data, error } = await supabase
         .from('time_entries')
         .select(`
@@ -53,9 +41,6 @@ export const useTimeEntries = () => {
           jobs(client_name, job_date)
         `)
         .order('entry_date', { ascending: false });
-      
-      console.log('Time entries with join:', data);
-      console.log('Join error:', error);
       
       if (error) throw error;
       
@@ -85,8 +70,6 @@ export const useTimeEntries = () => {
       overtime_rate?: number;
       notes?: string;
     }) => {
-      console.log('Adding time entry:', timeEntryData);
-      
       const { data, error } = await supabase
         .from('time_entries')
         .insert({
@@ -106,9 +89,6 @@ export const useTimeEntries = () => {
         })
         .select()
         .single();
-      
-      console.log('Insert result:', data);
-      console.log('Insert error:', error);
       
       if (error) throw error;
       return data;
