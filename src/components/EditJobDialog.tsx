@@ -41,7 +41,7 @@ export const EditJobDialog = ({ open, onOpenChange, job }: EditJobDialogProps) =
     if (!job) return;
 
     const updates: Partial<Job> = {
-      status: formData.status as Job['status'],
+      status: formData.status as 'scheduled' | 'in_progress' | 'completed' | 'cancelled' | 'rescheduled',
       actual_duration_hours: formData.actualDurationHours ? parseFloat(formData.actualDurationHours) : null,
       actual_total: formData.actualTotal ? parseFloat(formData.actualTotal) : null,
       completion_notes: formData.completionNotes || null,
