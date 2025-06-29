@@ -21,7 +21,7 @@ export const AddTimeEntryDialog = ({ open, onOpenChange }: AddTimeEntryDialogPro
   const { addTimeEntry, isAddingTimeEntry } = useTimeEntries();
   
   const [selectedEmployeeId, setSelectedEmployeeId] = useState('');
-  const [selectedJobId, setSelectedJobId] = useState('');
+  const [selectedJobId, setSelectedJobId] = useState('no-job');
   const [entryDate, setEntryDate] = useState(new Date().toISOString().split('T')[0]);
   const [clockInTime, setClockInTime] = useState('');
   const [clockOutTime, setClockOutTime] = useState('');
@@ -55,7 +55,7 @@ export const AddTimeEntryDialog = ({ open, onOpenChange }: AddTimeEntryDialogPro
 
     addTimeEntry({
       employee_id: selectedEmployeeId,
-      job_id: selectedJobId || undefined,
+      job_id: selectedJobId === 'no-job' ? undefined : selectedJobId,
       entry_date: entryDate,
       clock_in_time: clockInDateTime,
       clock_out_time: clockOutDateTime,
@@ -69,7 +69,7 @@ export const AddTimeEntryDialog = ({ open, onOpenChange }: AddTimeEntryDialogPro
 
     // Reset form
     setSelectedEmployeeId('');
-    setSelectedJobId('');
+    setSelectedJobId('no-job');
     setEntryDate(new Date().toISOString().split('T')[0]);
     setClockInTime('');
     setClockOutTime('');
@@ -116,7 +116,7 @@ export const AddTimeEntryDialog = ({ open, onOpenChange }: AddTimeEntryDialogPro
                 <SelectValue placeholder="Select job (optional)" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">No job assigned</SelectItem>
+                <SelectItem value="no-job">No job assigned</SelectItem>
                 {jobs.map((job) => (
                   <SelectItem key={job.id} value={job.id}>
                     {job.client_name} - {job.job_date}
