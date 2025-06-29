@@ -1,9 +1,10 @@
-
 import React, { useState } from 'react';
 import { useTimeEntries } from '@/hooks/useTimeEntries';
 import { Clock, CheckCircle, XCircle, Edit, Filter, Search, Download, Calendar, DollarSign } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 
 export const TimeLogs = () => {
   const { timeEntries, isLoading, approveTimeEntry, rejectTimeEntry, updateTimeEntry, markAsPaid } = useTimeEntries();
@@ -15,6 +16,8 @@ export const TimeLogs = () => {
   const [isReviewDialogOpen, setIsReviewDialogOpen] = useState(false);
   const [managerNotes, setManagerNotes] = useState('');
   const [editedHours, setEditedHours] = useState<number>(0);
+  const [editedClockIn, setEditedClockIn] = useState('');
+  const [editedClockOut, setEditedClockOut] = useState('');
   const [selectedEntries, setSelectedEntries] = useState<string[]>([]);
 
   const filteredEntries = timeEntries.filter(entry => {
@@ -51,6 +54,13 @@ export const TimeLogs = () => {
     return 0;
   };
 
+  const calculateHoursFromTimes = (clockInTime: string, clockOutTime: string) => {
+    if (!clockInTime || !clockOutTime) return 0;
+    const clockIn = new Date(clockInTime);
+    const clockOut = new Date(clockOutTime);
+    return (clockOut.getTime() - clockIn.getTime()) / (1000 * 60 * 60);
+  };
+
   const totalHoursThisWeek = timeEntries
     .filter(entry => {
       const entryDate = new Date(entry.entry_date);
@@ -64,20 +74,37 @@ export const TimeLogs = () => {
     setSelectedEntry(entry);
     const hours = calculateEntryHours(entry);
     setEditedHours(hours);
+    
+    // Format times for input fields (datetime-local format)
+    const formatTimeForInput = (timestamp: string) => {
+      if (!timestamp) return '';
+      const date = new Date(timestamp);
+      return date.toISOString().slice(0, 16); // YYYY-MM-DDTHH:mm format
+    };
+    
+    setEditedClockIn(formatTimeForInput(entry.clock_in_time));
+    setEditedClockOut(formatTimeForInput(entry.clock_out_time || ''));
     setManagerNotes(entry.manager_notes || '');
     setIsReviewDialogOpen(true);
   };
 
   const handleApprove = () => {
     if (selectedEntry) {
-      // Calculate regular and overtime hours
-      const regularHours = Math.min(editedHours, 8);
-      const overtimeHours = Math.max(0, editedHours - 8);
+      // Calculate hours from the edited times
+      const calculatedHours = editedClockIn && editedClockOut 
+        ? calculateHoursFromTimes(editedClockIn, editedClockOut)
+        : editedHours;
       
-      // Update the time entry with the edited hours
+      // Calculate regular and overtime hours
+      const regularHours = Math.min(calculatedHours, 8);
+      const overtimeHours = Math.max(0, calculatedHours - 8);
+      
+      // Update the time entry with the edited times and hours
       updateTimeEntry({
         id: selectedEntry.id,
         updates: { 
+          clock_in_time: editedClockIn,
+          clock_out_time: editedClockOut || null,
           regular_hours: regularHours,
           overtime_hours: overtimeHours > 0 ? overtimeHours : null,
           overtime_rate: overtimeHours > 0 ? selectedEntry.hourly_rate * 1.5 : null
@@ -418,7 +445,7 @@ export const TimeLogs = () => {
         )}
       </div>
 
-      {/* Review Dialog */}
+      {/* Enhanced Review Dialog */}
       <Dialog open={isReviewDialogOpen} onOpenChange={setIsReviewDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -438,18 +465,57 @@ export const TimeLogs = () => {
                 </div>
               </div>
               
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Start Time
+                  </label>
+                  <Input
+                    type="datetime-local"
+                    value={editedClockIn}
+                    onChange={(e) => {
+                      setEditedClockIn(e.target.value);
+                      // Recalculate hours when times change
+                      if (editedClockOut) {
+                        const hours = calculateHoursFromTimes(e.target.value, editedClockOut);
+                        setEditedHours(hours);
+                      }
+                    }}
+                    className="w-full"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    End Time
+                  </label>
+                  <Input
+                    type="datetime-local"
+                    value={editedClockOut}
+                    onChange={(e) => {
+                      setEditedClockOut(e.target.value);
+                      // Recalculate hours when times change
+                      if (editedClockIn) {
+                        const hours = calculateHoursFromTimes(editedClockIn, e.target.value);
+                        setEditedHours(hours);
+                      }
+                    }}
+                    className="w-full"
+                  />
+                </div>
+              </div>
+              
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Hours Worked
+                  Total Hours
                 </label>
-                <input
+                <Input
                   type="number"
                   step="0.25"
                   min="0"
                   max="24"
                   value={editedHours}
                   onChange={(e) => setEditedHours(parseFloat(e.target.value))}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                  className="w-full"
                 />
                 <p className="text-xs text-gray-500 mt-1">
                   Original Hours: {calculateEntryHours(selectedEntry).toFixed(2)}
@@ -463,10 +529,10 @@ export const TimeLogs = () => {
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Manager Notes
                 </label>
-                <textarea
+                <Textarea
                   value={managerNotes}
                   onChange={(e) => setManagerNotes(e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                  className="w-full"
                   rows={3}
                   placeholder="Add notes about this time entry..."
                 />
