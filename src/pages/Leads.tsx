@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { AddLeadDialog } from '../components/AddLeadDialog';
 import { StatusBadge } from '../components/StatusBadge';
-import { Plus, Phone, Mail, Calendar, DollarSign, MapPin } from 'lucide-react';
+import { Plus, Phone, Mail, Calendar, DollarSign, MapPin, ChevronDown } from 'lucide-react';
 import { useLeads } from '@/hooks/useLeads';
 import { useClients } from '@/hooks/useClients';
 import { useToast } from '@/hooks/use-toast';
@@ -12,16 +12,18 @@ export const Leads = () => {
   const { addClient } = useClients();
   const { toast } = useToast();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [convertingLeadId, setConvertingLeadId] = useState<string | null>(null);
 
   // Calculate metrics
   const totalLeads = leads.length;
   const newLeads = leads.filter(lead => lead.status === 'new').length;
   const quotedLeads = leads.filter(lead => lead.status === 'quoted').length;
   const convertedLeads = leads.filter(lead => lead.status === 'converted').length;
+  const lostLeads = leads.filter(lead => lead.status === 'lost').length;
   const totalValue = leads.reduce((sum, lead) => sum + (lead.estimated_value || 0), 0);
   const conversionRate = totalLeads > 0 ? ((convertedLeads / totalLeads) * 100) : 0;
 
-  const handleConvertLead = async (lead: any) => {
+  const handleConvertToClient = async (lead: any) => {
     try {
       // Create new client from lead data
       const clientData = {
@@ -47,8 +49,8 @@ export const Leads = () => {
       });
 
       toast({
-        title: "Lead Converted Successfully",
-        description: `${lead.name} has been converted to a client.`,
+        title: "Lead Converted to Client",
+        description: `${lead.name} has been converted to a client successfully.`,
       });
     } catch (error) {
       console.error('Lead conversion error:', error);
@@ -58,6 +60,30 @@ export const Leads = () => {
         variant: "destructive",
       });
     }
+    setConvertingLeadId(null);
+  };
+
+  const handleMarkAsNoHire = async (lead: any) => {
+    try {
+      // Update lead status to lost (no hire)
+      updateLead({
+        id: lead.id,
+        updates: { status: 'lost' }
+      });
+
+      toast({
+        title: "Lead Marked as No Hire",
+        description: `${lead.name} has been marked as no hire.`,
+      });
+    } catch (error) {
+      console.error('Lead status update error:', error);
+      toast({
+        title: "Update Failed",
+        description: "Failed to update lead status. Please try again.",
+        variant: "destructive",
+      });
+    }
+    setConvertingLeadId(null);
   };
 
   if (isLoading) {
@@ -85,7 +111,7 @@ export const Leads = () => {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-7 gap-4">
         <div className="bg-white p-4 rounded-lg shadow-sm border">
           <p className="text-sm text-gray-600">Total Leads</p>
           <p className="text-2xl font-bold text-gray-900">{totalLeads}</p>
@@ -101,6 +127,10 @@ export const Leads = () => {
         <div className="bg-white p-4 rounded-lg shadow-sm border">
           <p className="text-sm text-gray-600">Converted</p>
           <p className="text-2xl font-bold text-green-600">{convertedLeads}</p>
+        </div>
+        <div className="bg-white p-4 rounded-lg shadow-sm border">
+          <p className="text-sm text-gray-600">No Hire</p>
+          <p className="text-2xl font-bold text-red-600">{lostLeads}</p>
         </div>
         <div className="bg-white p-4 rounded-lg shadow-sm border">
           <p className="text-sm text-gray-600">Total Value</p>
@@ -168,17 +198,39 @@ export const Leads = () => {
                 <button className="flex-1 bg-blue-50 text-blue-700 py-2 px-3 rounded-lg text-sm font-medium hover:bg-blue-100 transition-colors">
                   Contact
                 </button>
-                <button 
-                  onClick={() => handleConvertLead(lead)}
-                  disabled={lead.status === 'converted'}
-                  className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
-                    lead.status === 'converted' 
-                      ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
-                      : 'bg-green-50 text-green-700 hover:bg-green-100'
-                  }`}
-                >
-                  {lead.status === 'converted' ? 'Converted' : 'Convert'}
-                </button>
+                
+                {/* Convert Button with Dropdown */}
+                {lead.status !== 'converted' && lead.status !== 'lost' ? (
+                  <div className="flex-1 relative">
+                    {convertingLeadId === lead.id ? (
+                      <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-10">
+                        <button 
+                          onClick={() => handleConvertToClient(lead)}
+                          className="w-full text-left px-3 py-2 text-sm text-green-700 hover:bg-green-50 rounded-t-lg"
+                        >
+                          Convert to Client
+                        </button>
+                        <button 
+                          onClick={() => handleMarkAsNoHire(lead)}
+                          className="w-full text-left px-3 py-2 text-sm text-red-700 hover:bg-red-50 border-t border-gray-100 rounded-b-lg"
+                        >
+                          Mark as No Hire
+                        </button>
+                      </div>
+                    ) : null}
+                    <button 
+                      onClick={() => setConvertingLeadId(convertingLeadId === lead.id ? null : lead.id)}
+                      className="w-full bg-green-50 text-green-700 py-2 px-3 rounded-lg text-sm font-medium hover:bg-green-100 transition-colors flex items-center justify-center gap-1"
+                    >
+                      Convert
+                      <ChevronDown className="h-3 w-3" />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex-1 py-2 px-3 rounded-lg text-sm font-medium bg-gray-100 text-gray-400 text-center">
+                    {lead.status === 'converted' ? 'Converted' : 'No Hire'}
+                  </div>
+                )}
               </div>
             </div>
           </div>
