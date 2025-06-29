@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -106,7 +105,11 @@ export const useEmployeeRequests = () => {
         if (status === 'approved' && hourlyWage) {
           console.log('Creating employee record...');
           
-          // Create employee record - match database schema exactly
+          // Extract PIN from the request notes
+          const pinMatch = currentRequest.notes?.match(/PIN: (.+)/);
+          const pin = pinMatch ? pinMatch[1] : '';
+          
+          // Create employee record with PIN in notes
           const { data: employeeData, error: employeeError } = await supabase
             .from('employees')
             .insert({
@@ -119,7 +122,8 @@ export const useEmployeeRequests = () => {
               hourly_wage: hourlyWage,
               status: 'active',
               hire_date: new Date().toISOString().split('T')[0],
-              department: 'operations'
+              department: 'operations',
+              notes: pin ? `PIN: ${pin}` : null
             })
             .select()
             .single();
@@ -188,7 +192,7 @@ export const useEmployeeRequests = () => {
         
         toast({
           title: "Request Approved",
-          description: `${data.name} has been approved and added as an employee.`,
+          description: `${data.name} has been approved and can now access the employee portal with their PIN.`,
         });
       } else if (variables.status === 'rejected') {
         toast({

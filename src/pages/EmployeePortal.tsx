@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -54,12 +53,32 @@ export const EmployeePortal = () => {
           setStep('dashboard');
         }, 1500);
       } else {
-        setStep('request');
-        toast({
-          title: "PIN Not Found",
-          description: "You'll need to request access as a new mover.",
-          variant: "destructive",
-        });
+        // Check if there's a pending request with this PIN
+        const { data: pendingRequest, error: requestError } = await supabase
+          .from('employee_requests')
+          .select('*')
+          .like('notes', `%PIN: ${pin}%`)
+          .eq('status', 'pending')
+          .maybeSingle();
+
+        if (requestError) {
+          console.error('Request lookup error:', requestError);
+        }
+
+        if (pendingRequest) {
+          toast({
+            title: "Request Pending",
+            description: "Your access request is still being reviewed. Please wait for approval.",
+            variant: "destructive",
+          });
+        } else {
+          setStep('request');
+          toast({
+            title: "PIN Not Found",
+            description: "You'll need to request access as a new mover.",
+            variant: "destructive",
+          });
+        }
       }
     } catch (error) {
       console.error('Error during PIN verification:', error);
