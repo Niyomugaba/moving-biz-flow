@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -50,7 +49,7 @@ export const NewEmployeeRequestForm = ({ onBack, onSuccess, phone = '' }: NewEmp
         <div className="bg-green-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
           <UserPlus className="h-8 w-8 text-green-600" />
         </div>
-        <h1 className="text-2xl font-bold text-gray-900">New Employee Request</h1>
+        <h1 className="text-2xl font-bold text-gray-900">New Mover Request</h1>
         <p className="text-gray-600 mt-2">Apply to join the Bantu Movers team</p>
       </div>
 
@@ -70,7 +69,7 @@ export const NewEmployeeRequestForm = ({ onBack, onSuccess, phone = '' }: NewEmp
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            Phone Number *
+            Phone Number (This will be your PIN) *
           </label>
           <div className="relative">
             <Input
@@ -83,11 +82,9 @@ export const NewEmployeeRequestForm = ({ onBack, onSuccess, phone = '' }: NewEmp
             />
             <Phone className="w-4 h-4 text-gray-400 absolute left-3 top-3" />
           </div>
-          {phone && (
-            <p className="text-xs text-blue-600 mt-1">
-              Phone number pre-filled from verification attempt
-            </p>
-          )}
+          <p className="text-xs text-blue-600 mt-1">
+            Your phone number will serve as your PIN for logging into the mover portal
+          </p>
         </div>
 
         <div>
@@ -177,9 +174,9 @@ export const NewEmployeeRequestForm = ({ onBack, onSuccess, phone = '' }: NewEmp
             <strong>What happens next:</strong>
           </p>
           <ul className="text-xs text-blue-700 mt-2 space-y-1">
-            <li>• Your request will be sent to management for review</li>
-            <li>• Once approved, you can access the employee portal</li>
-            <li>• You'll be able to login using your phone number</li>
+            <li>• Your mover request will be sent to management for review</li>
+            <li>• Once approved, you can access the mover portal</li>
+            <li>• You'll be able to login using your phone number as your PIN</li>
           </ul>
         </div>
 

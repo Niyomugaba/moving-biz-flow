@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -124,7 +123,7 @@ export const EmployeePortal = () => {
               </div>
             </div>
             <h1 className="text-3xl font-bold text-white">Join Bantu Movers</h1>
-            <p className="text-purple-200 mt-2">Fill out the form below to request access</p>
+            <p className="text-purple-200 mt-2">Fill out the form below to request mover access</p>
           </div>
           
           <NewEmployeeRequestForm 
@@ -179,36 +178,35 @@ export const EmployeePortal = () => {
               Mover Login
             </CardTitle>
             <CardDescription className="text-purple-200">
-              Enter your 4-digit PIN to access your dashboard
+              Enter your phone number as your PIN to access your dashboard
             </CardDescription>
           </CardHeader>
           
           <CardContent className="space-y-6">
             <div className="space-y-3">
               <label className="text-sm font-medium text-purple-200">
-                Enter PIN
+                Enter Phone Number (PIN)
               </label>
               <Input
-                type="password"
-                placeholder="4-digit PIN"
+                type="text"
+                placeholder="Enter your phone number"
                 value={pin}
-                onChange={(e) => setPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
-                maxLength={4}
-                className="bg-white/20 border-purple-400 text-white placeholder:text-purple-300 focus:border-amber-400 focus:ring-amber-400 text-center text-lg tracking-widest"
+                onChange={(e) => setPin(e.target.value)}
+                className="bg-white/20 border-purple-400 text-white placeholder:text-purple-300 focus:border-amber-400 focus:ring-amber-400 text-center"
               />
             </div>
             
             <Button 
               onClick={handlePinVerification}
-              disabled={isLoading || pin.length !== 4}
+              disabled={isLoading || !pin.trim()}
               className="w-full bg-amber-500 hover:bg-amber-600 text-purple-900 font-semibold"
             >
-              {isLoading ? 'Checking PIN...' : 'Access Dashboard'}
+              {isLoading ? 'Checking...' : 'Access Dashboard'}
             </Button>
             
             <div className="text-center">
               <p className="text-purple-300 text-sm">
-                New to Bantu Movers? Enter 4 digits PIN to request access
+                New to Bantu Movers? Enter any phone number to request mover access
               </p>
             </div>
           </CardContent>
