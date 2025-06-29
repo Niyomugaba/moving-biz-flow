@@ -29,7 +29,7 @@ interface EmployeeDashboardProps {
 export const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ employee, onLogout }) => {
   const { toast } = useToast();
   const { timeEntries, addTimeEntry, isAddingTimeEntry } = useTimeEntries();
-  const { data: jobs = [] } = useJobs();
+  const { jobs = [] } = useJobs();
   
   const [currentTime, setCurrentTime] = useState(new Date());
   const [startTime, setStartTime] = useState('');
