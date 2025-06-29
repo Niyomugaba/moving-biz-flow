@@ -141,16 +141,12 @@ export const ManagerLogin = () => {
               </label>
               <Input
                 type="password"
-                placeholder="Enter 4-digit PIN"
+                placeholder="Enter PIN"
                 value={pin}
                 onChange={(e) => setPin(e.target.value)}
                 onKeyPress={handleKeyPress}
-                maxLength={4}
                 className="bg-white/20 border-purple-400 text-white placeholder:text-purple-300 focus:border-amber-400 focus:ring-amber-400"
               />
-              <p className="text-xs text-purple-300">
-                Default: username: admin, PIN: 1234
-              </p>
             </div>
             
             <Button 
