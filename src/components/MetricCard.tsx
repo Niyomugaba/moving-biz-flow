@@ -7,8 +7,9 @@ interface MetricCardProps {
   value: string | number;
   icon: LucideIcon;
   change?: string;
-  changeType?: 'positive' | 'negative' | 'neutral';
+  changeType?: 'positive' | negative' | 'neutral';
   bgColor?: string;
+  textColor?: string;
 }
 
 export const MetricCard: React.FC<MetricCardProps> = ({
@@ -17,7 +18,8 @@ export const MetricCard: React.FC<MetricCardProps> = ({
   icon: Icon,
   change,
   changeType = 'neutral',
-  bgColor = 'bg-white'
+  bgColor = 'bg-white',
+  textColor = 'text-gray-900'
 }) => {
   const changeColors = {
     positive: 'text-green-600',
@@ -26,19 +28,19 @@ export const MetricCard: React.FC<MetricCardProps> = ({
   };
 
   return (
-    <div className={`${bgColor} rounded-lg shadow-sm p-6 border border-gray-200`}>
+    <div className={`${bgColor} rounded-xl shadow-lg p-6 border-2 border-white`}>
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-sm font-medium text-gray-600">{title}</p>
-          <p className="text-2xl font-bold text-gray-900 mt-1">{value}</p>
+          <p className={`text-sm font-medium ${textColor} opacity-90`}>{title}</p>
+          <p className={`text-3xl font-bold ${textColor} mt-2`}>{value}</p>
           {change && (
-            <p className={`text-sm mt-1 ${changeColors[changeType]}`}>
+            <p className={`text-sm mt-2 ${textColor} opacity-80`}>
               {change}
             </p>
           )}
         </div>
-        <div className="p-3 bg-blue-50 rounded-full">
-          <Icon className="h-6 w-6 text-blue-600" />
+        <div className="p-3 bg-white bg-opacity-20 rounded-full">
+          <Icon className={`h-8 w-8 ${textColor}`} />
         </div>
       </div>
     </div>
