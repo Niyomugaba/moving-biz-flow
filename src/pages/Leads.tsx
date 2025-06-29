@@ -4,9 +4,13 @@ import { AddLeadDialog } from '../components/AddLeadDialog';
 import { StatusBadge } from '../components/StatusBadge';
 import { Plus, Phone, Mail, Calendar, DollarSign, MapPin } from 'lucide-react';
 import { useLeads } from '@/hooks/useLeads';
+import { useClients } from '@/hooks/useClients';
+import { useToast } from '@/hooks/use-toast';
 
 export const Leads = () => {
-  const { leads, isLoading } = useLeads();
+  const { leads, isLoading, updateLead } = useLeads();
+  const { addClient } = useClients();
+  const { toast } = useToast();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
 
   // Calculate metrics
@@ -16,6 +20,45 @@ export const Leads = () => {
   const convertedLeads = leads.filter(lead => lead.status === 'converted').length;
   const totalValue = leads.reduce((sum, lead) => sum + (lead.estimated_value || 0), 0);
   const conversionRate = totalLeads > 0 ? ((convertedLeads / totalLeads) * 100) : 0;
+
+  const handleConvertLead = async (lead: any) => {
+    try {
+      // Create new client from lead data
+      const clientData = {
+        name: lead.name,
+        phone: lead.phone,
+        email: lead.email,
+        primary_address: '', // This would need to be collected from the lead
+        company_name: null,
+        secondary_address: null,
+        notes: `Converted from lead. Original notes: ${lead.notes || 'None'}`,
+        preferred_contact_method: 'phone',
+        rating: null,
+        total_revenue: 0,
+        total_jobs_completed: 0
+      };
+
+      // Add client
+      addClient(clientData);
+
+      // Update lead status to converted
+      updateLead({
+        id: lead.id,
+        updates: { status: 'converted' }
+      });
+
+      toast({
+        title: "Lead Converted Successfully",
+        description: `${lead.name} has been converted to a client.`,
+      });
+    } catch (error) {
+      toast({
+        title: "Conversion Failed",
+        description: "Failed to convert lead to client. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
 
   if (isLoading) {
     return (
@@ -125,8 +168,16 @@ export const Leads = () => {
                 <button className="flex-1 bg-blue-50 text-blue-700 py-2 px-3 rounded-lg text-sm font-medium hover:bg-blue-100 transition-colors">
                   Contact
                 </button>
-                <button className="flex-1 bg-green-50 text-green-700 py-2 px-3 rounded-lg text-sm font-medium hover:bg-green-100 transition-colors">
-                  Convert
+                <button 
+                  onClick={() => handleConvertLead(lead)}
+                  disabled={lead.status === 'converted'}
+                  className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
+                    lead.status === 'converted' 
+                      ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
+                      : 'bg-green-50 text-green-700 hover:bg-green-100'
+                  }`}
+                >
+                  {lead.status === 'converted' ? 'Converted' : 'Convert'}
                 </button>
               </div>
             </div>
