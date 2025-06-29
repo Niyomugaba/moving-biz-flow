@@ -7,7 +7,7 @@ interface MetricCardProps {
   value: string | number;
   icon: LucideIcon;
   change?: string;
-  changeType?: 'positive' | negative' | 'neutral';
+  changeType?: 'positive' | 'negative' | 'neutral';
   bgColor?: string;
   textColor?: string;
 }
