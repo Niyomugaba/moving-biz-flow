@@ -12,6 +12,7 @@ import { Employees } from "./pages/Employees";
 import { Clients } from "./pages/Clients";
 import { Financials } from "./pages/Financials";
 import { EmployeePortal } from "./pages/EmployeePortal";
+import { ManagerLogin } from "./pages/ManagerLogin";
 import { TimeLogs } from "./pages/TimeLogs";
 import { EmployeeRequests } from "./pages/EmployeeRequests";
 import NotFound from "./pages/NotFound";
@@ -27,6 +28,9 @@ const App = () => (
         <Routes>
           {/* Employee Portal - No Layout (standalone page) */}
           <Route path="/employee-portal" element={<EmployeePortal />} />
+          
+          {/* Manager Login - No Layout (standalone page) */}
+          <Route path="/manager-login" element={<ManagerLogin />} />
           
           {/* Admin Routes with Layout */}
           <Route path="/" element={<Layout><Dashboard /></Layout>} />

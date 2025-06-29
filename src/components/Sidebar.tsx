@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { BarChart3, Users, Calendar, UserCheck, DollarSign, Phone, Clock } from 'lucide-react';
+import { BarChart3, Users, Calendar, UserCheck, DollarSign, Phone, Clock, Shield } from 'lucide-react';
 
 export const Sidebar = () => {
   const location = useLocation();
@@ -46,11 +46,19 @@ export const Sidebar = () => {
       </nav>
 
       <div className="mt-8 p-4 bg-gray-800 rounded-lg">
-        <h3 className="text-sm font-semibold mb-2">Employee Portal</h3>
-        <p className="text-xs text-gray-400 mb-3">Share this link with your employees:</p>
-        <div className="bg-gray-700 p-2 rounded text-xs font-mono break-all">
+        <h3 className="text-sm font-semibold mb-2">Mover Portal</h3>
+        <p className="text-xs text-gray-400 mb-3">Share this link with your movers:</p>
+        <div className="bg-gray-700 p-2 rounded text-xs font-mono break-all mb-3">
           {window.location.origin}/employee-portal
         </div>
+        
+        <Link 
+          to="/manager-login"
+          className="flex items-center space-x-2 text-xs text-amber-400 hover:text-amber-300 transition-colors"
+        >
+          <Shield className="w-3 h-3" />
+          <span>Manager Login</span>
+        </Link>
       </div>
     </div>
   );

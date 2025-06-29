@@ -370,6 +370,36 @@ export type Database = {
           },
         ]
       }
+      managers: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          pin: string
+          updated_at: string
+          username: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          pin: string
+          updated_at?: string
+          username: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          pin?: string
+          updated_at?: string
+          username?: string
+        }
+        Relationships: []
+      }
       time_entries: {
         Row: {
           approved_at: string | null

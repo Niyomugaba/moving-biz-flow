@@ -1,641 +1,371 @@
-
-import React, { useState } from 'react';
-import { useTimeEntries } from '@/hooks/useTimeEntries';
-import { Clock, CheckCircle, XCircle, Edit, Filter, Search, Download, Calendar, DollarSign, Plus } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import React, { useState, useEffect, useMemo } from 'react';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
+import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Clock,
+  Download,
+  Plus,
+  CheckCircle,
+  XCircle,
+  Edit
+} from 'lucide-react';
+import { useEmployees } from '@/hooks/useEmployees';
+import { useJobs } from '@/hooks/useJobs';
+import { useTimeEntries } from '@/hooks/useTimeEntries';
 import { AddTimeEntryDialog } from '@/components/AddTimeEntryDialog';
+import { format } from 'date-fns';
 
 export const TimeLogs = () => {
-  const { timeEntries, isLoading, approveTimeEntry, rejectTimeEntry, updateTimeEntry, markAsPaid, isRejectingTimeEntry } = useTimeEntries();
-  const [statusFilter, setStatusFilter] = useState<string>('All');
-  const [paymentFilter, setPaymentFilter] = useState<string>('All');
-  const [searchTerm, setSearchTerm] = useState('');
+  const [employeeFilter, setEmployeeFilter] = useState('');
+  const [jobFilter, setJobFilter] = useState('');
   const [dateFilter, setDateFilter] = useState('');
-  const [selectedEntry, setSelectedEntry] = useState<any>(null);
-  const [isReviewDialogOpen, setIsReviewDialogOpen] = useState(false);
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [managerNotes, setManagerNotes] = useState('');
-  const [editedHours, setEditedHours] = useState<number>(0);
-  const [editedClockIn, setEditedClockIn] = useState('');
-  const [editedClockOut, setEditedClockOut] = useState('');
-  const [selectedEntries, setSelectedEntries] = useState<string[]>([]);
+  const [showAddDialog, setShowAddDialog] = useState(false);
+  const [selectedEntry, setSelectedEntry] = useState(null);
+  const { employees } = useEmployees();
+  const { jobs } = useJobs();
 
-  const filteredEntries = timeEntries.filter(entry => {
-    const matchesSearch = entry.employees?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         entry.jobs?.client_name.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === 'All' || entry.status === statusFilter.toLowerCase();
-    const matchesPayment = paymentFilter === 'All' || 
-                          (paymentFilter === 'Paid' && entry.is_paid) ||
-                          (paymentFilter === 'Unpaid' && !entry.is_paid);
-    const matchesDate = !dateFilter || entry.entry_date === dateFilter;
-    return matchesSearch && matchesStatus && matchesPayment && matchesDate;
-  });
+  const { 
+    timeEntries, 
+    isLoading, 
+    approveTimeEntry, 
+    isApprovingTimeEntry,
+    rejectTimeEntry,
+    isRejectingTimeEntry
+  } = useTimeEntries();
 
-  const pendingCount = timeEntries.filter(entry => entry.status === 'pending').length;
-  const approvedCount = timeEntries.filter(entry => entry.status === 'approved').length;
-  const rejectedCount = timeEntries.filter(entry => entry.status === 'rejected').length;
-  const paidCount = timeEntries.filter(entry => entry.is_paid).length;
-  const unpaidCount = timeEntries.filter(entry => entry.status === 'approved' && !entry.is_paid).length;
-  
-  // Calculate total hours - use regular_hours + overtime_hours if available, otherwise calculate from clock times
-  const calculateEntryHours = (entry: any) => {
-    // First try to use the stored regular_hours and overtime_hours
-    if (entry.regular_hours !== null || entry.overtime_hours !== null) {
-      return (entry.regular_hours || 0) + (entry.overtime_hours || 0);
-    }
-    
-    // Fallback to calculating from clock times if available
-    if (entry.clock_in_time && entry.clock_out_time) {
+  const totalHours = useMemo(() => {
+    if (!timeEntries) return 0;
+    return timeEntries.reduce((sum, entry) => {
       const clockIn = new Date(entry.clock_in_time);
       const clockOut = new Date(entry.clock_out_time);
-      return (clockOut.getTime() - clockIn.getTime()) / (1000 * 60 * 60);
-    }
-    
-    return 0;
-  };
+      const duration = (clockOut.getTime() - clockIn.getTime()) / (1000 * 60 * 60);
+      return sum + duration;
+    }, 0);
+  }, [timeEntries]);
 
-  const calculateHoursFromTimes = (clockInTime: string, clockOutTime: string) => {
+  const filteredEntries = useMemo(() => {
+    let filtered = timeEntries || [];
+
+    if (employeeFilter) {
+      filtered = filtered.filter(entry => entry.employee_id === employeeFilter);
+    }
+
+    if (jobFilter) {
+      filtered = filtered.filter(entry => entry.job_id === jobFilter);
+    }
+
+    if (dateFilter) {
+      filtered = filtered.filter(entry => {
+        const entryDate = format(new Date(entry.entry_date), 'yyyy-MM-dd');
+        return entryDate === dateFilter;
+      });
+    }
+
+    return filtered;
+  }, [timeEntries, employeeFilter, jobFilter, dateFilter]);
+
+  const calculateHours = (clockInTime: string, clockOutTime: string) => {
     if (!clockInTime || !clockOutTime) return 0;
+    
     const clockIn = new Date(clockInTime);
     const clockOut = new Date(clockOutTime);
-    return (clockOut.getTime() - clockIn.getTime()) / (1000 * 60 * 60);
-  };
-
-  // Helper function to format time properly for display
-  const formatTimeForDisplay = (timestamp: string) => {
-    if (!timestamp) return '';
-    const date = new Date(timestamp);
-    return date.toLocaleTimeString('en-US', { 
-      hour: '2-digit', 
-      minute: '2-digit',
-      hour12: true 
-    });
-  };
-
-  // Helper function to format date and time for display
-  const formatDateTimeForDisplay = (timestamp: string) => {
-    if (!timestamp) return '';
-    const date = new Date(timestamp);
-    return date.toLocaleString('en-US', { 
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit', 
-      minute: '2-digit',
-      hour12: true 
-    });
-  };
-
-  const totalHoursThisWeek = timeEntries
-    .filter(entry => {
-      const entryDate = new Date(entry.entry_date);
-      const weekAgo = new Date();
-      weekAgo.setDate(weekAgo.getDate() - 7);
-      return entry.status === 'approved' && entryDate >= weekAgo;
-    })
-    .reduce((sum, entry) => sum + calculateEntryHours(entry), 0);
-
-  const handleReviewEntry = (entry: any) => {
-    setSelectedEntry(entry);
-    const hours = calculateEntryHours(entry);
-    setEditedHours(hours);
+    const totalMinutes = (clockOut.getTime() - clockIn.getTime()) / (1000 * 60);
     
-    // Format times for input fields (datetime-local format)
-    const formatTimeForInput = (timestamp: string) => {
-      if (!timestamp) return '';
-      const date = new Date(timestamp);
-      return date.toISOString().slice(0, 16); // YYYY-MM-DDTHH:mm format
-    };
-    
-    setEditedClockIn(formatTimeForInput(entry.clock_in_time));
-    setEditedClockOut(formatTimeForInput(entry.clock_out_time || ''));
-    setManagerNotes(entry.manager_notes || '');
-    setIsReviewDialogOpen(true);
-  };
-
-  const handleApprove = () => {
-    if (selectedEntry) {
-      // Calculate hours from the edited times
-      const calculatedHours = editedClockIn && editedClockOut 
-        ? calculateHoursFromTimes(editedClockIn, editedClockOut)
-        : editedHours;
-      
-      // Calculate regular and overtime hours
-      const regularHours = Math.min(calculatedHours, 8);
-      const overtimeHours = Math.max(0, calculatedHours - 8);
-      
-      // Update the time entry with the edited times and hours
-      updateTimeEntry({
-        id: selectedEntry.id,
-        updates: { 
-          clock_in_time: editedClockIn,
-          clock_out_time: editedClockOut || null,
-          regular_hours: regularHours,
-          overtime_hours: overtimeHours > 0 ? overtimeHours : null,
-          overtime_rate: overtimeHours > 0 ? selectedEntry.hourly_rate * 1.5 : null
-        }
-      });
-      
-      approveTimeEntry({
-        id: selectedEntry.id,
-        managerNotes: managerNotes || undefined
-      });
-      
-      setIsReviewDialogOpen(false);
-      setSelectedEntry(null);
-    }
-  };
-
-  const handleReject = () => {
-    if (selectedEntry && managerNotes.trim()) {
-      rejectTimeEntry({
-        id: selectedEntry.id,
-        managerNotes: managerNotes
-      });
-      
-      setIsReviewDialogOpen(false);
-      setSelectedEntry(null);
-      setManagerNotes('');
-    }
-  };
-
-  const handleTogglePayment = (entryId: string, currentPaidStatus: boolean) => {
-    markAsPaid({
-      id: entryId,
-      paid: !currentPaidStatus
-    });
-  };
-
-  const handleBulkApprove = () => {
-    const pendingSelected = selectedEntries.filter(id => {
-      const entry = timeEntries.find(e => e.id === id);
-      return entry?.status === 'pending';
-    });
-    
-    pendingSelected.forEach(id => {
-      approveTimeEntry({ id, managerNotes: 'Bulk approved' });
-    });
-    
-    setSelectedEntries([]);
-  };
-
-  const handleSelectAll = () => {
-    if (selectedEntries.length === filteredEntries.length) {
-      setSelectedEntries([]);
-    } else {
-      setSelectedEntries(filteredEntries.map(entry => entry.id));
-    }
-  };
-
-  const handleSelectEntry = (entryId: string) => {
-    setSelectedEntries(prev => 
-      prev.includes(entryId) 
-        ? prev.filter(id => id !== entryId)
-        : [...prev, entryId]
-    );
+    return Math.max(0, totalMinutes / 60);
   };
 
   const exportToCSV = () => {
-    const csvData = filteredEntries.map(entry => {
-      const hours = calculateEntryHours(entry);
-      
-      return {
-        'Employee': entry.employees?.name || 'Unknown',
-        'Client': entry.jobs?.client_name || 'No Job Assigned',
-        'Date': entry.entry_date,
-        'Clock In': formatTimeForDisplay(entry.clock_in_time),
-        'Clock Out': formatTimeForDisplay(entry.clock_out_time || ''),
-        'Hours': hours.toFixed(2),
-        'Rate': entry.hourly_rate,
-        'Total': (hours * entry.hourly_rate).toFixed(2),
-        'Status': entry.status,
-        'Paid': entry.is_paid ? 'Yes' : 'No',
-        'Paid Date': entry.paid_at ? new Date(entry.paid_at).toLocaleDateString() : '',
-        'Notes': entry.notes || '',
-        'Manager Notes': entry.manager_notes || ''
-      };
-    });
+    const csvRows = [];
+    const headers = Object.keys(timeEntries[0]);
+    csvRows.push(headers.join(','));
 
-    const headers = Object.keys(csvData[0] || {});
-    const csvString = [
-      headers.join(','),
-      ...csvData.map(row => 
-        headers.map(header => `"${row[header as keyof typeof row] || ''}"`).join(',')
-      )
-    ].join('\n');
+    for (const entry of timeEntries) {
+      const values = headers.map(header => {
+        const value = entry[header];
+        return `"${value}"`;
+      });
+      csvRows.push(values.join(','));
+    }
 
-    const blob = new Blob([csvString], { type: 'text/csv' });
+    const csvData = csvRows.join('\n');
+    const blob = new Blob([csvData], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = url;
-    a.download = `time-logs-${new Date().toISOString().split('T')[0]}.csv`;
-    document.body.appendChild(a);
+    a.setAttribute('href', url);
+    a.setAttribute('download', 'time_entries.csv');
     a.click();
-    document.body.removeChild(a);
-    window.URL.revokeObjectURL(url);
   };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'pending': return 'bg-yellow-100 text-yellow-800';
-      case 'approved': return 'bg-green-100 text-green-800';
-      case 'rejected': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-lg text-gray-600">Loading time logs...</div>
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      {/* Header and Stats */}
+      <div className="space-y-4">
+        <div className="flex justify-between items-center">
+          <CardTitle className="text-2xl font-bold flex items-center gap-2">
+            <Clock className="h-6 w-6" />
+            Time Logs
+          </CardTitle>
+        </div>
+        <CardDescription>
+          Manage and review employee time entries.
+        </CardDescription>
+      </div>
+
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card>
+          <CardHeader>
+            <CardTitle>Total Time Entries</CardTitle>
+            <CardDescription>All time entries in the system</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{timeEntries?.length || 0}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Total Hours Logged</CardTitle>
+            <CardDescription>Total hours logged by all employees</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{totalHours?.toFixed(2) || 0}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Average Hours per Entry</CardTitle>
+            <CardDescription>Average hours logged per time entry</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{(timeEntries?.length ? (totalHours / timeEntries.length).toFixed(2) : 0) || 0}</div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Filters */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Time Logs Management</h1>
-          <p className="text-gray-600 mt-2">Review and approve employee hour submissions</p>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Employee
+          </label>
+          <Select value={employeeFilter} onValueChange={setEmployeeFilter}>
+            <SelectTrigger>
+              <SelectValue placeholder="Filter by employee" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">All Employees</SelectItem>
+              {employees.map((employee) => (
+                <SelectItem key={employee.id} value={employee.id}>
+                  {employee.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
-        <div className="flex gap-2">
-          <Button 
-            onClick={() => setIsAddDialogOpen(true)} 
-            className="bg-purple-600 hover:bg-purple-700 flex items-center gap-2"
-          >
-            <Plus className="h-4 w-4" />
-            Add Time Entry
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Job
+          </label>
+          <Select value={jobFilter} onValueChange={setJobFilter}>
+            <SelectTrigger>
+              <SelectValue placeholder="Filter by job" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">All Jobs</SelectItem>
+              {jobs.map((job) => (
+                <SelectItem key={job.id} value={job.id}>
+                  {job.client_name} - {job.job_date}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Date
+          </label>
+          <Input
+            type="date"
+            value={dateFilter}
+            onChange={(e) => setDateFilter(e.target.value)}
+          />
+        </div>
+        <div className="flex items-end">
+          <Button onClick={() => {
+            setEmployeeFilter('');
+            setJobFilter('');
+            setDateFilter('');
+          }} variant="outline">
+            Reset Filters
           </Button>
-          <Button onClick={exportToCSV} variant="outline" className="flex items-center gap-2">
-            <Download className="h-4 w-4" />
-            Export CSV
-          </Button>
-          {selectedEntries.length > 0 && (
-            <Button onClick={handleBulkApprove} className="bg-green-600 hover:bg-green-700">
-              Approve Selected ({selectedEntries.length})
-            </Button>
-          )}
         </div>
       </div>
 
-      {/* Enhanced Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
-        <div className="bg-white p-4 rounded-lg shadow-sm border">
-          <p className="text-sm text-gray-600">Total Submissions</p>
-          <p className="text-2xl font-bold text-gray-900">{timeEntries.length}</p>
-        </div>
-        <div className="bg-white p-4 rounded-lg shadow-sm border">
-          <p className="text-sm text-gray-600">Pending Review</p>
-          <p className="text-2xl font-bold text-yellow-600">{pendingCount}</p>
-        </div>
-        <div className="bg-white p-4 rounded-lg shadow-sm border">
-          <p className="text-sm text-gray-600">Approved</p>
-          <p className="text-2xl font-bold text-green-600">{approvedCount}</p>
-        </div>
-        <div className="bg-white p-4 rounded-lg shadow-sm border">
-          <p className="text-sm text-gray-600">Paid</p>
-          <p className="text-2xl font-bold text-blue-600">{paidCount}</p>
-        </div>
-        <div className="bg-white p-4 rounded-lg shadow-sm border">
-          <p className="text-sm text-gray-600">Unpaid</p>
-          <p className="text-2xl font-bold text-orange-600">{unpaidCount}</p>
-        </div>
-        <div className="bg-white p-4 rounded-lg shadow-sm border">
-          <p className="text-sm text-gray-600">Hours This Week</p>
-          <p className="text-2xl font-bold text-purple-600">{totalHoursThisWeek.toFixed(1)}h</p>
-        </div>
-      </div>
-
-      {/* Enhanced Filters */}
-      <div className="bg-white p-4 rounded-lg shadow-sm border">
-        <div className="flex flex-col sm:flex-row gap-4">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search by employee or client..."
-              className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
-          <div className="flex items-center gap-2">
-            <Calendar className="h-4 w-4 text-gray-400" />
-            <input
-              type="date"
-              className="border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-              value={dateFilter}
-              onChange={(e) => setDateFilter(e.target.value)}
-            />
-          </div>
-          <div className="flex items-center gap-2">
-            <Filter className="h-4 w-4 text-gray-400" />
-            <select
-              className="border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-            >
-              <option value="All">All Status</option>
-              <option value="Pending">Pending</option>
-              <option value="Approved">Approved</option>
-              <option value="Rejected">Rejected</option>
-            </select>
-          </div>
-          <div className="flex items-center gap-2">
-            <DollarSign className="h-4 w-4 text-gray-400" />
-            <select
-              className="border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-              value={paymentFilter}
-              onChange={(e) => setPaymentFilter(e.target.value)}
-            >
-              <option value="All">All Payment</option>
-              <option value="Paid">Paid</option>
-              <option value="Unpaid">Unpaid</option>
-            </select>
-          </div>
-        </div>
-      </div>
-
-      {/* Enhanced Time Entries Table */}
-      <div className="bg-white rounded-lg shadow-sm border">
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left">
-                  <input
-                    type="checkbox"
-                    checked={selectedEntries.length === filteredEntries.length && filteredEntries.length > 0}
-                    onChange={handleSelectAll}
-                    className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
-                  />
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Employee
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Job/Client
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Date
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Clock In
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Clock Out
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Hours
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Rate
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Total
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Status
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Payment
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {filteredEntries.map((entry) => {
-                const hours = calculateEntryHours(entry);
-                
-                return (
-                  <tr key={entry.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <input
-                        type="checkbox"
-                        checked={selectedEntries.includes(entry.id)}
-                        onChange={() => handleSelectEntry(entry.id)}
-                        className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
-                      />
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">
-                        {entry.employees?.name || 'Unknown Employee'}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">
-                        {entry.jobs?.client_name || 'No Job Assigned'}
-                      </div>
-                      <div className="text-sm text-gray-500">
-                        {entry.jobs?.job_date}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {entry.entry_date}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {formatTimeForDisplay(entry.clock_in_time)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {formatTimeForDisplay(entry.clock_out_time || '')}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {hours.toFixed(2)}h
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      ${entry.hourly_rate}/hr
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      ${(hours * entry.hourly_rate).toLocaleString()}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize ${getStatusColor(entry.status)}`}>
-                        {entry.status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {entry.status === 'approved' && (
-                        <Button
-                          variant={entry.is_paid ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => handleTogglePayment(entry.id, entry.is_paid)}
-                          className={entry.is_paid ? "bg-green-600 hover:bg-green-700" : "border-green-200 text-green-700 hover:bg-green-50"}
-                        >
-                          {entry.is_paid ? 'Paid' : 'Mark Paid'}
-                        </Button>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleReviewEntry(entry)}
-                        className="flex items-center gap-1"
-                      >
-                        <Edit className="h-4 w-4" />
-                        Review
-                      </Button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-        {filteredEntries.length === 0 && (
-          <div className="p-6 text-center text-gray-500">
-            No time entries found matching your criteria.
-          </div>
-        )}
-      </div>
-
-      {/* Enhanced Review Dialog */}
-      <Dialog open={isReviewDialogOpen} onOpenChange={setIsReviewDialogOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Review Time Entry</DialogTitle>
-          </DialogHeader>
-          
-          {selectedEntry && (
-            <div className="space-y-4">
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <h3 className="font-medium text-gray-900">{selectedEntry.employees?.name}</h3>
-                <p className="text-sm text-gray-600">{selectedEntry.jobs?.client_name || 'No Job Assigned'} - {selectedEntry.jobs?.job_date}</p>
-                <p className="text-sm text-gray-600">Submitted: {selectedEntry.entry_date}</p>
-                <p className="text-sm text-gray-600">
-                  Original Times: {formatDateTimeForDisplay(selectedEntry.clock_in_time)} - {formatDateTimeForDisplay(selectedEntry.clock_out_time || '')}
-                </p>
-                <div className="flex items-center gap-2 mt-2">
-                  <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${selectedEntry.is_paid ? 'bg-green-100 text-green-800' : 'bg-orange-100 text-orange-800'}`}>
-                    {selectedEntry.is_paid ? 'Paid' : 'Unpaid'}
-                  </span>
-                </div>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Start Time
-                  </label>
-                  <Input
-                    type="datetime-local"
-                    value={editedClockIn}
-                    onChange={(e) => {
-                      setEditedClockIn(e.target.value);
-                      // Recalculate hours when times change
-                      if (editedClockOut) {
-                        const hours = calculateHoursFromTimes(e.target.value, editedClockOut);
-                        setEditedHours(hours);
-                      }
-                    }}
-                    className="w-full"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    End Time
-                  </label>
-                  <Input
-                    type="datetime-local"
-                    value={editedClockOut}
-                    onChange={(e) => {
-                      setEditedClockOut(e.target.value);
-                      // Recalculate hours when times change
-                      if (editedClockIn) {
-                        const hours = calculateHoursFromTimes(editedClockIn, e.target.value);
-                        setEditedHours(hours);
-                      }
-                    }}
-                    className="w-full"
-                  />
-                </div>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Total Hours
-                </label>
-                <Input
-                  type="number"
-                  step="0.25"
-                  min="0"
-                  max="24"
-                  value={editedHours}
-                  onChange={(e) => setEditedHours(parseFloat(e.target.value))}
-                  className="w-full"
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  Original Hours: {calculateEntryHours(selectedEntry).toFixed(2)}
-                </p>
-                <p className="text-xs text-blue-600 mt-1">
-                  New Total: ${(editedHours * selectedEntry.hourly_rate).toFixed(2)}
-                </p>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Manager Notes
-                </label>
-                <Textarea
-                  value={managerNotes}
-                  onChange={(e) => setManagerNotes(e.target.value)}
-                  className="w-full"
-                  rows={3}
-                  placeholder="Add notes about this time entry..."
-                />
-              </div>
-              
-              {selectedEntry.notes && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Employee Notes
-                  </label>
-                  <p className="text-sm text-gray-600 bg-gray-50 p-2 rounded">
-                    {selectedEntry.notes}
-                  </p>
-                </div>
-              )}
-              
-              <div className="flex gap-2 pt-4">
-                <Button 
-                  variant="outline" 
-                  onClick={() => setIsReviewDialogOpen(false)}
-                  className="flex-1"
-                >
-                  Cancel
-                </Button>
-                <Button 
-                  variant="destructive" 
-                  onClick={handleReject}
-                  disabled={!managerNotes.trim() || isRejectingTimeEntry}
-                  className="flex-1"
-                >
-                  <XCircle className="h-4 w-4 mr-1" />
-                  {isRejectingTimeEntry ? 'Rejecting...' : 'Reject'}
-                </Button>
-                <Button 
-                  onClick={handleApprove}
-                  className="flex-1 bg-green-600 hover:bg-green-700"
-                >
-                  <CheckCircle className="h-4 w-4 mr-1" />
-                  Approve
-                </Button>
-              </div>
+      {/* Time Entries Table */}
+      <Card>
+        <CardHeader>
+          <div className="flex justify-between items-center">
+            <CardTitle className="flex items-center gap-2">
+              <Clock className="h-5 w-5" />
+              Time Entries
+            </CardTitle>
+            <div className="flex gap-2">
+              <Button onClick={exportToCSV} variant="outline" size="sm">
+                <Download className="h-4 w-4 mr-2" />
+                Export CSV
+              </Button>
+              <AddTimeEntryDialog 
+                open={showAddDialog}
+                onOpenChange={setShowAddDialog}
+              />
+              <Button onClick={() => setShowAddDialog(true)} size="sm">
+                <Plus className="h-4 w-4 mr-2" />
+                Add Entry
+              </Button>
             </div>
-          )}
-        </DialogContent>
-      </Dialog>
+          </div>
+        </CardHeader>
+        
+        <CardContent>
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Employee
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Job
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Date
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Start Time
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    End Time
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Hours
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Status
+                  </th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {filteredEntries.map((entry) => {
+                  const hours = calculateHours(entry.clock_in_time, entry.clock_out_time || '');
+                  
+                  return (
+                    <tr key={entry.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                        {employees.find(e => e.id === entry.employee_id)?.name || 'N/A'}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {jobs.find(j => j.id === entry.job_id)?.client_name || 'No Job'}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {format(new Date(entry.entry_date), 'MM/dd/yyyy')}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {format(new Date(entry.clock_in_time), 'h:mm a')}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {entry.clock_out_time ? format(new Date(entry.clock_out_time), 'h:mm a') : 'N/A'}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {hours.toFixed(2)}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {entry.status}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
+                        {entry.status === 'pending' && (
+                          <>
+                            <Button
+                              size="sm"
+                              onClick={() => approveTimeEntry(entry.id)}
+                              disabled={isApprovingTimeEntry}
+                              className="bg-green-600 hover:bg-green-700"
+                            >
+                              <CheckCircle className="h-4 w-4 mr-1" />
+                              Approve
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              onClick={() => rejectTimeEntry(entry.id)}
+                              disabled={isRejectingTimeEntry}
+                            >
+                              <XCircle className="h-4 w-4 mr-1" />
+                              Reject
+                            </Button>
+                          </>
+                        )}
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setSelectedEntry(entry)}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
 
-      {/* Add Time Entry Dialog */}
-      <AddTimeEntryDialog 
-        open={isAddDialogOpen} 
-        onOpenChange={setIsAddDialogOpen} 
-      />
+      {/* Review Time Entry Dialog */}
+      {selectedEntry && (
+        <ReviewTimeEntryDialog
+          open={!!selectedEntry}
+          onOpenChange={() => setSelectedEntry(null)}
+          entry={selectedEntry}
+        />
+      )}
+    </div>
+  );
+};
+
+interface ReviewTimeEntryDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  entry: any;
+}
+
+const ReviewTimeEntryDialog = ({ open, onOpenChange, entry }: ReviewTimeEntryDialogProps) => {
+  const [notes, setNotes] = useState(entry.notes || '');
+  const { employees } = useEmployees();
+  const { jobs } = useJobs();
+
+  const employee = employees.find(e => e.id === entry.employee_id);
+  const job = jobs.find(j => j.id === entry.job_id);
+
+  const handleSaveNotes = () => {
+    // Implement save notes functionality here
+    onOpenChange(false);
+  };
+
+  return (
+    <div>
+      
     </div>
   );
 };
