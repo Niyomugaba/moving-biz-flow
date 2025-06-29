@@ -1,10 +1,10 @@
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { StatusBadge } from '../components/StatusBadge';
 import { AddEmployeeDialog } from '../components/AddEmployeeDialog';
 import { EmployeeTimeTrackingDialog } from '../components/EmployeeTimeTrackingDialog';
 import { EditEmployeeDialog } from '../components/EditEmployeeDialog';
-import { Plus, Phone, Mail, DollarSign, Clock, UserCheck, Eye, Edit } from 'lucide-react';
+import { Plus, Phone, Mail, DollarSign, Clock, UserCheck, Eye, Edit, Search, Filter } from 'lucide-react';
 import { useEmployees } from '@/hooks/useEmployees';
 import { useTimeEntries } from '@/hooks/useTimeEntries';
 import { Link } from 'react-router-dom';
@@ -17,6 +17,14 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export const Employees = () => {
   const { employees, isLoading, addEmployee, updateEmployee, deleteEmployee, isUpdatingEmployee, isDeletingEmployee } = useEmployees();
@@ -26,6 +34,12 @@ export const Employees = () => {
   const [isEditEmployeeDialogOpen, setIsEditEmployeeDialogOpen] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
+  
+  // Filter states
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [positionFilter, setPositionFilter] = useState<string>('all');
+  const [departmentFilter, setDepartmentFilter] = useState<string>('all');
 
   const handleAddEmployee = (employeeData: any) => {
     addEmployee({
@@ -82,17 +96,60 @@ export const Employees = () => {
     return { totalHours, totalEarnings, pendingHours };
   };
 
-  const activeEmployees = employees.filter(emp => emp.status === 'active').length;
-  const totalPayrollThisMonth = employees.reduce((sum, emp) => {
+  // Filter employees based on search and filter criteria
+  const filteredEmployees = useMemo(() => {
+    return employees.filter(employee => {
+      // Search filter
+      const matchesSearch = searchQuery === '' || 
+        employee.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        employee.phone.includes(searchQuery) ||
+        (employee.email && employee.email.toLowerCase().includes(searchQuery.toLowerCase()));
+
+      // Status filter
+      const matchesStatus = statusFilter === 'all' || employee.status === statusFilter;
+
+      // Position filter
+      const matchesPosition = positionFilter === 'all' || 
+        (employee.position && employee.position.toLowerCase() === positionFilter.toLowerCase());
+
+      // Department filter
+      const matchesDepartment = departmentFilter === 'all' || 
+        (employee.department && employee.department.toLowerCase() === departmentFilter.toLowerCase());
+
+      return matchesSearch && matchesStatus && matchesPosition && matchesDepartment;
+    });
+  }, [employees, searchQuery, statusFilter, positionFilter, departmentFilter]);
+
+  // Get unique values for filter dropdowns
+  const uniquePositions = useMemo(() => {
+    const positions = employees.map(emp => emp.position).filter(Boolean);
+    return [...new Set(positions)];
+  }, [employees]);
+
+  const uniqueDepartments = useMemo(() => {
+    const departments = employees.map(emp => emp.department).filter(Boolean);
+    return [...new Set(departments)];
+  }, [employees]);
+
+  // Calculate stats based on filtered employees
+  const activeEmployees = filteredEmployees.filter(emp => emp.status === 'active').length;
+  const totalPayrollThisMonth = filteredEmployees.reduce((sum, emp) => {
     const { totalEarnings } = calculateMonthlyStats(emp.id);
     return sum + totalEarnings;
   }, 0);
-  const averageHoursPerEmployee = employees.length > 0 
-    ? Math.round(employees.reduce((sum, emp) => {
+  const averageHoursPerEmployee = filteredEmployees.length > 0 
+    ? Math.round(filteredEmployees.reduce((sum, emp) => {
         const { totalHours } = calculateMonthlyStats(emp.id);
         return sum + totalHours;
-      }, 0) / employees.length)
+      }, 0) / filteredEmployees.length)
     : 0;
+
+  const clearFilters = () => {
+    setSearchQuery('');
+    setStatusFilter('all');
+    setPositionFilter('all');
+    setDepartmentFilter('all');
+  };
 
   if (isLoading) {
     return (
@@ -136,8 +193,9 @@ export const Employees = () => {
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="bg-white p-4 rounded-lg shadow-sm border">
-          <p className="text-sm text-gray-600">Total Employees</p>
-          <p className="text-2xl font-bold text-gray-900">{employees.length}</p>
+          <p className="text-sm text-gray-600">Filtered Results</p>
+          <p className="text-2xl font-bold text-gray-900">{filteredEmployees.length}</p>
+          <p className="text-xs text-gray-500">of {employees.length} total</p>
         </div>
         <div className="bg-white p-4 rounded-lg shadow-sm border">
           <p className="text-sm text-gray-600">Active Employees</p>
@@ -151,6 +209,99 @@ export const Employees = () => {
         <div className="bg-white p-4 rounded-lg shadow-sm border">
           <p className="text-sm text-gray-600">Avg Hours/Employee</p>
           <p className="text-2xl font-bold text-purple-600">{averageHoursPerEmployee}h</p>
+        </div>
+      </div>
+
+      {/* Filters Section */}
+      <div className="bg-white p-6 rounded-lg shadow-sm border">
+        <div className="flex items-center gap-2 mb-4">
+          <Filter className="h-5 w-5 text-gray-600" />
+          <h3 className="text-lg font-semibold text-gray-900">Filters</h3>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={clearFilters}
+            className="ml-auto text-purple-600 hover:text-purple-700"
+          >
+            Clear All
+          </Button>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+          {/* Search */}
+          <div className="lg:col-span-2">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Search
+            </label>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Input
+                placeholder="Search by name, phone, or email..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+          </div>
+
+          {/* Status Filter */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Status
+            </label>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger>
+                <SelectValue placeholder="All Statuses" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Statuses</SelectItem>
+                <SelectItem value="active">Active</SelectItem>
+                <SelectItem value="inactive">Inactive</SelectItem>
+                <SelectItem value="terminated">Terminated</SelectItem>
+                <SelectItem value="on_leave">On Leave</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Position Filter */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Position
+            </label>
+            <Select value={positionFilter} onValueChange={setPositionFilter}>
+              <SelectTrigger>
+                <SelectValue placeholder="All Positions" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Positions</SelectItem>
+                {uniquePositions.map(position => (
+                  <SelectItem key={position} value={position.toLowerCase()}>
+                    {position}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Department Filter */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Department
+            </label>
+            <Select value={departmentFilter} onValueChange={setDepartmentFilter}>
+              <SelectTrigger>
+                <SelectValue placeholder="All Departments" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Departments</SelectItem>
+                {uniqueDepartments.map(department => (
+                  <SelectItem key={department} value={department.toLowerCase()}>
+                    {department}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
       </div>
 
@@ -175,7 +326,7 @@ export const Employees = () => {
       {viewMode === 'cards' ? (
         // Employee Cards
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {employees.map((employee) => {
+          {filteredEmployees.map((employee) => {
             const { totalHours, totalEarnings, pendingHours } = calculateMonthlyStats(employee.id);
             return (
               <div key={employee.id} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
@@ -260,7 +411,7 @@ export const Employees = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {employees.map((employee) => {
+              {filteredEmployees.map((employee) => {
                 const { totalHours, totalEarnings, pendingHours } = calculateMonthlyStats(employee.id);
                 return (
                   <TableRow key={employee.id}>
@@ -300,9 +451,12 @@ export const Employees = () => {
               })}
             </TableBody>
           </Table>
-          {employees.length === 0 && (
+          {filteredEmployees.length === 0 && (
             <div className="p-6 text-center text-gray-500">
-              No employees found. Add your first employee to get started.
+              {employees.length === 0 
+                ? "No employees found. Add your first employee to get started."
+                : "No employees match your current filters. Try adjusting your search criteria."
+              }
             </div>
           )}
         </div>
