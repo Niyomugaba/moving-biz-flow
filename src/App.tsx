@@ -26,14 +26,13 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
-          {/* Employee Portal - No Layout (standalone page) */}
+          {/* Standalone pages - No Layout */}
           <Route path="/employee-portal" element={<EmployeePortal />} />
-          
-          {/* Manager Login - No Layout (standalone page) */}
           <Route path="/manager-login" element={<ManagerLogin />} />
           
-          {/* Admin Routes with Layout */}
+          {/* Protected Admin Routes with Layout */}
           <Route path="/" element={<Layout><Dashboard /></Layout>} />
+          <Route path="/dashboard" element={<Layout><Dashboard /></Layout>} />
           <Route path="/leads" element={<Layout><Leads /></Layout>} />
           <Route path="/jobs" element={<Layout><Jobs /></Layout>} />
           <Route path="/employees" element={<Layout><Employees /></Layout>} />
@@ -41,7 +40,9 @@ const App = () => (
           <Route path="/clients" element={<Layout><Clients /></Layout>} />
           <Route path="/financials" element={<Layout><Financials /></Layout>} />
           <Route path="/time-logs" element={<Layout><TimeLogs /></Layout>} />
-          <Route path="*" element={<Layout><NotFound /></Layout>} />
+          
+          {/* 404 fallback */}
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
     </TooltipProvider>
