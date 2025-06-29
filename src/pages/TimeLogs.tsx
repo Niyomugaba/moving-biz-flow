@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
 import {
   Card,
@@ -24,8 +25,8 @@ import { AddTimeEntryDialog } from '@/components/AddTimeEntryDialog';
 import { format } from 'date-fns';
 
 export const TimeLogs = () => {
-  const [employeeFilter, setEmployeeFilter] = useState('');
-  const [jobFilter, setJobFilter] = useState('');
+  const [employeeFilter, setEmployeeFilter] = useState('all');
+  const [jobFilter, setJobFilter] = useState('all');
   const [dateFilter, setDateFilter] = useState('');
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [selectedEntry, setSelectedEntry] = useState(null);
@@ -54,11 +55,11 @@ export const TimeLogs = () => {
   const filteredEntries = useMemo(() => {
     let filtered = timeEntries || [];
 
-    if (employeeFilter) {
+    if (employeeFilter && employeeFilter !== 'all') {
       filtered = filtered.filter(entry => entry.employee_id === employeeFilter);
     }
 
-    if (jobFilter) {
+    if (jobFilter && jobFilter !== 'all') {
       filtered = filtered.filter(entry => entry.job_id === jobFilter);
     }
 
@@ -161,7 +162,7 @@ export const TimeLogs = () => {
               <SelectValue placeholder="Filter by employee" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Employees</SelectItem>
+              <SelectItem value="all">All Employees</SelectItem>
               {employees.map((employee) => (
                 <SelectItem key={employee.id} value={employee.id}>
                   {employee.name}
@@ -179,7 +180,7 @@ export const TimeLogs = () => {
               <SelectValue placeholder="Filter by job" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Jobs</SelectItem>
+              <SelectItem value="all">All Jobs</SelectItem>
               {jobs.map((job) => (
                 <SelectItem key={job.id} value={job.id}>
                   {job.client_name} - {job.job_date}
@@ -200,8 +201,8 @@ export const TimeLogs = () => {
         </div>
         <div className="flex items-end">
           <Button onClick={() => {
-            setEmployeeFilter('');
-            setJobFilter('');
+            setEmployeeFilter('all');
+            setJobFilter('all');
             setDateFilter('');
           }} variant="outline">
             Reset Filters
