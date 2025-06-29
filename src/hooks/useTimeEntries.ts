@@ -1,7 +1,11 @@
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { TimeEntry } from '@/types';
 import { useToast } from '@/hooks/use-toast';
+import type { Database } from '@/integrations/supabase/types';
+
+type TimeEntry = Database['public']['Tables']['time_entries']['Row'];
+type TimeEntryInsert = Database['public']['Tables']['time_entries']['Insert'];
 
 export const useTimeEntries = () => {
   const { toast } = useToast();
@@ -32,11 +36,11 @@ export const useTimeEntries = () => {
   }, 0);
 
   const addTimeEntryMutation = useMutation({
-    mutationFn: async (newEntry: Omit<TimeEntry, 'id'>) => {
+    mutationFn: async (newEntry: TimeEntryInsert) => {
       console.log('Adding time entry:', newEntry);
       const { data, error } = await supabase
         .from('time_entries')
-        .insert([newEntry]);
+        .insert(newEntry);
 
       if (error) {
         console.error('Error adding time entry:', error);
