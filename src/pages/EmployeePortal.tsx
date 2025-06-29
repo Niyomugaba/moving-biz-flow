@@ -7,7 +7,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { NewEmployeeRequestForm } from '@/components/NewEmployeeRequestForm';
 import { EmployeeDashboard } from './EmployeeDashboard';
-import { Truck, Shield, Users } from 'lucide-react';
+import { Truck, Shield, Users, Mail } from 'lucide-react';
 
 export const EmployeePortal = () => {
   const [email, setEmail] = useState('');
@@ -185,7 +185,7 @@ export const EmployeePortal = () => {
           </div>
           
           <NewEmployeeRequestForm 
-            phoneNumber=""
+            email={email}
             onBack={() => setStep('email')}
             onSuccess={handleRequestSubmitted}
           />
@@ -218,15 +218,15 @@ export const EmployeePortal = () => {
           </div>
           <div className="text-center">
             <div className="w-12 h-12 bg-purple-700 rounded-lg flex items-center justify-center mx-auto mb-2">
-              <Users className="w-6 h-6 text-amber-400" />
+              <Mail className="w-6 h-6 text-amber-400" />
             </div>
-            <p className="text-purple-200 text-sm">Team Portal</p>
+            <p className="text-purple-200 text-sm">Email Verified</p>
           </div>
           <div className="text-center">
             <div className="w-12 h-12 bg-purple-700 rounded-lg flex items-center justify-center mx-auto mb-2">
-              <Truck className="w-6 h-6 text-amber-400" />
+              <Users className="w-6 h-6 text-amber-400" />
             </div>
-            <p className="text-purple-200 text-sm">Job Tracking</p>
+            <p className="text-purple-200 text-sm">Team Portal</p>
           </div>
         </div>
 
@@ -252,11 +252,14 @@ export const EmployeePortal = () => {
                   </label>
                   <Input
                     type="email"
-                    placeholder="your.email@bantumovers.com"
+                    placeholder="your.email@example.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className="bg-white/20 border-purple-400 text-white placeholder:text-purple-300 focus:border-amber-400 focus:ring-amber-400"
                   />
+                  <p className="text-xs text-purple-300">
+                    Use: test@bantumovers.com to test existing employee flow
+                  </p>
                 </div>
                 
                 <Button 
@@ -264,16 +267,13 @@ export const EmployeePortal = () => {
                   disabled={isLoading}
                   className="w-full bg-amber-500 hover:bg-amber-600 text-purple-900 font-semibold"
                 >
-                  {isLoading ? 'Sending Email...' : 'Send Verification Email'}
+                  {isLoading ? 'Checking Email...' : 'Send Verification Email'}
                 </Button>
                 
                 <div className="text-center">
-                  <button 
-                    onClick={() => setStep('request')}
-                    className="text-amber-300 hover:text-amber-200 text-sm underline"
-                  >
-                    New to Bantu Movers? Request access here
-                  </button>
+                  <p className="text-purple-300 text-sm">
+                    New to Bantu Movers? Enter any other email to request access
+                  </p>
                 </div>
               </>
             ) : (
