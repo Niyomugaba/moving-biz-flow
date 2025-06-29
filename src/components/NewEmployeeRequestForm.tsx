@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useEmployeeRequests } from '@/hooks/useEmployeeRequests';
-import { UserPlus, ArrowLeft, Hash } from 'lucide-react';
+import { UserPlus, ArrowLeft, Hash, Phone } from 'lucide-react';
 
 interface NewEmployeeRequestFormProps {
   onBack: () => void;
@@ -15,6 +15,7 @@ export const NewEmployeeRequestForm = ({ onBack, onSuccess }: NewEmployeeRequest
   const [formData, setFormData] = useState({
     name: '',
     email: '',
+    phone: '',
     pin: '',
     position_applied: 'mover',
     expected_hourly_wage: 20,
@@ -29,12 +30,12 @@ export const NewEmployeeRequestForm = ({ onBack, onSuccess }: NewEmployeeRequest
     addEmployeeRequest({
       name: formData.name,
       email: formData.email || undefined,
-      phone: formData.pin, // Store PIN in phone field temporarily
+      phone: formData.phone,
       position_applied: formData.position_applied || undefined,
       expected_hourly_wage: formData.expected_hourly_wage || undefined,
       availability: formData.availability || undefined,
       experience_years: formData.experience_years || undefined,
-      notes: formData.notes || undefined
+      notes: `PIN: ${formData.pin}${formData.notes ? ' | ' + formData.notes : ''}`
     });
 
     // Show success message and reset form
@@ -65,6 +66,26 @@ export const NewEmployeeRequestForm = ({ onBack, onSuccess }: NewEmployeeRequest
             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
             placeholder="Enter your full name"
           />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Phone Number *
+          </label>
+          <div className="relative">
+            <Input
+              type="tel"
+              required
+              value={formData.phone}
+              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+              placeholder="Enter your phone number"
+              className="pl-10"
+            />
+            <Phone className="w-4 h-4 text-gray-400 absolute left-3 top-3" />
+          </div>
+          <p className="text-xs text-gray-600 mt-1">
+            We'll use this to contact you about jobs and schedules
+          </p>
         </div>
 
         <div>

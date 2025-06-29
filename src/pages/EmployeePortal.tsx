@@ -30,11 +30,11 @@ export const EmployeePortal = () => {
     console.log('Checking for employee with pin:', pin);
 
     try {
-      // Check if employee exists with this PIN
+      // Check if employee exists with this PIN in the notes field
       const { data: employee, error: employeeError } = await supabase
         .from('employees')
         .select('*')
-        .eq('phone', pin) // Using phone field temporarily to store PIN
+        .like('notes', `%PIN: ${pin}%`)
         .eq('status', 'active')
         .maybeSingle();
 
@@ -44,7 +44,7 @@ export const EmployeePortal = () => {
       }
 
       if (employee) {
-        setEmployeeData(employee);
+        setEmployeeData({ ...employee, pin });
         toast({
           title: "Welcome Back!",
           description: `Hello ${employee.name}! Redirecting to your dashboard...`,
