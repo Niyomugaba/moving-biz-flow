@@ -5,45 +5,49 @@ import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
-import { useToast } from '@/hooks/use-toast';
+import { useLeads } from '@/hooks/useLeads';
 
 interface AddLeadDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onAddLead?: (leadData: any) => void;
 }
 
-export const AddLeadDialog: React.FC<AddLeadDialogProps> = ({ open, onOpenChange, onAddLead }) => {
+export const AddLeadDialog: React.FC<AddLeadDialogProps> = ({ open, onOpenChange }) => {
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [source, setSource] = useState('');
-  const [cost, setCost] = useState('');
-  const { toast } = useToast();
+  const [estimatedValue, setEstimatedValue] = useState('');
+  const { addLead, isAddingLead } = useLeads();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    const leadData = { name, phone, email, source, cost };
-    
-    // Call the callback if provided
-    if (onAddLead) {
-      onAddLead(leadData);
+    if (!name || !phone || !source) {
+      return;
     }
+
+    const leadData = {
+      name,
+      phone,
+      email: email || null,
+      source: source as 'website' | 'referral' | 'google_ads' | 'facebook' | 'phone' | 'walk_in' | 'other',
+      status: 'new' as const,
+      estimated_value: estimatedValue ? parseFloat(estimatedValue) : null,
+      notes: null,
+      follow_up_date: null,
+      assigned_to: null
+    };
     
-    console.log('New lead:', leadData);
-    
-    toast({
-      title: "Lead Added Successfully",
-      description: `${name} has been added to your leads.`,
-    });
+    console.log('Adding lead to database:', leadData);
+    addLead(leadData);
 
     // Reset form
     setName('');
     setPhone('');
     setEmail('');
     setSource('');
-    setCost('');
+    setEstimatedValue('');
     onOpenChange(false);
   };
 
@@ -88,28 +92,31 @@ export const AddLeadDialog: React.FC<AddLeadDialogProps> = ({ open, onOpenChange
                 <SelectValue placeholder="Select lead source" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="google-ads">Google Ads</SelectItem>
-                <SelectItem value="thumbtack">Thumbtack</SelectItem>
+                <SelectItem value="google_ads">Google Ads</SelectItem>
+                <SelectItem value="website">Website</SelectItem>
                 <SelectItem value="referral">Referral</SelectItem>
                 <SelectItem value="facebook">Facebook</SelectItem>
-                <SelectItem value="website">Website</SelectItem>
+                <SelectItem value="phone">Phone</SelectItem>
+                <SelectItem value="walk_in">Walk In</SelectItem>
                 <SelectItem value="other">Other</SelectItem>
               </SelectContent>
             </Select>
           </div>
           <div>
-            <Label htmlFor="cost">Lead Cost ($)</Label>
+            <Label htmlFor="estimatedValue">Estimated Value ($)</Label>
             <Input
-              id="cost"
+              id="estimatedValue"
               type="number"
               step="0.01"
-              value={cost}
-              onChange={(e) => setCost(e.target.value)}
+              value={estimatedValue}
+              onChange={(e) => setEstimatedValue(e.target.value)}
               placeholder="0.00"
             />
           </div>
           <div className="flex gap-2 pt-4">
-            <Button type="submit" className="flex-1">Add Lead</Button>
+            <Button type="submit" className="flex-1" disabled={isAddingLead}>
+              {isAddingLead ? 'Adding...' : 'Add Lead'}
+            </Button>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>

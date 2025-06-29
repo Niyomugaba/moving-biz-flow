@@ -9,17 +9,6 @@ export const Leads = () => {
   const { leads, isLoading } = useLeads();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
 
-  // Sample lead for demo
-  const sampleLead = {
-    name: 'Sarah Johnson',
-    phone: '(555) 987-6543',
-    email: 'sarah@example.com',
-    source: 'website' as const,
-    status: 'new' as const,
-    estimated_value: 1200,
-    notes: 'Moving from 2BR apartment to 3BR house, needs packing services'
-  };
-
   // Calculate metrics
   const totalLeads = leads.length;
   const newLeads = leads.filter(lead => lead.status === 'new').length;
