@@ -1,9 +1,9 @@
-
 import React, { useState, useMemo } from 'react';
 import { StatusBadge } from '../components/StatusBadge';
 import { AddEmployeeDialog } from '../components/AddEmployeeDialog';
 import { EmployeeTimeTrackingDialog } from '../components/EmployeeTimeTrackingDialog';
 import { EditEmployeeDialog } from '../components/EditEmployeeDialog';
+import { EmployeeContactCard } from '../components/EmployeeContactCard';
 import { Plus, Phone, Mail, DollarSign, Clock, UserCheck, Eye, Edit, Search, Filter } from 'lucide-react';
 import { useEmployees } from '@/hooks/useEmployees';
 import { useTimeEntries } from '@/hooks/useTimeEntries';
@@ -333,7 +333,11 @@ export const Employees = () => {
                 <div className="p-6">
                   <div className="flex justify-between items-start mb-4">
                     <div>
-                      <h3 className="text-lg font-semibold text-gray-900">{employee.name}</h3>
+                      <EmployeeContactCard employee={employee}>
+                        <h3 className="text-lg font-semibold text-gray-900 cursor-pointer hover:text-purple-600 transition-colors">
+                          {employee.name}
+                        </h3>
+                      </EmployeeContactCard>
                       <p className="text-sm text-gray-500">Since {employee.hire_date}</p>
                     </div>
                     <StatusBadge status={employee.status} variant="employee" />
@@ -415,7 +419,13 @@ export const Employees = () => {
                 const { totalHours, totalEarnings, pendingHours } = calculateMonthlyStats(employee.id);
                 return (
                   <TableRow key={employee.id}>
-                    <TableCell className="font-medium">{employee.name}</TableCell>
+                    <TableCell className="font-medium">
+                      <EmployeeContactCard employee={employee}>
+                        <span className="cursor-pointer hover:text-purple-600 transition-colors">
+                          {employee.name}
+                        </span>
+                      </EmployeeContactCard>
+                    </TableCell>
                     <TableCell>{employee.phone}</TableCell>
                     <TableCell>{employee.email || 'N/A'}</TableCell>
                     <TableCell>
