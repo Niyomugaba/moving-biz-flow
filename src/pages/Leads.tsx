@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { AddLeadDialog } from '../components/AddLeadDialog';
 import { StatusBadge } from '../components/StatusBadge';
@@ -45,7 +44,7 @@ export const Leads = () => {
         name: lead.name,
         phone: lead.phone,
         email: lead.email || null,
-        primary_address: 'Address not provided', // Fixed: changed from 'address' to 'primary_address'
+        primary_address: 'Address not provided',
         company_name: null,
         secondary_address: null,
         notes: `Converted from lead. Original notes: ${lead.notes || 'None'}`,
@@ -164,37 +163,22 @@ export const Leads = () => {
                     Contact
                   </Button>
                   
-                  {lead.status === 'converted' ? (
-                    <Button variant="outline" size="sm" disabled>
-                      Converted
-                    </Button>
-                  ) : lead.status === 'lost' ? (
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => handleConvertToClient(lead)}
-                      className="text-green-600 hover:text-green-700"
-                    >
-                      Convert to Client
-                    </Button>
-                  ) : (
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="outline" size="sm" className="flex items-center gap-1">
-                          Convert
-                          <ChevronDown className="h-3 w-3" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => handleConvertToClient(lead)}>
-                          Convert to Client
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleMarkAsNoHire(lead)}>
-                          Mark as No Hire
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  )}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" size="sm" className="flex items-center gap-1">
+                        Convert
+                        <ChevronDown className="h-3 w-3" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => handleConvertToClient(lead)}>
+                        Convert to Client
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleMarkAsNoHire(lead)}>
+                        Mark as No Hire
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               </TableCell>
             </TableRow>
@@ -261,35 +245,22 @@ export const Leads = () => {
                 Contact
               </button>
               
-              {lead.status === 'converted' ? (
-                <div className="flex-1 py-2 px-3 rounded-lg text-sm font-medium bg-gray-100 text-gray-400 text-center">
-                  Converted
-                </div>
-              ) : lead.status === 'lost' ? (
-                <button 
-                  onClick={() => handleConvertToClient(lead)}
-                  className="flex-1 bg-green-50 text-green-700 py-2 px-3 rounded-lg text-sm font-medium hover:bg-green-100 transition-colors"
-                >
-                  Convert to Client
-                </button>
-              ) : (
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <button className="flex-1 bg-green-50 text-green-700 py-2 px-3 rounded-lg text-sm font-medium hover:bg-green-100 transition-colors flex items-center justify-center gap-1">
-                      Convert
-                      <ChevronDown className="h-3 w-3" />
-                    </button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => handleConvertToClient(lead)}>
-                      Convert to Client
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handleMarkAsNoHire(lead)}>
-                      Mark as No Hire
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              )}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="flex-1 bg-green-50 text-green-700 py-2 px-3 rounded-lg text-sm font-medium hover:bg-green-100 transition-colors flex items-center justify-center gap-1">
+                    Convert
+                    <ChevronDown className="h-3 w-3" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => handleConvertToClient(lead)}>
+                    Convert to Client
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleMarkAsNoHire(lead)}>
+                    Mark as No Hire
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
         </div>
