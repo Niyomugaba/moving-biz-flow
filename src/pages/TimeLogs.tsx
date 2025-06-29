@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useTimeEntries } from '@/hooks/useTimeEntries';
 import { Clock, CheckCircle, XCircle, Edit, Filter, Search, Download, Calendar, DollarSign, Plus } from 'lucide-react';
@@ -61,6 +62,30 @@ export const TimeLogs = () => {
     const clockIn = new Date(clockInTime);
     const clockOut = new Date(clockOutTime);
     return (clockOut.getTime() - clockIn.getTime()) / (1000 * 60 * 60);
+  };
+
+  // Helper function to format time properly for display
+  const formatTimeForDisplay = (timestamp: string) => {
+    if (!timestamp) return '';
+    const date = new Date(timestamp);
+    return date.toLocaleTimeString('en-US', { 
+      hour: '2-digit', 
+      minute: '2-digit',
+      hour12: true 
+    });
+  };
+
+  // Helper function to format date and time for display
+  const formatDateTimeForDisplay = (timestamp: string) => {
+    if (!timestamp) return '';
+    const date = new Date(timestamp);
+    return date.toLocaleString('en-US', { 
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit', 
+      minute: '2-digit',
+      hour12: true 
+    });
   };
 
   const totalHoursThisWeek = timeEntries
@@ -180,6 +205,8 @@ export const TimeLogs = () => {
         'Employee': entry.employees?.name || 'Unknown',
         'Client': entry.jobs?.client_name || 'No Job Assigned',
         'Date': entry.entry_date,
+        'Clock In': formatTimeForDisplay(entry.clock_in_time),
+        'Clock Out': formatTimeForDisplay(entry.clock_out_time || ''),
         'Hours': hours.toFixed(2),
         'Rate': entry.hourly_rate,
         'Total': (hours * entry.hourly_rate).toFixed(2),
@@ -356,6 +383,12 @@ export const TimeLogs = () => {
                   Date
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Clock In
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Clock Out
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Hours
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -404,6 +437,12 @@ export const TimeLogs = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       {entry.entry_date}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {formatTimeForDisplay(entry.clock_in_time)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {formatTimeForDisplay(entry.clock_out_time || '')}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       {hours.toFixed(2)}h
@@ -468,6 +507,9 @@ export const TimeLogs = () => {
                 <h3 className="font-medium text-gray-900">{selectedEntry.employees?.name}</h3>
                 <p className="text-sm text-gray-600">{selectedEntry.jobs?.client_name || 'No Job Assigned'} - {selectedEntry.jobs?.job_date}</p>
                 <p className="text-sm text-gray-600">Submitted: {selectedEntry.entry_date}</p>
+                <p className="text-sm text-gray-600">
+                  Original Times: {formatDateTimeForDisplay(selectedEntry.clock_in_time)} - {formatDateTimeForDisplay(selectedEntry.clock_out_time || '')}
+                </p>
                 <div className="flex items-center gap-2 mt-2">
                   <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${selectedEntry.is_paid ? 'bg-green-100 text-green-800' : 'bg-orange-100 text-orange-800'}`}>
                     {selectedEntry.is_paid ? 'Paid' : 'Unpaid'}

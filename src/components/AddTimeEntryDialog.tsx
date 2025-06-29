@@ -50,8 +50,9 @@ export const AddTimeEntryDialog = ({ open, onOpenChange }: AddTimeEntryDialogPro
       return;
     }
 
-    const clockInDateTime = `${entryDate}T${clockInTime}:00.000Z`;
-    const clockOutDateTime = `${entryDate}T${clockOutTime}:00.000Z`;
+    // Create proper datetime strings without forcing UTC
+    const clockInDateTime = `${entryDate}T${clockInTime}:00`;
+    const clockOutDateTime = `${entryDate}T${clockOutTime}:00`;
 
     addTimeEntry({
       employee_id: selectedEmployeeId,
