@@ -12,14 +12,21 @@ export const Financials = () => {
   const { timeEntries } = useTimeEntries();
   const { leads } = useLeads();
 
-  // Financial calculations
+  // Financial calculations using actual totals when available
   const totalRevenue = jobs
     .filter(job => job.status === 'completed' && job.is_paid)
-    .reduce((sum, job) => sum + (job.hourly_rate * (job.actual_duration_hours || 0)), 0);
+    .reduce((sum, job) => {
+      // Use actual_total if available, otherwise calculate from hours and rate
+      const jobRevenue = job.actual_total || (job.hourly_rate * (job.actual_duration_hours || 0));
+      return sum + jobRevenue;
+    }, 0);
 
   const pendingPayments = jobs
     .filter(job => job.status === 'completed' && !job.is_paid)
-    .reduce((sum, job) => sum + (job.hourly_rate * (job.actual_duration_hours || 0)), 0);
+    .reduce((sum, job) => {
+      const jobRevenue = job.actual_total || (job.hourly_rate * (job.actual_duration_hours || 0));
+      return sum + jobRevenue;
+    }, 0);
 
   const monthlyPayroll = timeEntries
     .filter(entry => {
@@ -39,7 +46,7 @@ export const Financials = () => {
   const netProfit = totalRevenue - monthlyPayroll;
   const profitMargin = totalRevenue > 0 ? ((netProfit / totalRevenue) * 100) : 0;
 
-  // Recent transactions
+  // Recent transactions with actual amounts
   const recentJobs = jobs
     .filter(job => job.status === 'completed')
     .sort((a, b) => new Date(b.job_date).getTime() - new Date(a.job_date).getTime())
@@ -146,39 +153,52 @@ export const Financials = () => {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hours</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rate</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {recentJobs.map((job) => (
-                <tr key={job.id}>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div>
-                      <div className="text-sm font-medium text-gray-900">{job.client_name}</div>
-                      <div className="text-sm text-gray-500">{job.client_phone}</div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {job.job_date}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {job.actual_duration_hours || 0}h
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    ${job.hourly_rate}/hr
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                    ${(job.hourly_rate * (job.actual_duration_hours || 0)).toLocaleString()}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                      job.is_paid ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                    }`}>
-                      {job.is_paid ? 'Paid' : 'Unpaid'}
-                    </span>
-                  </td>
-                </tr>
-              ))}
+              {recentJobs.map((job) => {
+                const jobTotal = job.actual_total || (job.hourly_rate * (job.actual_duration_hours || 0));
+                const isActualAmount = !!job.actual_total;
+                
+                return (
+                  <tr key={job.id}>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div>
+                        <div className="text-sm font-medium text-gray-900">{job.client_name}</div>
+                        <div className="text-sm text-gray-500">{job.client_phone}</div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {job.job_date}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {job.actual_duration_hours || 0}h
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      ${job.hourly_rate}/hr
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                      ${jobTotal.toLocaleString()}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                        isActualAmount ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'
+                      }`}>
+                        {isActualAmount ? 'Actual' : 'Calculated'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                        job.is_paid ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                      }`}>
+                        {job.is_paid ? 'Paid' : 'Unpaid'}
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
