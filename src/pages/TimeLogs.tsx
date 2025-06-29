@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useTimeEntries } from '@/hooks/useTimeEntries';
 import { Clock, CheckCircle, XCircle, Edit, Filter, Search, Download, Calendar, DollarSign } from 'lucide-react';
@@ -33,48 +34,54 @@ export const TimeLogs = () => {
   const paidCount = timeEntries.filter(entry => entry.is_paid).length;
   const unpaidCount = timeEntries.filter(entry => entry.status === 'approved' && !entry.is_paid).length;
   
-  // Calculate total hours from clock in/out times
+  // Calculate total hours - use regular_hours + overtime_hours if available, otherwise calculate from clock times
+  const calculateEntryHours = (entry: any) => {
+    // First try to use the stored regular_hours and overtime_hours
+    if (entry.regular_hours !== null || entry.overtime_hours !== null) {
+      return (entry.regular_hours || 0) + (entry.overtime_hours || 0);
+    }
+    
+    // Fallback to calculating from clock times if available
+    if (entry.clock_in_time && entry.clock_out_time) {
+      const clockIn = new Date(entry.clock_in_time);
+      const clockOut = new Date(entry.clock_out_time);
+      return (clockOut.getTime() - clockIn.getTime()) / (1000 * 60 * 60);
+    }
+    
+    return 0;
+  };
+
   const totalHoursThisWeek = timeEntries
     .filter(entry => {
       const entryDate = new Date(entry.entry_date);
       const weekAgo = new Date();
       weekAgo.setDate(weekAgo.getDate() - 7);
-      return entry.status === 'approved' && entryDate >= weekAgo && entry.clock_in_time && entry.clock_out_time;
+      return entry.status === 'approved' && entryDate >= weekAgo;
     })
-    .reduce((sum, entry) => {
-      if (entry.clock_in_time && entry.clock_out_time) {
-        const clockIn = new Date(entry.clock_in_time);
-        const clockOut = new Date(entry.clock_out_time);
-        const hours = (clockOut.getTime() - clockIn.getTime()) / (1000 * 60 * 60);
-        return sum + hours;
-      }
-      return sum;
-    }, 0);
+    .reduce((sum, entry) => sum + calculateEntryHours(entry), 0);
 
   const handleReviewEntry = (entry: any) => {
     setSelectedEntry(entry);
-    // Calculate hours from clock times
-    if (entry.clock_in_time && entry.clock_out_time) {
-      const clockIn = new Date(entry.clock_in_time);
-      const clockOut = new Date(entry.clock_out_time);
-      const hours = (clockOut.getTime() - clockIn.getTime()) / (1000 * 60 * 60);
-      setEditedHours(hours);
-    } else {
-      setEditedHours(0);
-    }
+    const hours = calculateEntryHours(entry);
+    setEditedHours(hours);
     setManagerNotes(entry.manager_notes || '');
     setIsReviewDialogOpen(true);
   };
 
   const handleApprove = () => {
     if (selectedEntry) {
-      // Update clock_out_time if hours were edited
-      const clockIn = new Date(selectedEntry.clock_in_time);
-      const newClockOut = new Date(clockIn.getTime() + editedHours * 60 * 60 * 1000);
+      // Calculate regular and overtime hours
+      const regularHours = Math.min(editedHours, 8);
+      const overtimeHours = Math.max(0, editedHours - 8);
       
+      // Update the time entry with the edited hours
       updateTimeEntry({
         id: selectedEntry.id,
-        updates: { clock_out_time: newClockOut.toISOString() }
+        updates: { 
+          regular_hours: regularHours,
+          overtime_hours: overtimeHours > 0 ? overtimeHours : null,
+          overtime_rate: overtimeHours > 0 ? selectedEntry.hourly_rate * 1.5 : null
+        }
       });
       
       approveTimeEntry({
@@ -137,16 +144,11 @@ export const TimeLogs = () => {
 
   const exportToCSV = () => {
     const csvData = filteredEntries.map(entry => {
-      let hours = 0;
-      if (entry.clock_in_time && entry.clock_out_time) {
-        const clockIn = new Date(entry.clock_in_time);
-        const clockOut = new Date(entry.clock_out_time);
-        hours = (clockOut.getTime() - clockIn.getTime()) / (1000 * 60 * 60);
-      }
+      const hours = calculateEntryHours(entry);
       
       return {
         'Employee': entry.employees?.name || 'Unknown',
-        'Client': entry.jobs?.client_name || 'Unknown',
+        'Client': entry.jobs?.client_name || 'No Job Assigned',
         'Date': entry.entry_date,
         'Hours': hours.toFixed(2),
         'Rate': entry.hourly_rate,
@@ -338,12 +340,7 @@ export const TimeLogs = () => {
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {filteredEntries.map((entry) => {
-                let hours = 0;
-                if (entry.clock_in_time && entry.clock_out_time) {
-                  const clockIn = new Date(entry.clock_in_time);
-                  const clockOut = new Date(entry.clock_out_time);
-                  hours = (clockOut.getTime() - clockIn.getTime()) / (1000 * 60 * 60);
-                }
+                const hours = calculateEntryHours(entry);
                 
                 return (
                   <tr key={entry.id} className="hover:bg-gray-50">
@@ -362,7 +359,7 @@ export const TimeLogs = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-900">
-                        {entry.jobs?.client_name || 'Unknown Client'}
+                        {entry.jobs?.client_name || 'No Job Assigned'}
                       </div>
                       <div className="text-sm text-gray-500">
                         {entry.jobs?.job_date}
@@ -432,7 +429,7 @@ export const TimeLogs = () => {
             <div className="space-y-4">
               <div className="bg-gray-50 p-4 rounded-lg">
                 <h3 className="font-medium text-gray-900">{selectedEntry.employees?.name}</h3>
-                <p className="text-sm text-gray-600">{selectedEntry.jobs?.client_name} - {selectedEntry.jobs?.job_date}</p>
+                <p className="text-sm text-gray-600">{selectedEntry.jobs?.client_name || 'No Job Assigned'} - {selectedEntry.jobs?.job_date}</p>
                 <p className="text-sm text-gray-600">Submitted: {selectedEntry.entry_date}</p>
                 <div className="flex items-center gap-2 mt-2">
                   <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${selectedEntry.is_paid ? 'bg-green-100 text-green-800' : 'bg-orange-100 text-orange-800'}`}>
@@ -455,10 +452,7 @@ export const TimeLogs = () => {
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                 />
                 <p className="text-xs text-gray-500 mt-1">
-                  Clock In: {selectedEntry.clock_in_time ? new Date(selectedEntry.clock_in_time).toLocaleTimeString() : 'N/A'}
-                </p>
-                <p className="text-xs text-gray-500">
-                  Clock Out: {selectedEntry.clock_out_time ? new Date(selectedEntry.clock_out_time).toLocaleTimeString() : 'N/A'}
+                  Original Hours: {calculateEntryHours(selectedEntry).toFixed(2)}
                 </p>
                 <p className="text-xs text-blue-600 mt-1">
                   New Total: ${(editedHours * selectedEntry.hourly_rate).toFixed(2)}
