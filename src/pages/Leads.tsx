@@ -164,7 +164,20 @@ export const Leads = () => {
                     Contact
                   </Button>
                   
-                  {lead.status !== 'converted' && lead.status !== 'lost' ? (
+                  {lead.status === 'converted' ? (
+                    <Button variant="outline" size="sm" disabled>
+                      Converted
+                    </Button>
+                  ) : lead.status === 'lost' ? (
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => handleConvertToClient(lead)}
+                      className="text-green-600 hover:text-green-700"
+                    >
+                      Convert to Client
+                    </Button>
+                  ) : (
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button variant="outline" size="sm" className="flex items-center gap-1">
@@ -181,10 +194,6 @@ export const Leads = () => {
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
-                  ) : (
-                    <Button variant="outline" size="sm" disabled>
-                      {lead.status === 'converted' ? 'Converted' : 'No Hire'}
-                    </Button>
                   )}
                 </div>
               </TableCell>
@@ -252,7 +261,18 @@ export const Leads = () => {
                 Contact
               </button>
               
-              {lead.status !== 'converted' && lead.status !== 'lost' ? (
+              {lead.status === 'converted' ? (
+                <div className="flex-1 py-2 px-3 rounded-lg text-sm font-medium bg-gray-100 text-gray-400 text-center">
+                  Converted
+                </div>
+              ) : lead.status === 'lost' ? (
+                <button 
+                  onClick={() => handleConvertToClient(lead)}
+                  className="flex-1 bg-green-50 text-green-700 py-2 px-3 rounded-lg text-sm font-medium hover:bg-green-100 transition-colors"
+                >
+                  Convert to Client
+                </button>
+              ) : (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <button className="flex-1 bg-green-50 text-green-700 py-2 px-3 rounded-lg text-sm font-medium hover:bg-green-100 transition-colors flex items-center justify-center gap-1">
@@ -269,10 +289,6 @@ export const Leads = () => {
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
-              ) : (
-                <div className="flex-1 py-2 px-3 rounded-lg text-sm font-medium bg-gray-100 text-gray-400 text-center">
-                  {lead.status === 'converted' ? 'Converted' : 'No Hire'}
-                </div>
               )}
             </div>
           </div>
