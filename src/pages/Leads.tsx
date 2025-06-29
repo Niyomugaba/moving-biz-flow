@@ -45,7 +45,7 @@ export const Leads = () => {
         name: lead.name,
         phone: lead.phone,
         email: lead.email || null,
-        address: 'Address not provided', // Use 'address' field as expected by the clients table
+        primary_address: 'Address not provided', // Fixed: changed from 'address' to 'primary_address'
         company_name: null,
         secondary_address: null,
         notes: `Converted from lead. Original notes: ${lead.notes || 'None'}`,
