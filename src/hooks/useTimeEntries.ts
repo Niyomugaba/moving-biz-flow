@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -34,17 +33,38 @@ export const useTimeEntries = () => {
   const { data: timeEntries = [], isLoading, error } = useQuery({
     queryKey: ['timeEntries'],
     queryFn: async () => {
+      console.log('Fetching time entries...');
+      
+      // First, let's try to get all time entries without the join to see if they exist
+      const { data: allEntries, error: allEntriesError } = await supabase
+        .from('time_entries')
+        .select('*')
+        .order('entry_date', { ascending: false });
+      
+      console.log('All time entries (no join):', allEntries);
+      console.log('All entries error:', allEntriesError);
+      
+      // Now try with the join
       const { data, error } = await supabase
         .from('time_entries')
         .select(`
           *,
-          employees!inner(name),
+          employees(name),
           jobs(client_name, job_date)
         `)
         .order('entry_date', { ascending: false });
       
+      console.log('Time entries with join:', data);
+      console.log('Join error:', error);
+      
       if (error) throw error;
-      return data as (TimeEntry & { 
+      
+      // Handle cases where employee might not exist or join failed
+      return (data || []).map(entry => ({
+        ...entry,
+        employees: entry.employees || { name: 'Unknown Employee' },
+        jobs: entry.jobs || null
+      })) as (TimeEntry & { 
         employees: { name: string };
         jobs: { client_name: string; job_date: string } | null;
       })[];
@@ -65,6 +85,8 @@ export const useTimeEntries = () => {
       overtime_rate?: number;
       notes?: string;
     }) => {
+      console.log('Adding time entry:', timeEntryData);
+      
       const { data, error } = await supabase
         .from('time_entries')
         .insert({
@@ -85,6 +107,9 @@ export const useTimeEntries = () => {
         .select()
         .single();
       
+      console.log('Insert result:', data);
+      console.log('Insert error:', error);
+      
       if (error) throw error;
       return data;
     },
@@ -93,6 +118,14 @@ export const useTimeEntries = () => {
       toast({
         title: "Hours Submitted",
         description: "Your hours have been submitted for approval.",
+      });
+    },
+    onError: (error) => {
+      console.error('Add time entry error:', error);
+      toast({
+        title: "Error",
+        description: "Failed to submit hours. Please try again.",
+        variant: "destructive"
       });
     }
   });
