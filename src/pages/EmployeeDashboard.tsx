@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -127,14 +128,18 @@ export const EmployeeDashboard = ({ employee, onLogout }: EmployeeDashboardProps
     }
   };
 
-  // Format time to display correctly in local time
+  // Format time to show the exact input time from the datetime string
   const formatTimeDisplay = (timeString: string) => {
-    const date = new Date(timeString);
-    return date.toLocaleTimeString('en-US', { 
-      hour: '2-digit', 
-      minute: '2-digit',
-      hour12: true 
-    });
+    // Extract just the time part from the datetime string (HH:MM:SS)
+    const timePart = timeString.split('T')[1]?.split('.')[0] || timeString;
+    const [hours, minutes] = timePart.split(':');
+    
+    // Convert to 12-hour format
+    const hour24 = parseInt(hours);
+    const hour12 = hour24 === 0 ? 12 : hour24 > 12 ? hour24 - 12 : hour24;
+    const ampm = hour24 < 12 ? 'AM' : 'PM';
+    
+    return `${hour12}:${minutes} ${ampm}`;
   };
 
   return (
