@@ -1,10 +1,14 @@
 
 import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { BarChart3, Users, Calendar, UserCheck, DollarSign, Phone, Clock, Shield } from 'lucide-react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { BarChart3, Users, Calendar, UserCheck, DollarSign, Phone, Clock, LogOut } from 'lucide-react';
+import { useManagerAuth } from '@/hooks/useManagerAuth';
+import { Button } from '@/components/ui/button';
 
 export const Sidebar = () => {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { logout, managerSession } = useManagerAuth();
 
   const menuItems = [
     { icon: BarChart3, label: 'Dashboard', path: '/' },
@@ -16,14 +20,22 @@ export const Sidebar = () => {
     { icon: DollarSign, label: 'Financials', path: '/financials' }
   ];
 
+  const handleLogout = () => {
+    logout();
+    navigate('/manager-login');
+  };
+
   return (
-    <div className="w-64 bg-gray-900 text-white h-screen p-4">
+    <div className="w-64 bg-gray-900 text-white h-screen p-4 flex flex-col">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold">MoveCorp</h1>
-        <p className="text-gray-400 text-sm">Moving Business Manager</p>
+        <h1 className="text-2xl font-bold">Bantu Movers</h1>
+        <p className="text-gray-400 text-sm">Management Portal</p>
+        {managerSession && (
+          <p className="text-amber-400 text-xs mt-1">Welcome, {managerSession.name}</p>
+        )}
       </div>
       
-      <nav className="space-y-2">
+      <nav className="space-y-2 flex-1">
         {menuItems.map((item) => {
           const Icon = item.icon;
           const isActive = location.pathname === item.path;
@@ -45,20 +57,23 @@ export const Sidebar = () => {
         })}
       </nav>
 
-      <div className="mt-8 p-4 bg-gray-800 rounded-lg">
-        <h3 className="text-sm font-semibold mb-2">Mover Portal</h3>
-        <p className="text-xs text-gray-400 mb-3">Share this link with your movers:</p>
-        <div className="bg-gray-700 p-2 rounded text-xs font-mono break-all mb-3">
-          {window.location.origin}/employee-portal
+      <div className="mt-auto space-y-4">
+        <div className="p-4 bg-gray-800 rounded-lg">
+          <h3 className="text-sm font-semibold mb-2">Employee Portal</h3>
+          <p className="text-xs text-gray-400 mb-3">Share this link with your movers:</p>
+          <div className="bg-gray-700 p-2 rounded text-xs font-mono break-all">
+            {window.location.origin}/employee-portal
+          </div>
         </div>
         
-        <Link 
-          to="/manager-login"
-          className="flex items-center space-x-2 text-xs text-amber-400 hover:text-amber-300 transition-colors"
+        <Button 
+          onClick={handleLogout}
+          variant="destructive"
+          className="w-full flex items-center space-x-2"
         >
-          <Shield className="w-3 h-3" />
-          <span>Manager Login</span>
-        </Link>
+          <LogOut className="w-4 h-4" />
+          <span>Logout</span>
+        </Button>
       </div>
     </div>
   );

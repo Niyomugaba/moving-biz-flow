@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,6 +7,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useManagers } from '@/hooks/useManagers';
 import { Truck, Shield, Lock } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useManagerAuth } from '@/hooks/useManagerAuth';
 
 export const ManagerLogin = () => {
   const [username, setUsername] = useState('');
@@ -15,6 +16,14 @@ export const ManagerLogin = () => {
   const { toast } = useToast();
   const { authenticateManager } = useManagers();
   const navigate = useNavigate();
+  const { isAuthenticated } = useManagerAuth();
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/');
+    }
+  }, [isAuthenticated, navigate]);
 
   const handleLogin = async () => {
     if (!username || !pin) {
@@ -41,13 +50,12 @@ export const ManagerLogin = () => {
       }));
 
       toast({
-        title: "Welcome Back!",
-        description: `Hello ${manager.name}! Redirecting to dashboard...`,
+        title: "Login Successful!",
+        description: `Welcome back, ${manager.name}! Redirecting to dashboard...`,
       });
       
-      setTimeout(() => {
-        navigate('/');
-      }, 1500);
+      // Force page reload to update auth state
+      window.location.href = '/';
     } catch (error) {
       console.error('Manager login error:', error);
       toast({
@@ -60,9 +68,10 @@ export const ManagerLogin = () => {
     }
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('managerSession');
-    navigate('/manager-login');
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleLogin();
+    }
   };
 
   return (
@@ -121,6 +130,7 @@ export const ManagerLogin = () => {
                 placeholder="Enter username"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
+                onKeyPress={handleKeyPress}
                 className="bg-white/20 border-purple-400 text-white placeholder:text-purple-300 focus:border-amber-400 focus:ring-amber-400"
               />
             </div>
@@ -134,6 +144,7 @@ export const ManagerLogin = () => {
                 placeholder="Enter 4-digit PIN"
                 value={pin}
                 onChange={(e) => setPin(e.target.value)}
+                onKeyPress={handleKeyPress}
                 maxLength={4}
                 className="bg-white/20 border-purple-400 text-white placeholder:text-purple-300 focus:border-amber-400 focus:ring-amber-400"
               />
