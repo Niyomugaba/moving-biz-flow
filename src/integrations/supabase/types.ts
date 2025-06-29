@@ -147,7 +147,7 @@ export type Database = {
           email?: string | null
           emergency_contact_name?: string | null
           emergency_contact_phone?: string | null
-          employee_number: string
+          employee_number?: string
           hire_date?: string
           hourly_wage: number
           id?: string
@@ -268,7 +268,7 @@ export type Database = {
           id?: string
           is_paid?: boolean
           job_date: string
-          job_number: string
+          job_number?: string
           movers_needed?: number
           origin_address: string
           paid_at?: string | null
