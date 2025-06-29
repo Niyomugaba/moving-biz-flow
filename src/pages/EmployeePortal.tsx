@@ -7,35 +7,34 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { NewEmployeeRequestForm } from '@/components/NewEmployeeRequestForm';
 import { EmployeeDashboard } from './EmployeeDashboard';
-import { Truck, Shield, Users, Mail } from 'lucide-react';
+import { Truck, Shield, Users, Phone } from 'lucide-react';
 
 export const EmployeePortal = () => {
-  const [email, setEmail] = useState('');
-  const [verificationCode, setVerificationCode] = useState('');
-  const [step, setStep] = useState<'email' | 'verify' | 'request' | 'dashboard'>('email');
+  const [phone, setPhone] = useState('');
+  const [step, setStep] = useState<'phone' | 'request' | 'dashboard'>('phone');
   const [isLoading, setIsLoading] = useState(false);
   const [employeeData, setEmployeeData] = useState<any>(null);
   const { toast } = useToast();
 
-  const handleSendVerification = async () => {
-    if (!email) {
+  const handlePhoneVerification = async () => {
+    if (!phone) {
       toast({
-        title: "Email Required",
-        description: "Please enter your email address.",
+        title: "Phone Number Required",
+        description: "Please enter your phone number.",
         variant: "destructive",
       });
       return;
     }
 
     setIsLoading(true);
-    console.log('Checking for employee with email:', email);
+    console.log('Checking for employee with phone:', phone);
 
     try {
       // Check if employee exists in the employees table
       const { data: employee, error: employeeError } = await supabase
         .from('employees')
         .select('*')
-        .eq('email', email)
+        .eq('phone', phone)
         .eq('status', 'active')
         .maybeSingle();
 
@@ -46,37 +45,27 @@ export const EmployeePortal = () => {
 
       if (employee) {
         setEmployeeData(employee);
-        
-        const { error } = await supabase.auth.signInWithOtp({
-          email: email,
-          options: {
-            shouldCreateUser: false,
-          }
-        });
-
-        if (error) {
-          console.error('Magic link sending error:', error);
-          throw new Error('Failed to send verification email');
-        }
-
-        setStep('verify');
         toast({
-          title: "Verification Email Sent",
-          description: "Check your email for a magic link to access your dashboard.",
+          title: "Welcome Back!",
+          description: `Hello ${employee.name}! Redirecting to your dashboard...`,
         });
+        
+        setTimeout(() => {
+          setStep('dashboard');
+        }, 1500);
       } else {
         setStep('request');
         toast({
-          title: "Employee Not Found",
+          title: "Phone Number Not Found",
           description: "You'll need to request access as a new employee.",
           variant: "destructive",
         });
       }
     } catch (error) {
-      console.error('Error during email verification:', error);
+      console.error('Error during phone verification:', error);
       toast({
         title: "Error",
-        description: "Failed to send verification email. Please try again.",
+        description: "Failed to verify phone number. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -84,64 +73,9 @@ export const EmployeePortal = () => {
     }
   };
 
-  const handleVerifyCode = async () => {
-    if (!verificationCode) {
-      toast({
-        title: "Code Required",
-        description: "Please enter the verification code from your email.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (verificationCode.length !== 6) {
-      toast({
-        title: "Invalid Code",
-        description: "Please enter the complete 6-digit verification code.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setIsLoading(true);
-
-    try {
-      const { error } = await supabase.auth.verifyOtp({
-        email,
-        token: verificationCode,
-        type: 'email'
-      });
-
-      if (error) {
-        console.error('Verification error:', error);
-        throw new Error('Failed to verify code');
-      }
-
-      toast({
-        title: "Welcome to Bantu Movers!",
-        description: `Hello ${employeeData?.name}! Redirecting to your dashboard...`,
-      });
-      
-      setTimeout(() => {
-        setStep('dashboard');
-      }, 1500);
-    } catch (error) {
-      console.error('Verification error:', error);
-      toast({
-        title: "Verification Failed",
-        description: "Failed to verify code. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    setStep('email');
-    setEmail('');
-    setVerificationCode('');
+  const handleLogout = () => {
+    setStep('phone');
+    setPhone('');
     setEmployeeData(null);
     toast({
       title: "Logged Out",
@@ -155,9 +89,8 @@ export const EmployeePortal = () => {
       description: "Your employee access request has been submitted for approval.",
     });
     
-    setStep('email');
-    setEmail('');
-    setVerificationCode('');
+    setStep('phone');
+    setPhone('');
     setEmployeeData(null);
   };
 
@@ -185,8 +118,8 @@ export const EmployeePortal = () => {
           </div>
           
           <NewEmployeeRequestForm 
-            email={email}
-            onBack={() => setStep('email')}
+            phone={phone}
+            onBack={() => setStep('phone')}
             onSuccess={handleRequestSubmitted}
           />
         </div>
@@ -218,9 +151,9 @@ export const EmployeePortal = () => {
           </div>
           <div className="text-center">
             <div className="w-12 h-12 bg-purple-700 rounded-lg flex items-center justify-center mx-auto mb-2">
-              <Mail className="w-6 h-6 text-amber-400" />
+              <Phone className="w-6 h-6 text-amber-400" />
             </div>
-            <p className="text-purple-200 text-sm">Email Verified</p>
+            <p className="text-purple-200 text-sm">Phone Verified</p>
           </div>
           <div className="text-center">
             <div className="w-12 h-12 bg-purple-700 rounded-lg flex items-center justify-center mx-auto mb-2">
@@ -233,90 +166,43 @@ export const EmployeePortal = () => {
         <Card className="border-0 shadow-2xl bg-white/10 backdrop-blur-md">
           <CardHeader className="text-center">
             <CardTitle className="text-2xl font-bold text-white">
-              {step === 'email' ? 'Employee Login' : 'Verify Your Email'}
+              Employee Login
             </CardTitle>
             <CardDescription className="text-purple-200">
-              {step === 'email' 
-                ? 'Enter your email address to access your dashboard'
-                : `Enter the 6-digit code sent to ${email}`
-              }
+              Enter your phone number to access your dashboard
             </CardDescription>
           </CardHeader>
           
           <CardContent className="space-y-6">
-            {step === 'email' ? (
-              <>
-                <div className="space-y-3">
-                  <label className="text-sm font-medium text-purple-200">
-                    Email Address
-                  </label>
-                  <Input
-                    type="email"
-                    placeholder="your.email@example.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="bg-white/20 border-purple-400 text-white placeholder:text-purple-300 focus:border-amber-400 focus:ring-amber-400"
-                  />
-                  <p className="text-xs text-purple-300">
-                    Use: test@bantumovers.com to test existing employee flow
-                  </p>
-                </div>
-                
-                <Button 
-                  onClick={handleSendVerification}
-                  disabled={isLoading}
-                  className="w-full bg-amber-500 hover:bg-amber-600 text-purple-900 font-semibold"
-                >
-                  {isLoading ? 'Checking Email...' : 'Send Verification Email'}
-                </Button>
-                
-                <div className="text-center">
-                  <p className="text-purple-300 text-sm">
-                    New to Bantu Movers? Enter any other email to request access
-                  </p>
-                </div>
-              </>
-            ) : (
-              <>
-                <div className="space-y-3">
-                  <label className="text-sm font-medium text-purple-200">
-                    Verification Code
-                  </label>
-                  <Input
-                    type="text"
-                    placeholder="Enter 6-digit code"
-                    value={verificationCode}
-                    onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                    maxLength={6}
-                    className="bg-white/20 border-purple-400 text-white placeholder:text-purple-300 focus:border-amber-400 focus:ring-amber-400 text-center text-lg tracking-widest"
-                  />
-                </div>
-                
-                <Button 
-                  onClick={handleVerifyCode}
-                  disabled={isLoading}
-                  className="w-full bg-amber-500 hover:bg-amber-600 text-purple-900 font-semibold"
-                >
-                  {isLoading ? 'Verifying...' : 'Verify & Access Dashboard'}
-                </Button>
-                
-                <div className="text-center space-y-3">
-                  <button 
-                    onClick={() => setStep('email')}
-                    className="text-purple-200 hover:text-white text-sm block mx-auto"
-                  >
-                    ← Change email address
-                  </button>
-                  <button 
-                    onClick={handleSendVerification}
-                    disabled={isLoading}
-                    className="text-amber-300 hover:text-amber-200 text-sm underline"
-                  >
-                    {isLoading ? 'Sending...' : 'Resend verification email'}
-                  </button>
-                </div>
-              </>
-            )}
+            <div className="space-y-3">
+              <label className="text-sm font-medium text-purple-200">
+                Phone Number
+              </label>
+              <Input
+                type="tel"
+                placeholder="(555) 123-4567"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                className="bg-white/20 border-purple-400 text-white placeholder:text-purple-300 focus:border-amber-400 focus:ring-amber-400"
+              />
+              <p className="text-xs text-purple-300">
+                Use: 555-123-4567 to test existing employee flow
+              </p>
+            </div>
+            
+            <Button 
+              onClick={handlePhoneVerification}
+              disabled={isLoading}
+              className="w-full bg-amber-500 hover:bg-amber-600 text-purple-900 font-semibold"
+            >
+              {isLoading ? 'Checking Phone...' : 'Access Dashboard'}
+            </Button>
+            
+            <div className="text-center">
+              <p className="text-purple-300 text-sm">
+                New to Bantu Movers? Enter any other phone number to request access
+              </p>
+            </div>
           </CardContent>
         </Card>
 

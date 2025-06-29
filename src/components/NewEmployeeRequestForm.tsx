@@ -3,20 +3,20 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useEmployeeRequests } from '@/hooks/useEmployeeRequests';
-import { UserPlus, ArrowLeft, Mail } from 'lucide-react';
+import { UserPlus, ArrowLeft, Phone } from 'lucide-react';
 
 interface NewEmployeeRequestFormProps {
   onBack: () => void;
   onSuccess: () => void;
-  email?: string; // Pre-filled email address
+  phone?: string; // Pre-filled phone number
 }
 
-export const NewEmployeeRequestForm = ({ onBack, onSuccess, email = '' }: NewEmployeeRequestFormProps) => {
+export const NewEmployeeRequestForm = ({ onBack, onSuccess, phone = '' }: NewEmployeeRequestFormProps) => {
   const { addEmployeeRequest, isAddingRequest } = useEmployeeRequests();
   const [formData, setFormData] = useState({
     name: '',
-    email: email, // Pre-fill if provided
-    phone: '',
+    email: '',
+    phone: phone, // Pre-fill if provided
     position_applied: 'mover',
     expected_hourly_wage: 20,
     availability: '',
@@ -70,34 +70,35 @@ export const NewEmployeeRequestForm = ({ onBack, onSuccess, email = '' }: NewEmp
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            Email Address *
+            Phone Number *
           </label>
-          <Input
-            type="email"
-            required
-            value={formData.email}
-            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-            placeholder="your.email@example.com"
-            className="pl-10"
-          />
-          <Mail className="w-4 h-4 text-gray-400 absolute left-3 top-3" />
-          {email && (
+          <div className="relative">
+            <Input
+              type="tel"
+              required
+              value={formData.phone}
+              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+              placeholder="(555) 123-4567"
+              className="pl-10"
+            />
+            <Phone className="w-4 h-4 text-gray-400 absolute left-3 top-3" />
+          </div>
+          {phone && (
             <p className="text-xs text-blue-600 mt-1">
-              Email pre-filled from verification attempt
+              Phone number pre-filled from verification attempt
             </p>
           )}
         </div>
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            Phone Number *
+            Email Address
           </label>
           <Input
-            type="tel"
-            required
-            value={formData.phone}
-            onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-            placeholder="(555) 123-4567"
+            type="email"
+            value={formData.email}
+            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+            placeholder="your.email@example.com (optional)"
           />
         </div>
 
@@ -178,7 +179,7 @@ export const NewEmployeeRequestForm = ({ onBack, onSuccess, email = '' }: NewEmp
           <ul className="text-xs text-blue-700 mt-2 space-y-1">
             <li>• Your request will be sent to management for review</li>
             <li>• Once approved, you can access the employee portal</li>
-            <li>• You'll receive email verification for secure access</li>
+            <li>• You'll be able to login using your phone number</li>
           </ul>
         </div>
 
