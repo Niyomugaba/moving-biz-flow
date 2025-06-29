@@ -1,6 +1,8 @@
+
 import React, { useState } from 'react';
 import { AddLeadDialog } from '../components/AddLeadDialog';
 import { StatusBadge } from '../components/StatusBadge';
+import { LeadContactCard } from '../components/LeadContactCard';
 import { Plus, Phone, Mail, Calendar, DollarSign, MapPin, ChevronDown, Grid3X3, Table } from 'lucide-react';
 import { useLeads } from '@/hooks/useLeads';
 import { useClients } from '@/hooks/useClients';
@@ -159,9 +161,11 @@ export const Leads = () => {
               </TableCell>
               <TableCell>
                 <div className="flex gap-2">
-                  <Button variant="outline" size="sm">
-                    Contact
-                  </Button>
+                  <LeadContactCard lead={lead}>
+                    <Button variant="outline" size="sm">
+                      Contact
+                    </Button>
+                  </LeadContactCard>
                   
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -241,9 +245,11 @@ export const Leads = () => {
             )}
 
             <div className="mt-4 flex gap-2">
-              <button className="flex-1 bg-blue-50 text-blue-700 py-2 px-3 rounded-lg text-sm font-medium hover:bg-blue-100 transition-colors">
-                Contact
-              </button>
+              <LeadContactCard lead={lead}>
+                <button className="flex-1 bg-blue-50 text-blue-700 py-2 px-3 rounded-lg text-sm font-medium hover:bg-blue-100 transition-colors">
+                  Contact
+                </button>
+              </LeadContactCard>
               
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
