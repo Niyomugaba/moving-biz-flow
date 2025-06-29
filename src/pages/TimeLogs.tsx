@@ -1,19 +1,21 @@
 import React, { useState } from 'react';
 import { useTimeEntries } from '@/hooks/useTimeEntries';
-import { Clock, CheckCircle, XCircle, Edit, Filter, Search, Download, Calendar, DollarSign } from 'lucide-react';
+import { Clock, CheckCircle, XCircle, Edit, Filter, Search, Download, Calendar, DollarSign, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { AddTimeEntryDialog } from '@/components/AddTimeEntryDialog';
 
 export const TimeLogs = () => {
-  const { timeEntries, isLoading, approveTimeEntry, rejectTimeEntry, updateTimeEntry, markAsPaid } = useTimeEntries();
+  const { timeEntries, isLoading, approveTimeEntry, rejectTimeEntry, updateTimeEntry, markAsPaid, isRejectingTimeEntry } = useTimeEntries();
   const [statusFilter, setStatusFilter] = useState<string>('All');
   const [paymentFilter, setPaymentFilter] = useState<string>('All');
   const [searchTerm, setSearchTerm] = useState('');
   const [dateFilter, setDateFilter] = useState('');
   const [selectedEntry, setSelectedEntry] = useState<any>(null);
   const [isReviewDialogOpen, setIsReviewDialogOpen] = useState(false);
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [managerNotes, setManagerNotes] = useState('');
   const [editedHours, setEditedHours] = useState<number>(0);
   const [editedClockIn, setEditedClockIn] = useState('');
@@ -130,6 +132,7 @@ export const TimeLogs = () => {
       
       setIsReviewDialogOpen(false);
       setSelectedEntry(null);
+      setManagerNotes('');
     }
   };
 
@@ -232,6 +235,13 @@ export const TimeLogs = () => {
           <p className="text-gray-600 mt-2">Review and approve employee hour submissions</p>
         </div>
         <div className="flex gap-2">
+          <Button 
+            onClick={() => setIsAddDialogOpen(true)} 
+            className="bg-purple-600 hover:bg-purple-700 flex items-center gap-2"
+          >
+            <Plus className="h-4 w-4" />
+            Add Time Entry
+          </Button>
           <Button onClick={exportToCSV} variant="outline" className="flex items-center gap-2">
             <Download className="h-4 w-4" />
             Export CSV
@@ -560,11 +570,11 @@ export const TimeLogs = () => {
                 <Button 
                   variant="destructive" 
                   onClick={handleReject}
-                  disabled={!managerNotes.trim()}
+                  disabled={!managerNotes.trim() || isRejectingTimeEntry}
                   className="flex-1"
                 >
                   <XCircle className="h-4 w-4 mr-1" />
-                  Reject
+                  {isRejectingTimeEntry ? 'Rejecting...' : 'Reject'}
                 </Button>
                 <Button 
                   onClick={handleApprove}
@@ -578,6 +588,12 @@ export const TimeLogs = () => {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Add Time Entry Dialog */}
+      <AddTimeEntryDialog 
+        open={isAddDialogOpen} 
+        onOpenChange={setIsAddDialogOpen} 
+      />
     </div>
   );
 };
