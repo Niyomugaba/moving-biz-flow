@@ -1,21 +1,21 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useEmployeeRequests } from '@/hooks/useEmployeeRequests';
-import { UserPlus, ArrowLeft, Phone } from 'lucide-react';
+import { UserPlus, ArrowLeft, Hash } from 'lucide-react';
 
 interface NewEmployeeRequestFormProps {
   onBack: () => void;
   onSuccess: () => void;
-  phone?: string; // Pre-filled phone number
 }
 
-export const NewEmployeeRequestForm = ({ onBack, onSuccess, phone = '' }: NewEmployeeRequestFormProps) => {
+export const NewEmployeeRequestForm = ({ onBack, onSuccess }: NewEmployeeRequestFormProps) => {
   const { addEmployeeRequest, isAddingRequest } = useEmployeeRequests();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
-    phone: phone, // Pre-fill if provided
+    pin: '',
     position_applied: 'mover',
     expected_hourly_wage: 20,
     availability: '',
@@ -29,7 +29,7 @@ export const NewEmployeeRequestForm = ({ onBack, onSuccess, phone = '' }: NewEmp
     addEmployeeRequest({
       name: formData.name,
       email: formData.email || undefined,
-      phone: formData.phone,
+      phone: formData.pin, // Store PIN in phone field temporarily
       position_applied: formData.position_applied || undefined,
       expected_hourly_wage: formData.expected_hourly_wage || undefined,
       availability: formData.availability || undefined,
@@ -69,21 +69,21 @@ export const NewEmployeeRequestForm = ({ onBack, onSuccess, phone = '' }: NewEmp
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            Phone Number (This will be your PIN) *
+            Choose Your PIN *
           </label>
           <div className="relative">
             <Input
-              type="tel"
+              type="password"
               required
-              value={formData.phone}
-              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-              placeholder="(555) 123-4567"
+              value={formData.pin}
+              onChange={(e) => setFormData({ ...formData, pin: e.target.value })}
+              placeholder="Create a secure PIN"
               className="pl-10"
             />
-            <Phone className="w-4 h-4 text-gray-400 absolute left-3 top-3" />
+            <Hash className="w-4 h-4 text-gray-400 absolute left-3 top-3" />
           </div>
           <p className="text-xs text-blue-600 mt-1">
-            Your phone number will serve as your PIN for logging into the mover portal
+            This PIN will be used to log into the mover portal
           </p>
         </div>
 
@@ -176,7 +176,7 @@ export const NewEmployeeRequestForm = ({ onBack, onSuccess, phone = '' }: NewEmp
           <ul className="text-xs text-blue-700 mt-2 space-y-1">
             <li>• Your mover request will be sent to management for review</li>
             <li>• Once approved, you can access the mover portal</li>
-            <li>• You'll be able to login using your phone number as your PIN</li>
+            <li>• You'll be able to login using your PIN</li>
           </ul>
         </div>
 

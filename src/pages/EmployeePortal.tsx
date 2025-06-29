@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,16 +20,7 @@ export const EmployeePortal = () => {
     if (!pin) {
       toast({
         title: "PIN Required",
-        description: "Please enter your 4-digit PIN.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (pin.length !== 4) {
-      toast({
-        title: "Invalid PIN",
-        description: "PIN must be exactly 4 digits.",
+        description: "Please enter your PIN.",
         variant: "destructive",
       });
       return;
@@ -38,12 +30,11 @@ export const EmployeePortal = () => {
     console.log('Checking for employee with pin:', pin);
 
     try {
-      // For testing, we'll use the phone field to store the pin temporarily
-      // In a real system, you'd want a separate PIN field
+      // Check if employee exists with this PIN
       const { data: employee, error: employeeError } = await supabase
         .from('employees')
         .select('*')
-        .eq('phone', `555-123-${pin}`) // Temporary mapping for testing
+        .eq('phone', pin) // Using phone field temporarily to store PIN
         .eq('status', 'active')
         .maybeSingle();
 
@@ -127,7 +118,6 @@ export const EmployeePortal = () => {
           </div>
           
           <NewEmployeeRequestForm 
-            phone={pin}
             onBack={() => setStep('pin')}
             onSuccess={handleRequestSubmitted}
           />
@@ -178,18 +168,18 @@ export const EmployeePortal = () => {
               Mover Login
             </CardTitle>
             <CardDescription className="text-purple-200">
-              Enter your phone number as your PIN to access your dashboard
+              Enter your PIN to access your dashboard
             </CardDescription>
           </CardHeader>
           
           <CardContent className="space-y-6">
             <div className="space-y-3">
               <label className="text-sm font-medium text-purple-200">
-                Enter Phone Number (PIN)
+                Enter PIN
               </label>
               <Input
-                type="text"
-                placeholder="Enter your phone number"
+                type="password"
+                placeholder="Enter your PIN"
                 value={pin}
                 onChange={(e) => setPin(e.target.value)}
                 className="bg-white/20 border-purple-400 text-white placeholder:text-purple-300 focus:border-amber-400 focus:ring-amber-400 text-center"
@@ -206,7 +196,7 @@ export const EmployeePortal = () => {
             
             <div className="text-center">
               <p className="text-purple-300 text-sm">
-                New to Bantu Movers? Enter any phone number to request mover access
+                New to Bantu Movers? Enter any PIN to request mover access
               </p>
             </div>
           </CardContent>
