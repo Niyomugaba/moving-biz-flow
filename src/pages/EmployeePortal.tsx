@@ -6,7 +6,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { NewEmployeeRequestForm } from '@/components/NewEmployeeRequestForm';
 import { EmployeeDashboard } from './EmployeeDashboard';
-import { Truck, Shield, Users, Hash, LogIn } from 'lucide-react';
+import { Shield, Users, Hash, LogIn } from 'lucide-react';
 
 export const EmployeePortal = () => {
   const [pin, setPin] = useState('');
@@ -129,9 +129,11 @@ export const EmployeePortal = () => {
           {/* Header */}
           <div className="text-center mb-8">
             <div className="flex justify-center mb-6">
-              <div className="w-20 h-20 bg-yellow-400 rounded-full flex items-center justify-center shadow-lg border-4 border-purple-600">
-                <Truck className="w-10 h-10 text-purple-700" />
-              </div>
+              <img 
+                src="/lovable-uploads/6319d82c-0bdd-465a-9925-c9401c11e50a.png" 
+                alt="Bantu Movers Logo" 
+                className="h-20 w-auto"
+              />
             </div>
             <h1 className="text-4xl font-bold text-purple-700 mb-3">Join Bantu Movers</h1>
             <p className="text-purple-600 text-lg">Complete the form below to request mover access</p>
@@ -154,11 +156,12 @@ export const EmployeePortal = () => {
         {/* Header Section */}
         <div className="text-center mb-10">
           <div className="flex justify-center mb-6">
-            <div className="w-24 h-24 bg-yellow-400 rounded-full flex items-center justify-center shadow-xl border-4 border-purple-600">
-              <Truck className="w-12 h-12 text-purple-700" />
-            </div>
+            <img 
+              src="/lovable-uploads/6319d82c-0bdd-465a-9925-c9401c11e50a.png" 
+              alt="Bantu Movers Logo" 
+              className="h-24 w-auto"
+            />
           </div>
-          <h1 className="text-5xl font-bold text-purple-700 mb-3">Bantu Movers</h1>
           <p className="text-purple-600 text-xl font-medium">Mover Portal</p>
         </div>
 

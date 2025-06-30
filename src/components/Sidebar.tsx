@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { BarChart3, Users, Calendar, UserCheck, DollarSign, Phone, Clock, LogOut } from 'lucide-react';
@@ -28,7 +27,13 @@ export const Sidebar = () => {
   return (
     <div className="w-64 bg-gray-900 text-white h-screen p-4 flex flex-col">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold">Bantu Movers</h1>
+        <div className="flex items-center gap-3 mb-2">
+          <img 
+            src="/lovable-uploads/6319d82c-0bdd-465a-9925-c9401c11e50a.png" 
+            alt="Bantu Movers Logo" 
+            className="h-10 w-auto"
+          />
+        </div>
         <p className="text-gray-400 text-sm">Management Portal</p>
         {managerSession && (
           <p className="text-amber-400 text-xs mt-1">Welcome, {managerSession.name}</p>
