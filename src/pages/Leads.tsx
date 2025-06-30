@@ -1,369 +1,458 @@
 
-import React, { useState } from 'react';
-import { AddLeadDialog } from '../components/AddLeadDialog';
-import { StatusBadge } from '../components/StatusBadge';
-import { LeadContactCard } from '../components/LeadContactCard';
-import { Plus, Phone, Mail, Calendar, DollarSign, MapPin, ChevronDown, Grid3X3, Table } from 'lucide-react';
-import { useLeads } from '@/hooks/useLeads';
-import { useClients } from '@/hooks/useClients';
-import { useToast } from '@/hooks/use-toast';
-import {
-  Table as TableComponent,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import React, { useState, useMemo } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { 
+  Plus, 
+  Search, 
+  Filter, 
+  Download, 
+  Phone, 
+  Mail, 
+  MapPin, 
+  Calendar,
+  TrendingUp,
+  Users,
+  DollarSign,
+  Eye,
+  Edit,
+  Trash2,
+  MessageSquare,
+  CheckCircle,
+  XCircle,
+  Clock,
+  Star,
+  Target
+} from "lucide-react";
+import { useLeads } from "@/hooks/useLeads";
+import { AddLeadDialog } from "@/components/AddLeadDialog";
+import { LeadContactCard } from "@/components/LeadContactCard";
+import { format } from "date-fns";
+import { toast } from "sonner";
 
 export const Leads = () => {
-  const { leads, isLoading, updateLead } = useLeads();
-  const { addClient } = useClients();
-  const { toast } = useToast();
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
+  const { leads, isLoading, addLead, updateLead, deleteLead } = useLeads();
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [sourceFilter, setSourceFilter] = useState('all');
+  const [selectedLead, setSelectedLead] = useState(null);
 
   // Calculate metrics
   const totalLeads = leads.length;
   const newLeads = leads.filter(lead => lead.status === 'new').length;
-  const quotedLeads = leads.filter(lead => lead.status === 'quoted').length;
   const convertedLeads = leads.filter(lead => lead.status === 'converted').length;
-  const lostLeads = leads.filter(lead => lead.status === 'lost').length;
-  const totalValue = leads.reduce((sum, lead) => sum + (lead.estimated_value || 0), 0);
-  const conversionRate = totalLeads > 0 ? ((convertedLeads / totalLeads) * 100) : 0;
+  const conversionRate = totalLeads > 0 ? (convertedLeads / totalLeads) * 100 : 0;
 
-  const handleConvertToClient = async (lead: any) => {
-    try {
-      // Create new client from lead data
-      const clientData = {
-        name: lead.name,
-        phone: lead.phone,
-        email: lead.email || null,
-        primary_address: 'Address not provided',
-        company_name: null,
-        secondary_address: null,
-        notes: `Converted from lead. Original notes: ${lead.notes || 'None'}`,
-        preferred_contact_method: 'phone',
-      };
+  // Filter and search leads
+  const filteredLeads = useMemo(() => {
+    return leads.filter(lead => {
+      const matchesSearch = 
+        lead.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        lead.phone.includes(searchTerm) ||
+        (lead.email && lead.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (lead.address && lead.address.toLowerCase().includes(searchTerm.toLowerCase()));
 
-      console.log('Converting lead to client:', clientData);
+      const matchesStatus = statusFilter === 'all' || lead.status === statusFilter;
+      const matchesSource = sourceFilter === 'all' || lead.source === sourceFilter;
 
-      // Add client
-      addClient(clientData);
+      return matchesSearch && matchesStatus && matchesSource;
+    });
+  }, [leads, searchTerm, statusFilter, sourceFilter]);
 
-      // Update lead status to converted
-      updateLead({
-        id: lead.id,
-        updates: { status: 'converted' }
-      });
+  // Group leads by status for kanban view
+  const leadsByStatus = useMemo(() => {
+    const groups = {
+      new: [],
+      contacted: [],
+      qualified: [],
+      converted: [],
+      lost: []
+    };
 
-      toast({
-        title: "Lead Converted to Client",
-        description: `${lead.name} has been converted to a client successfully.`,
-      });
-    } catch (error) {
-      console.error('Lead conversion error:', error);
-      toast({
-        title: "Conversion Failed",
-        description: "Failed to convert lead to client. Please try again.",
-        variant: "destructive",
-      });
+    filteredLeads.forEach(lead => {
+      if (groups[lead.status]) {
+        groups[lead.status].push(lead);
+      }
+    });
+
+    return groups;
+  }, [filteredLeads]);
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'new':
+        return 'bg-blue-100 text-blue-800';
+      case 'contacted':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'qualified':
+        return 'bg-purple-100 text-purple-800';
+      case 'converted':
+        return 'bg-green-100 text-green-800';
+      case 'lost':
+        return 'bg-red-100 text-red-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
     }
   };
 
-  const handleMarkAsNoHire = async (lead: any) => {
-    try {
-      // Update lead status to lost (no hire)
-      updateLead({
-        id: lead.id,
-        updates: { status: 'lost' }
-      });
-
-      toast({
-        title: "Lead Marked as No Hire",
-        description: `${lead.name} has been marked as no hire.`,
-      });
-    } catch (error) {
-      console.error('Lead status update error:', error);
-      toast({
-        title: "Update Failed",
-        description: "Failed to update lead status. Please try again.",
-        variant: "destructive",
-      });
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'new':
+        return <Star className="h-4 w-4" />;
+      case 'contacted':
+        return <MessageSquare className="h-4 w-4" />;
+      case 'qualified':
+        return <Target className="h-4 w-4" />;
+      case 'converted':
+        return <CheckCircle className="h-4 w-4" />;
+      case 'lost':
+        return <XCircle className="h-4 w-4" />;
+      default:
+        return <Clock className="h-4 w-4" />;
     }
+  };
+
+  const handleStatusUpdate = (leadId: string, newStatus: string) => {
+    updateLead({ id: leadId, updates: { status: newStatus } });
+    toast.success(`Lead status updated to ${newStatus}`);
+  };
+
+  const handleExportLeads = () => {
+    const csvContent = [
+      ['Name', 'Phone', 'Email', 'Status', 'Source', 'Address', 'Notes', 'Created Date'].join(','),
+      ...filteredLeads.map(lead => [
+        lead.name,
+        lead.phone,
+        lead.email || '',
+        lead.status,
+        lead.source || '',
+        lead.address || '',
+        lead.notes || '',
+        format(new Date(lead.created_at), 'yyyy-MM-dd')
+      ].join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `leads-${format(new Date(), 'yyyy-MM-dd')}.csv`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+    toast.success('Leads exported successfully!');
   };
 
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-lg text-gray-600">Loading leads...</div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
       </div>
     );
   }
 
-  const renderTableView = () => (
-    <div className="bg-white rounded-lg shadow-sm border">
-      <TableComponent>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Name</TableHead>
-            <TableHead>Contact</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead>Source</TableHead>
-            <TableHead>Value</TableHead>
-            <TableHead>Follow Up</TableHead>
-            <TableHead>Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {leads.map((lead) => (
-            <TableRow key={lead.id}>
-              <TableCell className="font-medium">{lead.name}</TableCell>
-              <TableCell>
-                <div className="space-y-1">
-                  <div className="flex items-center text-sm">
-                    <Phone className="h-3 w-3 mr-1" />
-                    {lead.phone}
-                  </div>
-                  {lead.email && (
-                    <div className="flex items-center text-sm text-gray-600">
-                      <Mail className="h-3 w-3 mr-1" />
-                      {lead.email}
-                    </div>
-                  )}
-                </div>
-              </TableCell>
-              <TableCell>
-                <StatusBadge status={lead.status} variant="lead" />
-              </TableCell>
-              <TableCell className="capitalize">
-                {lead.source.replace('_', ' ')}
-              </TableCell>
-              <TableCell className="font-semibold text-green-600">
-                ${(lead.estimated_value || 0).toLocaleString()}
-              </TableCell>
-              <TableCell>
-                {lead.follow_up_date ? (
-                  <div className="flex items-center text-sm">
-                    <Calendar className="h-3 w-3 mr-1" />
-                    {lead.follow_up_date}
-                  </div>
-                ) : (
-                  <span className="text-gray-400">-</span>
-                )}
-              </TableCell>
-              <TableCell>
-                <div className="flex gap-2">
-                  <LeadContactCard lead={lead}>
-                    <Button variant="outline" size="sm">
-                      Contact
-                    </Button>
-                  </LeadContactCard>
-                  
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="outline" size="sm" className="flex items-center gap-1">
-                        Convert
-                        <ChevronDown className="h-3 w-3" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => handleConvertToClient(lead)}>
-                        Convert to Client
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleMarkAsNoHire(lead)}>
-                        Mark as No Hire
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </TableComponent>
-    </div>
-  );
-
-  const renderCardView = () => (
-    <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-      {leads.map((lead) => (
-        <div key={lead.id} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-          <div className="p-6">
-            <div className="flex justify-between items-start mb-4">
-              <h3 className="text-lg font-semibold text-gray-900">{lead.name}</h3>
-              <StatusBadge status={lead.status} variant="lead" />
-            </div>
-            
-            <div className="space-y-3">
-              <div className="flex items-center text-sm text-gray-600">
-                <Phone className="h-4 w-4 mr-2" />
-                {lead.phone}
-              </div>
-              
-              {lead.email && (
-                <div className="flex items-center text-sm text-gray-600">
-                  <Mail className="h-4 w-4 mr-2" />
-                  {lead.email}
-                </div>
-              )}
-              
-              {lead.follow_up_date && (
-                <div className="flex items-center text-sm text-gray-600">
-                  <Calendar className="h-4 w-4 mr-2" />
-                  Follow up: {lead.follow_up_date}
-                </div>
-              )}
-            </div>
-
-            <div className="mt-4 pt-4 border-t border-gray-200">
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600">Estimated Value:</span>
-                <span className="font-semibold text-green-600">
-                  ${(lead.estimated_value || 0).toLocaleString()}
-                </span>
-              </div>
-              <div className="flex justify-between items-center mt-2">
-                <span className="text-sm text-gray-600">Source:</span>
-                <span className="text-sm font-medium text-gray-900 capitalize">
-                  {lead.source.replace('_', ' ')}
-                </span>
-              </div>
-            </div>
-
-            {lead.notes && (
-              <div className="mt-4 p-3 bg-gray-50 rounded-lg">
-                <p className="text-sm text-gray-700">{lead.notes}</p>
-              </div>
-            )}
-
-            <div className="mt-4 flex gap-2">
-              <LeadContactCard lead={lead}>
-                <button className="flex-1 bg-blue-50 text-blue-700 py-2 px-3 rounded-lg text-sm font-medium hover:bg-blue-100 transition-colors">
-                  Contact
-                </button>
-              </LeadContactCard>
-              
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <button className="flex-1 bg-green-50 text-green-700 py-2 px-3 rounded-lg text-sm font-medium hover:bg-green-100 transition-colors flex items-center justify-center gap-1">
-                    Convert
-                    <ChevronDown className="h-3 w-3" />
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => handleConvertToClient(lead)}>
-                    Convert to Client
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleMarkAsNoHire(lead)}>
-                    Mark as No Hire
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-
   return (
-    <div className="space-y-6">
+    <div className="p-6 space-y-8 bg-gradient-to-br from-purple-50 to-gold-50 min-h-screen">
+      {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Lead Management</h1>
-          <p className="text-gray-600 mt-2">Track and convert potential customers</p>
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-purple-800 bg-clip-text text-transparent">
+            Leads Management
+          </h1>
+          <p className="text-gray-600 mt-2">Track and manage your sales pipeline</p>
         </div>
-        <div className="flex items-center gap-3">
-          {/* View Toggle */}
-          <div className="flex items-center bg-gray-100 rounded-lg p-1">
-            <button
-              onClick={() => setViewMode('cards')}
-              className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                viewMode === 'cards'
-                  ? 'bg-white text-gray-900 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              <Grid3X3 className="h-4 w-4" />
-              Cards
-            </button>
-            <button
-              onClick={() => setViewMode('table')}
-              className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                viewMode === 'table'
-                  ? 'bg-white text-gray-900 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              <Table className="h-4 w-4" />
-              Table
-            </button>
+        <div className="flex gap-3">
+          <Button variant="outline" onClick={handleExportLeads} className="flex items-center gap-2">
+            <Download className="h-4 w-4" />
+            Export
+          </Button>
+          <AddLeadDialog>
+            <Button className="flex items-center gap-2 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800">
+              <Plus className="h-4 w-4" />
+              Add Lead
+            </Button>
+          </AddLeadDialog>
+        </div>
+      </div>
+
+      {/* Metrics Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <Card className="border-l-4 border-l-blue-500 hover:shadow-lg transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-gray-600">Total Leads</CardTitle>
+            <Users className="h-5 w-5 text-blue-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold text-blue-700">{totalLeads}</div>
+            <p className="text-xs text-gray-500 mt-1">All time leads</p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-l-4 border-l-yellow-500 hover:shadow-lg transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-gray-600">New Leads</CardTitle>
+            <Star className="h-5 w-5 text-yellow-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold text-yellow-700">{newLeads}</div>
+            <p className="text-xs text-gray-500 mt-1">Require attention</p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-l-4 border-l-green-500 hover:shadow-lg transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-gray-600">Converted</CardTitle>
+            <CheckCircle className="h-5 w-5 text-green-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold text-green-700">{convertedLeads}</div>
+            <p className="text-xs text-gray-500 mt-1">Successful conversions</p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-l-4 border-l-purple-500 hover:shadow-lg transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-gray-600">Conversion Rate</CardTitle>
+            <TrendingUp className="h-5 w-5 text-purple-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold text-purple-700">{conversionRate.toFixed(1)}%</div>
+            <p className="text-xs text-gray-500 mt-1">Success rate</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Filters and Search */}
+      <Card>
+        <CardContent className="pt-6">
+          <div className="flex flex-col md:flex-row gap-4 items-center">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+              <Input
+                placeholder="Search leads by name, phone, email, or address..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-48">
+                <SelectValue placeholder="Filter by status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Statuses</SelectItem>
+                <SelectItem value="new">New</SelectItem>
+                <SelectItem value="contacted">Contacted</SelectItem>
+                <SelectItem value="qualified">Qualified</SelectItem>
+                <SelectItem value="converted">Converted</SelectItem>
+                <SelectItem value="lost">Lost</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={sourceFilter} onValueChange={setSourceFilter}>
+              <SelectTrigger className="w-48">
+                <SelectValue placeholder="Filter by source" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Sources</SelectItem>
+                <SelectItem value="website">Website</SelectItem>
+                <SelectItem value="referral">Referral</SelectItem>
+                <SelectItem value="google">Google</SelectItem>
+                <SelectItem value="facebook">Facebook</SelectItem>
+                <SelectItem value="phone">Phone</SelectItem>
+                <SelectItem value="other">Other</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
-          
-          <button 
-            onClick={() => setIsAddDialogOpen(true)}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
-          >
-            <Plus className="h-4 w-4" />
-            Add New Lead
-          </button>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-7 gap-4">
-        <div className="bg-white p-4 rounded-lg shadow-sm border">
-          <p className="text-sm text-gray-600">Total Leads</p>
-          <p className="text-2xl font-bold text-gray-900">{totalLeads}</p>
-        </div>
-        <div className="bg-white p-4 rounded-lg shadow-sm border">
-          <p className="text-sm text-gray-600">New</p>
-          <p className="text-2xl font-bold text-blue-600">{newLeads}</p>
-        </div>
-        <div className="bg-white p-4 rounded-lg shadow-sm border">
-          <p className="text-sm text-gray-600">Quoted</p>
-          <p className="text-2xl font-bold text-yellow-600">{quotedLeads}</p>
-        </div>
-        <div className="bg-white p-4 rounded-lg shadow-sm border">
-          <p className="text-sm text-gray-600">Converted</p>
-          <p className="text-2xl font-bold text-green-600">{convertedLeads}</p>
-        </div>
-        <div className="bg-white p-4 rounded-lg shadow-sm border">
-          <p className="text-sm text-gray-600">No Hire</p>
-          <p className="text-2xl font-bold text-red-600">{lostLeads}</p>
-        </div>
-        <div className="bg-white p-4 rounded-lg shadow-sm border">
-          <p className="text-sm text-gray-600">Total Value</p>
-          <p className="text-2xl font-bold text-purple-600">${totalValue.toLocaleString()}</p>
-        </div>
-        <div className="bg-white p-4 rounded-lg shadow-sm border">
-          <p className="text-sm text-gray-600">Conversion</p>
-          <p className="text-2xl font-bold text-indigo-600">{conversionRate.toFixed(1)}%</p>
-        </div>
-      </div>
+      {/* Main Content Tabs */}
+      <Tabs defaultValue="table" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-2 bg-white shadow-sm">
+          <TabsTrigger value="table" className="flex items-center gap-2">
+            <Users className="h-4 w-4" />
+            Table View
+          </TabsTrigger>
+          <TabsTrigger value="kanban" className="flex items-center gap-2">
+            <Target className="h-4 w-4" />
+            Pipeline View
+          </TabsTrigger>
+        </TabsList>
 
-      {/* Leads Display */}
-      {viewMode === 'table' ? renderTableView() : renderCardView()}
+        <TabsContent value="table">
+          <Card>
+            <CardHeader>
+              <CardTitle>Leads List</CardTitle>
+              <CardDescription>
+                {filteredLeads.length} of {totalLeads} leads shown
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Contact</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Source</TableHead>
+                    <TableHead>Created</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredLeads.map((lead) => (
+                    <TableRow key={lead.id} className="hover:bg-purple-25">
+                      <TableCell>
+                        <div className="space-y-1">
+                          <LeadContactCard lead={lead}>
+                            <button className="font-medium text-purple-600 hover:text-purple-800 text-left">
+                              {lead.name}
+                            </button>
+                          </LeadContactCard>
+                          {lead.address && (
+                            <p className="text-sm text-gray-500 flex items-center gap-1">
+                              <MapPin className="h-3 w-3" />
+                              {lead.address}
+                            </p>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-1 text-sm">
+                            <Phone className="h-3 w-3 text-gray-400" />
+                            {lead.phone}
+                          </div>
+                          {lead.email && (
+                            <div className="flex items-center gap-1 text-sm text-gray-600">
+                              <Mail className="h-3 w-3 text-gray-400" />
+                              {lead.email}
+                            </div>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Select
+                          value={lead.status}
+                          onValueChange={(value) => handleStatusUpdate(lead.id, value)}
+                        >
+                          <SelectTrigger className="w-32">
+                            <SelectValue>
+                              <Badge className={getStatusColor(lead.status)}>
+                                <span className="flex items-center gap-1">
+                                  {getStatusIcon(lead.status)}
+                                  {lead.status}
+                                </span>
+                              </Badge>
+                            </SelectValue>
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="new">New</SelectItem>
+                            <SelectItem value="contacted">Contacted</SelectItem>
+                            <SelectItem value="qualified">Qualified</SelectItem>
+                            <SelectItem value="converted">Converted</SelectItem>
+                            <SelectItem value="lost">Lost</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="capitalize">
+                          {lead.source || 'Unknown'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-sm text-gray-600">
+                        {format(new Date(lead.created_at), 'MMM dd, yyyy')}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Button size="sm" variant="outline" className="h-8 w-8 p-0">
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button size="sm" variant="outline" className="h-8 w-8 p-0">
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            variant="outline" 
+                            className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
+                            onClick={() => {
+                              if (confirm('Are you sure you want to delete this lead?')) {
+                                deleteLead(lead.id);
+                              }
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-      {leads.length === 0 && (
-        <div className="text-center py-12">
-          <div className="text-gray-500 text-lg">No leads yet</div>
-          <p className="text-gray-400 mt-2">Start by adding your first lead to track potential customers</p>
-        </div>
-      )}
-
-      <AddLeadDialog 
-        open={isAddDialogOpen} 
-        onOpenChange={setIsAddDialogOpen} 
-      />
+        <TabsContent value="kanban">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
+            {Object.entries(leadsByStatus).map(([status, statusLeads]) => (
+              <Card key={status} className="min-h-96">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-medium flex items-center gap-2">
+                    {getStatusIcon(status)}
+                    <span className="capitalize">{status}</span>
+                    <Badge variant="secondary" className="ml-auto">
+                      {statusLeads.length}
+                    </Badge>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {statusLeads.map((lead) => (
+                    <Card key={lead.id} className="p-3 hover:shadow-md transition-shadow cursor-pointer">
+                      <div className="space-y-2">
+                        <div className="flex items-start justify-between">
+                          <h4 className="font-medium text-sm">{lead.name}</h4>
+                          <Badge className={getStatusColor(lead.status)} />
+                        </div>
+                        <div className="text-xs text-gray-600 space-y-1">
+                          <div className="flex items-center gap-1">
+                            <Phone className="h-3 w-3" />
+                            {lead.phone}
+                          </div>
+                          {lead.email && (
+                            <div className="flex items-center gap-1">
+                              <Mail className="h-3 w-3" />
+                              {lead.email}
+                            </div>
+                          )}
+                        </div>
+                        {lead.address && (
+                          <p className="text-xs text-gray-500 line-clamp-2">{lead.address}</p>
+                        )}
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="text-gray-500">
+                            {format(new Date(lead.created_at), 'MMM dd')}
+                          </span>
+                          {lead.source && (
+                            <Badge variant="outline" className="text-xs">
+                              {lead.source}
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                    </Card>
+                  ))}
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
