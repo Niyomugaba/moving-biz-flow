@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -46,10 +45,10 @@ export const Dashboard = () => {
   const weekEnd = endOfWeek(new Date());
   const thisWeekHours = timeEntries
     .filter(entry => {
-      const entryDate = new Date(entry.work_date);
+      const entryDate = new Date(entry.entry_date);
       return isWithinInterval(entryDate, { start: weekStart, end: weekEnd });
     })
-    .reduce((total, entry) => total + entry.hours_worked, 0);
+    .reduce((total, entry) => total + (entry.regular_hours || 0) + (entry.overtime_hours || 0), 0);
 
   // Calculate revenue estimates
   const averageHourlyRate = employees.reduce((sum, emp) => sum + emp.hourly_wage, 0) / (employees.length || 1);
@@ -69,7 +68,7 @@ export const Dashboard = () => {
 
   // Recent activity data
   const recentJobs = jobs
-    .sort((a, b) => new Date(b.scheduled_date).getTime() - new Date(a.scheduled_date).getTime())
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
     .slice(0, 5);
 
   const recentLeads = leads
@@ -285,9 +284,9 @@ export const Dashboard = () => {
                         <MapPin className="h-5 w-5 text-gray-400" />
                       </div>
                       <div>
-                        <p className="font-medium">{job.type} - {job.client_name}</p>
+                        <p className="font-medium">{job.job_number} - {job.client_name}</p>
                         <p className="text-sm text-gray-500">
-                          {format(new Date(job.scheduled_date), 'MMM dd, yyyy')} • {job.address}
+                          {format(new Date(job.created_at), 'MMM dd, yyyy')}
                         </p>
                       </div>
                     </div>

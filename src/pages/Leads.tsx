@@ -4,85 +4,130 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { useLeads } from "@/hooks/useLeads";
+import { AddLeadDialog } from "@/components/AddLeadDialog";
 import { 
-  Plus, 
   Search, 
   Filter, 
   Download, 
+  TrendingUp, 
+  Users, 
   Phone, 
   Mail, 
-  MapPin, 
-  Calendar,
-  TrendingUp,
-  Users,
+  Calendar, 
   DollarSign,
   Eye,
   Edit,
   Trash2,
-  MessageSquare,
-  CheckCircle,
-  XCircle,
+  Plus,
+  Activity,
+  Target,
   Clock,
-  Star,
-  Target
+  Star
 } from "lucide-react";
-import { useLeads } from "@/hooks/useLeads";
-import { AddLeadDialog } from "@/components/AddLeadDialog";
-import { LeadContactCard } from "@/components/LeadContactCard";
 import { format } from "date-fns";
 import { toast } from "sonner";
 
+type LeadStatus = 'new' | 'contacted' | 'quoted' | 'converted' | 'lost';
+
 export const Leads = () => {
-  const { leads, isLoading, addLead, updateLead, deleteLead } = useLeads();
+  const { leads, updateLead, isUpdatingLead } = useLeads();
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [sourceFilter, setSourceFilter] = useState('all');
-  const [selectedLead, setSelectedLead] = useState(null);
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [sortBy, setSortBy] = useState<string>('created_at');
+  const [showAddDialog, setShowAddDialog] = useState(false);
 
-  // Calculate metrics
-  const totalLeads = leads.length;
-  const newLeads = leads.filter(lead => lead.status === 'new').length;
-  const convertedLeads = leads.filter(lead => lead.status === 'converted').length;
-  const conversionRate = totalLeads > 0 ? (convertedLeads / totalLeads) * 100 : 0;
-
-  // Filter and search leads
+  // Filter and sort leads
   const filteredLeads = useMemo(() => {
-    return leads.filter(lead => {
-      const matchesSearch = 
-        lead.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        lead.phone.includes(searchTerm) ||
-        (lead.email && lead.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (lead.address && lead.address.toLowerCase().includes(searchTerm.toLowerCase()));
+    let filtered = leads.filter(lead => 
+      lead.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      lead.phone.includes(searchTerm) ||
+      lead.email.toLowerCase().includes(searchTerm.toLowerCase())
+    );
 
-      const matchesStatus = statusFilter === 'all' || lead.status === statusFilter;
-      const matchesSource = sourceFilter === 'all' || lead.source === sourceFilter;
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter(lead => lead.status === statusFilter);
+    }
 
-      return matchesSearch && matchesStatus && matchesSource;
-    });
-  }, [leads, searchTerm, statusFilter, sourceFilter]);
-
-  // Group leads by status for kanban view
-  const leadsByStatus = useMemo(() => {
-    const groups = {
-      new: [],
-      contacted: [],
-      qualified: [],
-      converted: [],
-      lost: []
-    };
-
-    filteredLeads.forEach(lead => {
-      if (groups[lead.status]) {
-        groups[lead.status].push(lead);
+    // Sort leads
+    filtered.sort((a, b) => {
+      switch (sortBy) {
+        case 'name':
+          return a.name.localeCompare(b.name);
+        case 'status':
+          return a.status.localeCompare(b.status);
+        case 'estimated_value':
+          return (b.estimated_value || 0) - (a.estimated_value || 0);
+        default:
+          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
       }
     });
 
-    return groups;
-  }, [filteredLeads]);
+    return filtered;
+  }, [leads, searchTerm, statusFilter, sortBy]);
+
+  // Calculate metrics
+  const leadMetrics = useMemo(() => {
+    const total = leads.length;
+    const newLeads = leads.filter(l => l.status === 'new').length;
+    const contacted = leads.filter(l => l.status === 'contacted').length;
+    const quoted = leads.filter(l => l.status === 'quoted').length;
+    const converted = leads.filter(l => l.status === 'converted').length;
+    const lost = leads.filter(l => l.status === 'lost').length;
+    
+    const conversionRate = total > 0 ? (converted / total) * 100 : 0;
+    const totalValue = leads.reduce((sum, lead) => sum + (lead.estimated_value || 0), 0);
+    const avgValue = total > 0 ? totalValue / total : 0;
+
+    return {
+      total,
+      newLeads,
+      contacted,
+      quoted,
+      converted,
+      lost,
+      conversionRate,
+      totalValue,
+      avgValue
+    };
+  }, [leads]);
+
+  const handleStatusUpdate = async (leadId: string, newStatus: LeadStatus) => {
+    try {
+      await updateLead({ id: leadId, status: newStatus });
+      toast.success(`Lead status updated to ${newStatus}`);
+    } catch (error) {
+      toast.error('Failed to update lead status');
+    }
+  };
+
+  const handleExportData = () => {
+    const csvContent = [
+      ['Name', 'Phone', 'Email', 'Status', 'Estimated Value', 'Created Date'],
+      ...filteredLeads.map(lead => [
+        lead.name,
+        lead.phone,
+        lead.email,
+        lead.status,
+        lead.estimated_value || 0,
+        format(new Date(lead.created_at), 'yyyy-MM-dd')
+      ])
+    ].map(row => row.join(',')).join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `leads-export-${format(new Date(), 'yyyy-MM-dd')}.csv`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+    
+    toast.success('Leads data exported successfully!');
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -90,7 +135,7 @@ export const Leads = () => {
         return 'bg-blue-100 text-blue-800';
       case 'contacted':
         return 'bg-yellow-100 text-yellow-800';
-      case 'qualified':
+      case 'quoted':
         return 'bg-purple-100 text-purple-800';
       case 'converted':
         return 'bg-green-100 text-green-800';
@@ -101,144 +146,121 @@ export const Leads = () => {
     }
   };
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'new':
-        return <Star className="h-4 w-4" />;
-      case 'contacted':
-        return <MessageSquare className="h-4 w-4" />;
-      case 'qualified':
-        return <Target className="h-4 w-4" />;
-      case 'converted':
-        return <CheckCircle className="h-4 w-4" />;
-      case 'lost':
-        return <XCircle className="h-4 w-4" />;
-      default:
-        return <Clock className="h-4 w-4" />;
-    }
+  const getPriorityIcon = (value: number) => {
+    if (value >= 5000) return <Star className="h-4 w-4 text-gold-500" />;
+    if (value >= 2000) return <TrendingUp className="h-4 w-4 text-purple-500" />;
+    return <Target className="h-4 w-4 text-gray-400" />;
   };
-
-  const handleStatusUpdate = (leadId: string, newStatus: string) => {
-    updateLead({ id: leadId, updates: { status: newStatus } });
-    toast.success(`Lead status updated to ${newStatus}`);
-  };
-
-  const handleExportLeads = () => {
-    const csvContent = [
-      ['Name', 'Phone', 'Email', 'Status', 'Source', 'Address', 'Notes', 'Created Date'].join(','),
-      ...filteredLeads.map(lead => [
-        lead.name,
-        lead.phone,
-        lead.email || '',
-        lead.status,
-        lead.source || '',
-        lead.address || '',
-        lead.notes || '',
-        format(new Date(lead.created_at), 'yyyy-MM-dd')
-      ].join(','))
-    ].join('\n');
-
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `leads-${format(new Date(), 'yyyy-MM-dd')}.csv`;
-    a.click();
-    window.URL.revokeObjectURL(url);
-    toast.success('Leads exported successfully!');
-  };
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
-      </div>
-    );
-  }
 
   return (
-    <div className="p-6 space-y-8 bg-gradient-to-br from-purple-50 to-gold-50 min-h-screen">
+    <div className="p-6 space-y-8 bg-gradient-to-br from-purple-25 to-gold-25 min-h-screen">
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-purple-800 bg-clip-text text-transparent">
-            Leads Management
+            Lead Management
           </h1>
-          <p className="text-gray-600 mt-2">Track and manage your sales pipeline</p>
+          <p className="text-gray-600 mt-2">
+            Track and manage your sales pipeline
+          </p>
         </div>
         <div className="flex gap-3">
-          <Button variant="outline" onClick={handleExportLeads} className="flex items-center gap-2">
+          <Button variant="outline" onClick={handleExportData} className="flex items-center gap-2">
             <Download className="h-4 w-4" />
             Export
           </Button>
-          <AddLeadDialog>
-            <Button className="flex items-center gap-2 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800">
-              <Plus className="h-4 w-4" />
-              Add Lead
-            </Button>
-          </AddLeadDialog>
+          <Button 
+            onClick={() => setShowAddDialog(true)}
+            className="bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Add Lead
+          </Button>
         </div>
       </div>
 
       {/* Metrics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
         <Card className="border-l-4 border-l-blue-500 hover:shadow-lg transition-shadow">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-gray-600">Total Leads</CardTitle>
             <Users className="h-5 w-5 text-blue-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-blue-700">{totalLeads}</div>
-            <p className="text-xs text-gray-500 mt-1">All time leads</p>
+            <div className="text-3xl font-bold text-blue-700">{leadMetrics.total}</div>
           </CardContent>
         </Card>
 
         <Card className="border-l-4 border-l-yellow-500 hover:shadow-lg transition-shadow">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-gray-600">New Leads</CardTitle>
-            <Star className="h-5 w-5 text-yellow-600" />
+            <TrendingUp className="h-5 w-5 text-yellow-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-yellow-700">{newLeads}</div>
-            <p className="text-xs text-gray-500 mt-1">Require attention</p>
+            <div className="text-3xl font-bold text-yellow-700">{leadMetrics.newLeads}</div>
           </CardContent>
         </Card>
 
         <Card className="border-l-4 border-l-green-500 hover:shadow-lg transition-shadow">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-gray-600">Converted</CardTitle>
-            <CheckCircle className="h-5 w-5 text-green-600" />
+            <Target className="h-5 w-5 text-green-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-green-700">{convertedLeads}</div>
-            <p className="text-xs text-gray-500 mt-1">Successful conversions</p>
+            <div className="text-3xl font-bold text-green-700">{leadMetrics.converted}</div>
+            <p className="text-xs text-gray-500 mt-1">
+              {leadMetrics.conversionRate.toFixed(1)}% rate
+            </p>
           </CardContent>
         </Card>
 
         <Card className="border-l-4 border-l-purple-500 hover:shadow-lg transition-shadow">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">Conversion Rate</CardTitle>
-            <TrendingUp className="h-5 w-5 text-purple-600" />
+            <CardTitle className="text-sm font-medium text-gray-600">Total Value</CardTitle>
+            <DollarSign className="h-5 w-5 text-purple-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-purple-700">{conversionRate.toFixed(1)}%</div>
-            <p className="text-xs text-gray-500 mt-1">Success rate</p>
+            <div className="text-3xl font-bold text-purple-700">${leadMetrics.totalValue.toLocaleString()}</div>
+            <p className="text-xs text-gray-500 mt-1">
+              ${leadMetrics.avgValue.toFixed(0)} avg
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-l-4 border-l-gold-500 hover:shadow-lg transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-gray-600">Pipeline</CardTitle>
+            <Activity className="h-5 w-5 text-gold-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold text-gold-700">{leadMetrics.quoted}</div>
+            <p className="text-xs text-gray-500 mt-1">
+              Quoted leads
+            </p>
           </CardContent>
         </Card>
       </div>
 
       {/* Filters and Search */}
       <Card>
-        <CardContent className="pt-6">
-          <div className="flex flex-col md:flex-row gap-4 items-center">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-              <Input
-                placeholder="Search leads by name, phone, email, or address..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Filter className="h-5 w-5" />
+            Filters & Search
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-wrap gap-4">
+            <div className="flex-1 min-w-64">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <Input
+                  placeholder="Search leads by name, phone, or email..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
             </div>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger className="w-48">
@@ -248,211 +270,166 @@ export const Leads = () => {
                 <SelectItem value="all">All Statuses</SelectItem>
                 <SelectItem value="new">New</SelectItem>
                 <SelectItem value="contacted">Contacted</SelectItem>
-                <SelectItem value="qualified">Qualified</SelectItem>
+                <SelectItem value="quoted">Quoted</SelectItem>
                 <SelectItem value="converted">Converted</SelectItem>
                 <SelectItem value="lost">Lost</SelectItem>
               </SelectContent>
             </Select>
-            <Select value={sourceFilter} onValueChange={setSourceFilter}>
+            <Select value={sortBy} onValueChange={setSortBy}>
               <SelectTrigger className="w-48">
-                <SelectValue placeholder="Filter by source" />
+                <SelectValue placeholder="Sort by" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Sources</SelectItem>
-                <SelectItem value="website">Website</SelectItem>
-                <SelectItem value="referral">Referral</SelectItem>
-                <SelectItem value="google">Google</SelectItem>
-                <SelectItem value="facebook">Facebook</SelectItem>
-                <SelectItem value="phone">Phone</SelectItem>
-                <SelectItem value="other">Other</SelectItem>
+                <SelectItem value="created_at">Created Date</SelectItem>
+                <SelectItem value="name">Name</SelectItem>
+                <SelectItem value="status">Status</SelectItem>
+                <SelectItem value="estimated_value">Value</SelectItem>
               </SelectContent>
             </Select>
           </div>
         </CardContent>
       </Card>
 
-      {/* Main Content Tabs */}
-      <Tabs defaultValue="table" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-2 bg-white shadow-sm">
-          <TabsTrigger value="table" className="flex items-center gap-2">
-            <Users className="h-4 w-4" />
-            Table View
-          </TabsTrigger>
-          <TabsTrigger value="kanban" className="flex items-center gap-2">
-            <Target className="h-4 w-4" />
-            Pipeline View
-          </TabsTrigger>
-        </TabsList>
+      {/* Lead Pipeline Overview */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Activity className="h-5 w-5" />
+            Lead Pipeline
+          </CardTitle>
+          <CardDescription>Visual overview of your sales funnel</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+            {[
+              { status: 'new', count: leadMetrics.newLeads, color: 'bg-blue-500' },
+              { status: 'contacted', count: leadMetrics.contacted, color: 'bg-yellow-500' },
+              { status: 'quoted', count: leadMetrics.quoted, color: 'bg-purple-500' },
+              { status: 'converted', count: leadMetrics.converted, color: 'bg-green-500' },
+              { status: 'lost', count: leadMetrics.lost, color: 'bg-red-500' }
+            ].map((stage) => (
+              <div key={stage.status} className="text-center">
+                <div className={`${stage.color} rounded-lg p-6 text-white mb-2`}>
+                  <div className="text-2xl font-bold">{stage.count}</div>
+                  <div className="text-sm capitalize">{stage.status}</div>
+                </div>
+                <Progress 
+                  value={leadMetrics.total > 0 ? (stage.count / leadMetrics.total) * 100 : 0} 
+                  className="h-2" 
+                />
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
 
-        <TabsContent value="table">
-          <Card>
-            <CardHeader>
-              <CardTitle>Leads List</CardTitle>
-              <CardDescription>
-                {filteredLeads.length} of {totalLeads} leads shown
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
+      {/* Leads Table */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Users className="h-5 w-5" />
+            All Leads ({filteredLeads.length})
+          </CardTitle>
+          <CardDescription>
+            {searchTerm && `Filtered by: "${searchTerm}"`}
+            {statusFilter !== 'all' && ` | Status: ${statusFilter}`}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="rounded-md border overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-purple-50">
+                  <TableHead className="font-semibold">Priority</TableHead>
+                  <TableHead className="font-semibold">Name & Contact</TableHead>
+                  <TableHead className="font-semibold">Status</TableHead>
+                  <TableHead className="font-semibold">Estimated Value</TableHead>
+                  <TableHead className="font-semibold">Created Date</TableHead>
+                  <TableHead className="font-semibold">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredLeads.length === 0 ? (
                   <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Contact</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Source</TableHead>
-                    <TableHead>Created</TableHead>
-                    <TableHead>Actions</TableHead>
+                    <TableCell colSpan={6} className="text-center py-8 text-gray-500">
+                      No leads found matching your criteria
+                    </TableCell>
                   </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredLeads.map((lead) => (
-                    <TableRow key={lead.id} className="hover:bg-purple-25">
+                ) : (
+                  filteredLeads.map((lead, index) => (
+                    <TableRow key={lead.id} className={index % 2 === 0 ? 'bg-white' : 'bg-purple-25'}>
                       <TableCell>
-                        <div className="space-y-1">
-                          <LeadContactCard lead={lead}>
-                            <button className="font-medium text-purple-600 hover:text-purple-800 text-left">
-                              {lead.name}
-                            </button>
-                          </LeadContactCard>
-                          {lead.address && (
-                            <p className="text-sm text-gray-500 flex items-center gap-1">
-                              <MapPin className="h-3 w-3" />
-                              {lead.address}
-                            </p>
-                          )}
+                        <div className="flex items-center gap-2">
+                          {getPriorityIcon(lead.estimated_value || 0)}
                         </div>
                       </TableCell>
                       <TableCell>
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-1 text-sm">
-                            <Phone className="h-3 w-3 text-gray-400" />
+                        <div>
+                          <div className="font-medium">{lead.name}</div>
+                          <div className="text-sm text-gray-600 flex items-center gap-2">
+                            <Phone className="h-3 w-3" />
                             {lead.phone}
                           </div>
-                          {lead.email && (
-                            <div className="flex items-center gap-1 text-sm text-gray-600">
-                              <Mail className="h-3 w-3 text-gray-400" />
-                              {lead.email}
-                            </div>
-                          )}
+                          <div className="text-sm text-gray-600 flex items-center gap-2">
+                            <Mail className="h-3 w-3" />
+                            {lead.email}
+                          </div>
                         </div>
                       </TableCell>
                       <TableCell>
                         <Select
                           value={lead.status}
-                          onValueChange={(value) => handleStatusUpdate(lead.id, value)}
+                          onValueChange={(value) => handleStatusUpdate(lead.id, value as LeadStatus)}
+                          disabled={isUpdatingLead}
                         >
                           <SelectTrigger className="w-32">
-                            <SelectValue>
-                              <Badge className={getStatusColor(lead.status)}>
-                                <span className="flex items-center gap-1">
-                                  {getStatusIcon(lead.status)}
-                                  {lead.status}
-                                </span>
-                              </Badge>
-                            </SelectValue>
+                            <Badge className={getStatusColor(lead.status)}>
+                              {lead.status}
+                            </Badge>
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="new">New</SelectItem>
                             <SelectItem value="contacted">Contacted</SelectItem>
-                            <SelectItem value="qualified">Qualified</SelectItem>
+                            <SelectItem value="quoted">Quoted</SelectItem>
                             <SelectItem value="converted">Converted</SelectItem>
                             <SelectItem value="lost">Lost</SelectItem>
                           </SelectContent>
                         </Select>
                       </TableCell>
                       <TableCell>
-                        <Badge variant="outline" className="capitalize">
-                          {lead.source || 'Unknown'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-sm text-gray-600">
-                        {format(new Date(lead.created_at), 'MMM dd, yyyy')}
+                        <div className="font-medium">
+                          ${(lead.estimated_value || 0).toLocaleString()}
+                        </div>
                       </TableCell>
                       <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Button size="sm" variant="outline" className="h-8 w-8 p-0">
+                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                          <Calendar className="h-3 w-3" />
+                          {format(new Date(lead.created_at), 'MMM dd, yyyy')}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex gap-2">
+                          <Button variant="ghost" size="sm">
                             <Eye className="h-4 w-4" />
                           </Button>
-                          <Button size="sm" variant="outline" className="h-8 w-8 p-0">
+                          <Button variant="ghost" size="sm">
                             <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button 
-                            size="sm" 
-                            variant="outline" 
-                            className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
-                            onClick={() => {
-                              if (confirm('Are you sure you want to delete this lead?')) {
-                                deleteLead(lead.id);
-                              }
-                            }}
-                          >
-                            <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
                       </TableCell>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="kanban">
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
-            {Object.entries(leadsByStatus).map(([status, statusLeads]) => (
-              <Card key={status} className="min-h-96">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm font-medium flex items-center gap-2">
-                    {getStatusIcon(status)}
-                    <span className="capitalize">{status}</span>
-                    <Badge variant="secondary" className="ml-auto">
-                      {statusLeads.length}
-                    </Badge>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  {statusLeads.map((lead) => (
-                    <Card key={lead.id} className="p-3 hover:shadow-md transition-shadow cursor-pointer">
-                      <div className="space-y-2">
-                        <div className="flex items-start justify-between">
-                          <h4 className="font-medium text-sm">{lead.name}</h4>
-                          <Badge className={getStatusColor(lead.status)} />
-                        </div>
-                        <div className="text-xs text-gray-600 space-y-1">
-                          <div className="flex items-center gap-1">
-                            <Phone className="h-3 w-3" />
-                            {lead.phone}
-                          </div>
-                          {lead.email && (
-                            <div className="flex items-center gap-1">
-                              <Mail className="h-3 w-3" />
-                              {lead.email}
-                            </div>
-                          )}
-                        </div>
-                        {lead.address && (
-                          <p className="text-xs text-gray-500 line-clamp-2">{lead.address}</p>
-                        )}
-                        <div className="flex items-center justify-between text-xs">
-                          <span className="text-gray-500">
-                            {format(new Date(lead.created_at), 'MMM dd')}
-                          </span>
-                          {lead.source && (
-                            <Badge variant="outline" className="text-xs">
-                              {lead.source}
-                            </Badge>
-                          )}
-                        </div>
-                      </div>
-                    </Card>
-                  ))}
-                </CardContent>
-              </Card>
-            ))}
+                  ))
+                )}
+              </TableBody>
+            </Table>
           </div>
-        </TabsContent>
-      </Tabs>
+        </CardContent>
+      </Card>
+
+      <AddLeadDialog 
+        open={showAddDialog}
+        onOpenChange={setShowAddDialog}
+      />
     </div>
   );
 };

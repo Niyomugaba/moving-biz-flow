@@ -309,7 +309,7 @@ export const EmployeeDashboard = ({ employee, onLogout }: EmployeeDashboardProps
           </CardContent>
         </Card>
 
-        {/* Employee Information */}
+        {/* Mover Information */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
