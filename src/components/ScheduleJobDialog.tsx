@@ -4,6 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import { Button } from './ui/button';
 import { useJobs } from '@/hooks/useJobs';
 import { useClients } from '@/hooks/useClients';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface ScheduleJobDialogProps {
   open: boolean;
@@ -13,7 +14,8 @@ interface ScheduleJobDialogProps {
 export const ScheduleJobDialog = ({ open, onOpenChange }: ScheduleJobDialogProps) => {
   const { addJob } = useJobs();
   const { clients } = useClients();
-  const [useExistingClient, setUseExistingClient] = useState(false);
+  const isMobile = useIsMobile();
+  const [useExistingClient, setUseExistingClient] = useState(true); // Default to true for better UX
   const [formData, setFormData] = useState({
     clientId: '',
     clientName: '',
@@ -92,7 +94,7 @@ export const ScheduleJobDialog = ({ open, onOpenChange }: ScheduleJobDialogProps
       notes: '',
       paid: false
     });
-    setUseExistingClient(false);
+    setUseExistingClient(true);
     onOpenChange(false);
   };
 
@@ -113,7 +115,7 @@ export const ScheduleJobDialog = ({ open, onOpenChange }: ScheduleJobDialogProps
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className={`${isMobile ? 'sm:max-w-full h-full max-h-screen' : 'sm:max-w-2xl max-h-[90vh]'} overflow-y-auto`}>
         <DialogHeader>
           <DialogTitle>Schedule New Job</DialogTitle>
         </DialogHeader>
@@ -152,7 +154,7 @@ export const ScheduleJobDialog = ({ open, onOpenChange }: ScheduleJobDialogProps
               </select>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className={`grid grid-cols-1 ${isMobile ? '' : 'md:grid-cols-2'} gap-4`}>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Client Name
@@ -179,7 +181,7 @@ export const ScheduleJobDialog = ({ open, onOpenChange }: ScheduleJobDialogProps
                 />
               </div>
               
-              <div className="md:col-span-2">
+              <div className={isMobile ? '' : 'md:col-span-2'}>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Client Email (Optional)
                 </label>

@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { useManagers } from '@/hooks/useManagers';
-import { Truck, Shield, Lock } from 'lucide-react';
+import { Shield, Lock } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useManagerAuth } from '@/hooks/useManagerAuth';
 
@@ -80,9 +80,11 @@ export const ManagerLogin = () => {
         {/* Bantu Movers Branding Header */}
         <div className="text-center mb-8">
           <div className="flex justify-center mb-4">
-            <div className="w-20 h-20 bg-amber-400 rounded-full flex items-center justify-center shadow-xl">
-              <Truck className="w-10 h-10 text-purple-900" />
-            </div>
+            <img 
+              src="/lovable-uploads/6319d82c-0bdd-465a-9925-c9401c11e50a.png" 
+              alt="Bantu Movers Logo" 
+              className="h-20 w-auto"
+            />
           </div>
           <h1 className="text-4xl font-bold text-white mb-2">Bantu Movers</h1>
           <p className="text-purple-200 text-lg">Manager Portal</p>
@@ -104,7 +106,11 @@ export const ManagerLogin = () => {
           </div>
           <div className="text-center">
             <div className="w-12 h-12 bg-purple-700 rounded-lg flex items-center justify-center mx-auto mb-2">
-              <Truck className="w-6 h-6 text-amber-400" />
+              <img 
+                src="/lovable-uploads/6319d82c-0bdd-465a-9925-c9401c11e50a.png" 
+                alt="Bantu Logo" 
+                className="w-6 h-6 object-contain"
+              />
             </div>
             <p className="text-purple-200 text-sm">Admin Portal</p>
           </div>
