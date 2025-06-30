@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -46,7 +45,7 @@ export const Leads = () => {
     let filtered = leads.filter(lead => 
       lead.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       lead.phone.includes(searchTerm) ||
-      lead.email.toLowerCase().includes(searchTerm.toLowerCase())
+      (lead.email && lead.email.toLowerCase().includes(searchTerm.toLowerCase()))
     );
 
     if (statusFilter !== 'all') {
@@ -98,7 +97,7 @@ export const Leads = () => {
 
   const handleStatusUpdate = async (leadId: string, newStatus: LeadStatus) => {
     try {
-      await updateLead({ id: leadId, status: newStatus });
+      await updateLead({ id: leadId, updates: { status: newStatus } });
       toast.success(`Lead status updated to ${newStatus}`);
     } catch (error) {
       toast.error('Failed to update lead status');
@@ -111,7 +110,7 @@ export const Leads = () => {
       ...filteredLeads.map(lead => [
         lead.name,
         lead.phone,
-        lead.email,
+        lead.email || '',
         lead.status,
         lead.estimated_value || 0,
         format(new Date(lead.created_at), 'yyyy-MM-dd')
@@ -370,10 +369,12 @@ export const Leads = () => {
                             <Phone className="h-3 w-3" />
                             {lead.phone}
                           </div>
-                          <div className="text-sm text-gray-600 flex items-center gap-2">
-                            <Mail className="h-3 w-3" />
-                            {lead.email}
-                          </div>
+                          {lead.email && (
+                            <div className="text-sm text-gray-600 flex items-center gap-2">
+                              <Mail className="h-3 w-3" />
+                              {lead.email}
+                            </div>
+                          )}
                         </div>
                       </TableCell>
                       <TableCell>
