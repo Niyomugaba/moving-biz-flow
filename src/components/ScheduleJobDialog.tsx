@@ -3,7 +3,6 @@ import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import { Button } from './ui/button';
 import { useJobs } from '@/hooks/useJobs';
-import { useClients } from '@/hooks/useClients';
 import { useIsMobile } from '@/hooks/use-mobile';
 
 interface ScheduleJobDialogProps {
@@ -12,12 +11,9 @@ interface ScheduleJobDialogProps {
 }
 
 export const ScheduleJobDialog = ({ open, onOpenChange }: ScheduleJobDialogProps) => {
-  const { addJob } = useJobs();
-  const { clients } = useClients();
+  const { addJob, isAddingJob } = useJobs();
   const isMobile = useIsMobile();
-  const [useExistingClient, setUseExistingClient] = useState(true);
   const [formData, setFormData] = useState({
-    clientId: '',
     clientName: '',
     clientPhone: '',
     clientEmail: '',
@@ -34,53 +30,28 @@ export const ScheduleJobDialog = ({ open, onOpenChange }: ScheduleJobDialogProps
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    let clientData;
-    if (useExistingClient && formData.clientId) {
-      const selectedClient = clients.find(c => c.id === formData.clientId);
-      clientData = {
-        client_id: formData.clientId,
-        client_name: selectedClient?.name || '',
-        client_phone: selectedClient?.phone || '',
-        client_email: selectedClient?.email || null,
-      };
-    } else {
-      clientData = {
-        client_id: null,
-        client_name: formData.clientName,
-        client_phone: formData.clientPhone,
-        client_email: formData.clientEmail || null,
-      };
-    }
-
     const hourlyRate = parseFloat(formData.hourlyRate);
     const moversNeeded = parseInt(formData.moversNeeded);
-    const totalRate = hourlyRate * moversNeeded;
+    const estimatedDuration = 4; // Default 4 hours
+    const estimatedTotal = hourlyRate * moversNeeded * estimatedDuration;
 
     addJob({
-      ...clientData,
+      client_name: formData.clientName,
+      client_phone: formData.clientPhone,
+      client_email: formData.clientEmail || null,
       origin_address: formData.originAddress,
       destination_address: formData.destinationAddress,
       job_date: formData.jobDate,
       start_time: formData.startTime,
       hourly_rate: hourlyRate,
       movers_needed: moversNeeded,
-      estimated_duration_hours: 1, // Default to 1 hour, will be updated when job is marked as done
-      estimated_total: totalRate, // This will be the hourly total rate
-      actual_duration_hours: null,
-      actual_total: null,
-      status: 'scheduled',
-      special_requirements: formData.notes || null,
-      is_paid: formData.paid,
-      paid_at: formData.paid ? new Date().toISOString() : null,
-      truck_size: null,
-      completion_notes: null,
-      customer_satisfaction: null,
-      payment_method: null
+      estimated_duration_hours: estimatedDuration,
+      estimated_total: estimatedTotal,
+      special_requirements: formData.notes || null
     });
 
     // Reset form
     setFormData({
-      clientId: '',
       clientName: '',
       clientPhone: '',
       clientEmail: '',
@@ -93,19 +64,8 @@ export const ScheduleJobDialog = ({ open, onOpenChange }: ScheduleJobDialogProps
       notes: '',
       paid: false
     });
-    setUseExistingClient(true);
+    
     onOpenChange(false);
-  };
-
-  const handleClientSelect = (clientId: string) => {
-    const selectedClient = clients.find(c => c.id === clientId);
-    if (selectedClient) {
-      setFormData({
-        ...formData,
-        clientId,
-        originAddress: selectedClient.primary_address
-      });
-    }
   };
 
   const totalRate = formData.hourlyRate && formData.moversNeeded
@@ -119,84 +79,52 @@ export const ScheduleJobDialog = ({ open, onOpenChange }: ScheduleJobDialogProps
           <DialogTitle>Schedule New Job</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Client Selection */}
-          <div className="flex items-center space-x-2 mb-4">
-            <input
-              type="checkbox"
-              id="useExistingClient"
-              checked={useExistingClient}
-              onChange={(e) => setUseExistingClient(e.target.checked)}
-              className="rounded border-gray-300"
-            />
-            <label htmlFor="useExistingClient" className="text-sm font-medium text-gray-700">
-              Use existing client
-            </label>
-          </div>
-
-          {useExistingClient ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Select Client
+                Client Name *
               </label>
-              <select
+              <input
+                type="text"
                 required
-                value={formData.clientId}
-                onChange={(e) => handleClientSelect(e.target.value)}
+                value={formData.clientName}
+                onChange={(e) => setFormData({ ...formData, clientName: e.target.value })}
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value="">Select a client...</option>
-                {clients.map((client) => (
-                  <option key={client.id} value={client.id}>
-                    {client.name} - {client.phone}
-                  </option>
-                ))}
-              </select>
+                placeholder="Enter client name"
+              />
             </div>
-          ) : (
-            <div className={`grid grid-cols-1 ${isMobile ? '' : 'md:grid-cols-2'} gap-4`}>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Client Name
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={formData.clientName}
-                  onChange={(e) => setFormData({ ...formData, clientName: e.target.value })}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Client Phone
-                </label>
-                <input
-                  type="tel"
-                  required
-                  value={formData.clientPhone}
-                  onChange={(e) => setFormData({ ...formData, clientPhone: e.target.value })}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
-              
-              <div className={isMobile ? '' : 'md:col-span-2'}>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Client Email (Optional)
-                </label>
-                <input
-                  type="email"
-                  value={formData.clientEmail}
-                  onChange={(e) => setFormData({ ...formData, clientEmail: e.target.value })}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Client Phone *
+              </label>
+              <input
+                type="tel"
+                required
+                value={formData.clientPhone}
+                onChange={(e) => setFormData({ ...formData, clientPhone: e.target.value })}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="(555) 123-4567"
+              />
             </div>
-          )}
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Client Email (Optional)
+            </label>
+            <input
+              type="email"
+              value={formData.clientEmail}
+              onChange={(e) => setFormData({ ...formData, clientEmail: e.target.value })}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="client@example.com"
+            />
+          </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Origin Address
+              Origin Address *
             </label>
             <textarea
               required
@@ -204,12 +132,13 @@ export const ScheduleJobDialog = ({ open, onOpenChange }: ScheduleJobDialogProps
               onChange={(e) => setFormData({ ...formData, originAddress: e.target.value })}
               className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               rows={2}
+              placeholder="123 Main St, City, State 12345"
             />
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Destination Address
+              Destination Address *
             </label>
             <textarea
               required
@@ -217,13 +146,14 @@ export const ScheduleJobDialog = ({ open, onOpenChange }: ScheduleJobDialogProps
               onChange={(e) => setFormData({ ...formData, destinationAddress: e.target.value })}
               className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               rows={2}
+              placeholder="456 Oak Ave, City, State 67890"
             />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Job Date
+                Job Date *
               </label>
               <input
                 type="date"
@@ -236,7 +166,7 @@ export const ScheduleJobDialog = ({ open, onOpenChange }: ScheduleJobDialogProps
             
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Start Time
+                Start Time *
               </label>
               <input
                 type="time"
@@ -251,7 +181,7 @@ export const ScheduleJobDialog = ({ open, onOpenChange }: ScheduleJobDialogProps
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Hourly Rate ($ per mover)
+                Hourly Rate ($ per mover) *
               </label>
               <input
                 type="number"
@@ -266,7 +196,7 @@ export const ScheduleJobDialog = ({ open, onOpenChange }: ScheduleJobDialogProps
             
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Number of Movers
+                Number of Movers *
               </label>
               <input
                 type="number"
@@ -290,20 +220,6 @@ export const ScheduleJobDialog = ({ open, onOpenChange }: ScheduleJobDialogProps
             </p>
           </div>
 
-          {/* Payment Status */}
-          <div className="flex items-center space-x-2">
-            <input
-              type="checkbox"
-              id="paid"
-              checked={formData.paid}
-              onChange={(e) => setFormData({ ...formData, paid: e.target.checked })}
-              className="rounded border-gray-300"
-            />
-            <label htmlFor="paid" className="text-sm font-medium text-gray-700">
-              Mark as paid
-            </label>
-          </div>
-
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Special Requirements (Optional)
@@ -313,15 +229,26 @@ export const ScheduleJobDialog = ({ open, onOpenChange }: ScheduleJobDialogProps
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
               className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               rows={3}
+              placeholder="Any special instructions or requirements..."
             />
           </div>
 
           <div className="flex gap-2 pt-4">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="flex-1">
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={() => onOpenChange(false)} 
+              className="flex-1"
+              disabled={isAddingJob}
+            >
               Cancel
             </Button>
-            <Button type="submit" className="flex-1">
-              Schedule Job
+            <Button 
+              type="submit" 
+              className="flex-1"
+              disabled={isAddingJob}
+            >
+              {isAddingJob ? 'Scheduling...' : 'Schedule Job'}
             </Button>
           </div>
         </form>
