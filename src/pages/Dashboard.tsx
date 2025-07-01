@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -28,12 +28,24 @@ import { useLeads } from "@/hooks/useLeads";
 import { useTimeEntries } from "@/hooks/useTimeEntries";
 import { format, startOfWeek, endOfWeek, isWithinInterval } from "date-fns";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
+import { AddEmployeeDialog } from "@/components/AddEmployeeDialog";
+import { ScheduleJobDialog } from "@/components/ScheduleJobDialog";
+import { AddLeadDialog } from "@/components/AddLeadDialog";
+import { AddTimeEntryDialog } from "@/components/AddTimeEntryDialog";
 
 export const Dashboard = () => {
+  const navigate = useNavigate();
   const { employees } = useEmployees();
   const { jobs } = useJobs();
   const { leads } = useLeads();
   const { timeEntries } = useTimeEntries();
+
+  // State for dialog controls
+  const [showAddEmployee, setShowAddEmployee] = useState(false);
+  const [showScheduleJob, setShowScheduleJob] = useState(false);
+  const [showAddLead, setShowAddLead] = useState(false);
+  const [showAddTimeEntry, setShowAddTimeEntry] = useState(false);
 
   // Calculate key metrics
   const activeEmployees = employees.filter(emp => emp.status === 'active').length;
@@ -145,7 +157,7 @@ export const Dashboard = () => {
         <Card className="border-l-4 border-l-blue-500 hover:shadow-lg transition-shadow">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-gray-600">Active Jobs</CardTitle>
-            <Calendar className="h-5 w-5 text-blue-600" />
+            <Calendar className="h-6 w-6 text-blue-600" />
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold text-blue-700">{activeJobs}</div>
@@ -408,25 +420,62 @@ export const Dashboard = () => {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <Button variant="outline" className="h-20 flex flex-col gap-2">
+            <Button 
+              variant="outline" 
+              className="h-20 flex flex-col gap-2"
+              onClick={() => setShowAddEmployee(true)}
+            >
               <Users className="h-6 w-6" />
               <span className="text-sm">Add Employee</span>
             </Button>
-            <Button variant="outline" className="h-20 flex flex-col gap-2">
+            <Button 
+              variant="outline" 
+              className="h-20 flex flex-col gap-2"
+              onClick={() => setShowScheduleJob(true)}
+            >
               <Calendar className="h-6 w-6" />
               <span className="text-sm">Schedule Job</span>
             </Button>
-            <Button variant="outline" className="h-20 flex flex-col gap-2">
+            <Button 
+              variant="outline" 
+              className="h-20 flex flex-col gap-2"
+              onClick={() => setShowAddLead(true)}
+            >
               <TrendingUp className="h-6 w-6" />
               <span className="text-sm">Add Lead</span>
             </Button>
-            <Button variant="outline" className="h-20 flex flex-col gap-2">
+            <Button 
+              variant="outline" 
+              className="h-20 flex flex-col gap-2"
+              onClick={() => setShowAddTimeEntry(true)}
+            >
               <Clock className="h-6 w-6" />
               <span className="text-sm">Log Time</span>
             </Button>
           </div>
         </CardContent>
       </Card>
+
+      {/* Dialog Components */}
+      <AddEmployeeDialog 
+        open={showAddEmployee} 
+        onOpenChange={setShowAddEmployee} 
+      />
+      
+      <ScheduleJobDialog 
+        open={showScheduleJob} 
+        onOpenChange={setShowScheduleJob} 
+      />
+      
+      <AddLeadDialog 
+        open={showAddLead} 
+        onOpenChange={setShowAddLead} 
+      />
+      
+      <AddTimeEntryDialog 
+        open={showAddTimeEntry} 
+        onOpenChange={setShowAddTimeEntry} 
+      />
     </div>
   );
 };
