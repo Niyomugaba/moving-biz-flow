@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { StatusBadge } from '../components/StatusBadge';
 import { ScheduleJobDialog } from '../components/ScheduleJobDialog';
 import { EditJobDialog } from '../components/EditJobDialog';
-import { Plus, Calendar, MapPin, Users, Edit, DollarSign, Phone, Mail, CheckCircle } from 'lucide-react';
+import { Plus, Calendar, MapPin, Users, Edit, CheckCircle, Phone, Mail } from 'lucide-react';
 import { useJobs, Job } from '@/hooks/useJobs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -50,7 +50,7 @@ export const Jobs = () => {
   const totalRevenue = jobs
     .filter(job => job.status === 'completed' && job.is_paid)
     .reduce((sum, job) => {
-      const jobRevenue = job.actual_total || (job.hourly_rate * job.movers_needed * (job.actual_duration_hours || 0));
+      const jobRevenue = job.actual_total || 0;
       return sum + jobRevenue;
     }, 0);
 
@@ -61,7 +61,7 @@ export const Jobs = () => {
   const unpaidRevenue = jobs
     .filter(job => job.status === 'completed' && !job.is_paid)
     .reduce((sum, job) => {
-      const jobRevenue = job.actual_total || (job.hourly_rate * job.movers_needed * (job.actual_duration_hours || 0));
+      const jobRevenue = job.actual_total || 0;
       return sum + jobRevenue;
     }, 0);
 
@@ -142,7 +142,7 @@ export const Jobs = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
         {jobs.map((job) => {
           const totalHourlyRate = job.hourly_rate * job.movers_needed;
-          const jobTotal = job.actual_total || (totalHourlyRate * (job.actual_duration_hours || 0));
+          const jobTotal = job.actual_total || 0;
           const isCompleted = job.status === 'completed';
           
           return (
@@ -212,7 +212,7 @@ export const Jobs = () => {
                       <span className="font-medium">{job.actual_duration_hours}h</span>
                     </div>
                   )}
-                  {isCompleted && (
+                  {isCompleted && jobTotal > 0 && (
                     <div className="flex justify-between items-center text-sm mt-1">
                       <span className="text-gray-600">Total cost:</span>
                       <div className="text-right">
@@ -220,6 +220,11 @@ export const Jobs = () => {
                           ${jobTotal.toLocaleString()}
                         </span>
                       </div>
+                    </div>
+                  )}
+                  {!isCompleted && (
+                    <div className="text-sm text-orange-600 mt-1 italic">
+                      Total will be calculated after completion
                     </div>
                   )}
                   {job.payment_method && job.is_paid && (

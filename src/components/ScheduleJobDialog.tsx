@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import { Button } from './ui/button';
@@ -29,8 +30,7 @@ export const ScheduleJobDialog = ({ open, onOpenChange }: ScheduleJobDialogProps
     truckSize: '',
     notes: '',
     isPaid: false,
-    paymentMethod: '',
-    estimatedDuration: '4'
+    paymentMethod: ''
   });
 
   const handleClientSelect = (clientId: string) => {
@@ -61,8 +61,10 @@ export const ScheduleJobDialog = ({ open, onOpenChange }: ScheduleJobDialogProps
     try {
       const hourlyRate = parseFloat(formData.hourlyRate);
       const moversNeeded = parseInt(formData.moversNeeded);
-      const estimatedDuration = parseFloat(formData.estimatedDuration);
-      const estimatedTotal = hourlyRate * moversNeeded * estimatedDuration;
+      
+      // Set estimated duration to 0 since it will be entered after job completion
+      const estimatedDuration = 0;
+      const estimatedTotal = 0; // Will be calculated after actual hours are entered
 
       const jobData = {
         client_id: formData.selectedClientId || null,
@@ -103,8 +105,7 @@ export const ScheduleJobDialog = ({ open, onOpenChange }: ScheduleJobDialogProps
         truckSize: '',
         notes: '',
         isPaid: false,
-        paymentMethod: '',
-        estimatedDuration: '4'
+        paymentMethod: ''
       });
       
       onOpenChange(false);
@@ -113,12 +114,8 @@ export const ScheduleJobDialog = ({ open, onOpenChange }: ScheduleJobDialogProps
     }
   };
 
-  const totalRate = formData.hourlyRate && formData.moversNeeded
+  const totalHourlyRate = formData.hourlyRate && formData.moversNeeded
     ? (parseFloat(formData.hourlyRate) * parseInt(formData.moversNeeded)).toFixed(2)
-    : '0.00';
-
-  const estimatedTotal = formData.hourlyRate && formData.moversNeeded && formData.estimatedDuration
-    ? (parseFloat(formData.hourlyRate) * parseInt(formData.moversNeeded) * parseFloat(formData.estimatedDuration)).toFixed(2)
     : '0.00';
 
   return (
@@ -249,7 +246,7 @@ export const ScheduleJobDialog = ({ open, onOpenChange }: ScheduleJobDialogProps
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Hourly Rate ($ per mover) *
@@ -278,22 +275,6 @@ export const ScheduleJobDialog = ({ open, onOpenChange }: ScheduleJobDialogProps
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Estimated Duration (hours) *
-              </label>
-              <input
-                type="number"
-                step="0.5"
-                min="0.5"
-                required
-                value={formData.estimatedDuration}
-                onChange={(e) => setFormData({ ...formData, estimatedDuration: e.target.value })}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                placeholder="4"
-              />
-            </div>
           </div>
 
           <div>
@@ -316,14 +297,13 @@ export const ScheduleJobDialog = ({ open, onOpenChange }: ScheduleJobDialogProps
           <div className="bg-blue-50 p-4 rounded-lg">
             <div className="flex justify-between items-center">
               <span className="text-lg font-medium text-gray-900">Total Hourly Rate:</span>
-              <span className="text-2xl font-bold text-blue-600">${totalRate}/hour</span>
-            </div>
-            <div className="flex justify-between items-center mt-2">
-              <span className="text-lg font-medium text-gray-900">Estimated Total:</span>
-              <span className="text-2xl font-bold text-green-600">${estimatedTotal}</span>
+              <span className="text-2xl font-bold text-blue-600">${totalHourlyRate}/hour</span>
             </div>
             <p className="text-sm text-gray-600 mt-1">
-              ${formData.hourlyRate || '0'} × {formData.moversNeeded} movers × {formData.estimatedDuration} hours = ${estimatedTotal}
+              ${formData.hourlyRate || '0'} × {formData.moversNeeded} movers = ${totalHourlyRate}/hour
+            </p>
+            <p className="text-xs text-orange-600 mt-2 font-medium">
+              Final total will be calculated after job completion based on actual hours worked
             </p>
           </div>
 
@@ -338,7 +318,7 @@ export const ScheduleJobDialog = ({ open, onOpenChange }: ScheduleJobDialogProps
                 className="rounded border-gray-300"
               />
               <label htmlFor="isPaid" className="text-sm font-medium text-gray-700">
-                Mark as paid
+                Mark as paid upfront
               </label>
             </div>
 
