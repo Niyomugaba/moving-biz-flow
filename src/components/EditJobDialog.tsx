@@ -14,7 +14,7 @@ export const EditJobDialog = ({ open, onOpenChange, job }: EditJobDialogProps) =
   const { updateJob } = useJobs();
   const [formData, setFormData] = useState({
     status: job?.status || 'scheduled',
-    actualDurationHours: job?.actual_duration_hours?.toString() || '',
+    actualHours: job?.actual_duration_hours?.toString() || '',
     actualTotal: job?.actual_total?.toString() || '',
     completionNotes: job?.completion_notes || '',
     customerSatisfaction: job?.customer_satisfaction?.toString() || '',
@@ -26,7 +26,7 @@ export const EditJobDialog = ({ open, onOpenChange, job }: EditJobDialogProps) =
     if (job) {
       setFormData({
         status: job.status,
-        actualDurationHours: job.actual_duration_hours?.toString() || '',
+        actualHours: job.actual_duration_hours?.toString() || '',
         actualTotal: job.actual_total?.toString() || '',
         completionNotes: job.completion_notes || '',
         customerSatisfaction: job.customer_satisfaction?.toString() || '',
@@ -42,7 +42,7 @@ export const EditJobDialog = ({ open, onOpenChange, job }: EditJobDialogProps) =
 
     const updates: Partial<Job> = {
       status: formData.status as 'scheduled' | 'in_progress' | 'completed' | 'cancelled' | 'rescheduled',
-      actual_duration_hours: formData.actualDurationHours ? parseFloat(formData.actualDurationHours) : null,
+      actual_duration_hours: formData.actualHours ? parseFloat(formData.actualHours) : null,
       actual_total: formData.actualTotal ? parseFloat(formData.actualTotal) : null,
       completion_notes: formData.completionNotes || null,
       customer_satisfaction: formData.customerSatisfaction ? parseInt(formData.customerSatisfaction) : null,
@@ -57,9 +57,9 @@ export const EditJobDialog = ({ open, onOpenChange, job }: EditJobDialogProps) =
 
   if (!job) return null;
 
-  const estimatedTotal = job.hourly_rate * job.estimated_duration_hours;
-  const calculatedActual = formData.actualDurationHours 
-    ? job.hourly_rate * parseFloat(formData.actualDurationHours)
+  const totalHourlyRate = job.hourly_rate * job.movers_needed;
+  const calculatedTotal = formData.actualHours 
+    ? totalHourlyRate * parseFloat(formData.actualHours)
     : 0;
 
   return (
@@ -86,81 +86,85 @@ export const EditJobDialog = ({ open, onOpenChange, job }: EditJobDialogProps) =
             </select>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Actual Hours Worked
-              </label>
-              <input
-                type="number"
-                step="0.25"
-                min="0"
-                value={formData.actualDurationHours}
-                onChange={(e) => setFormData({ ...formData, actualDurationHours: e.target.value })}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                placeholder={`Est: ${job.estimated_duration_hours}h`}
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Actual Total Amount ($)
-              </label>
-              <input
-                type="number"
-                step="0.01"
-                min="0"
-                value={formData.actualTotal}
-                onChange={(e) => setFormData({ ...formData, actualTotal: e.target.value })}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                placeholder={`Est: $${estimatedTotal.toFixed(2)}`}
-              />
-            </div>
-          </div>
-
-          {formData.actualDurationHours && (
-            <div className="bg-blue-50 p-3 rounded-lg">
-              <div className="text-sm text-gray-600">
-                <div>Rate-based calculation: ${calculatedActual.toFixed(2)}</div>
-                {formData.actualTotal && parseFloat(formData.actualTotal) !== calculatedActual && (
-                  <div className="text-orange-600 mt-1">
-                    ⚠️ Actual total differs from rate calculation
-                  </div>
-                )}
+          {formData.status === 'completed' && (
+            <>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Actual Hours Worked
+                </label>
+                <input
+                  type="number"
+                  step="0.25"
+                  min="0"
+                  value={formData.actualHours}
+                  onChange={(e) => setFormData({ ...formData, actualHours: e.target.value })}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="Enter hours worked"
+                  required
+                />
               </div>
-            </div>
+
+              {formData.actualHours && (
+                <div className="bg-blue-50 p-3 rounded-lg">
+                  <div className="text-sm text-gray-600">
+                    <div>Rate calculation: ${totalHourlyRate}/hour × {formData.actualHours} hours = ${calculatedTotal.toFixed(2)}</div>
+                    <div className="text-xs text-gray-500 mt-1">
+                      (${job.hourly_rate}/mover × {job.movers_needed} movers × {formData.actualHours} hours)
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Final Total Amount ($)
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={formData.actualTotal}
+                  onChange={(e) => setFormData({ ...formData, actualTotal: e.target.value })}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder={`Calculated: $${calculatedTotal.toFixed(2)}`}
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Leave empty to use calculated amount based on hours
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Customer Satisfaction (1-5)
+                </label>
+                <select
+                  value={formData.customerSatisfaction}
+                  onChange={(e) => setFormData({ ...formData, customerSatisfaction: e.target.value })}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="">Not rated</option>
+                  <option value="1">1 - Very Poor</option>
+                  <option value="2">2 - Poor</option>
+                  <option value="3">3 - Average</option>
+                  <option value="4">4 - Good</option>
+                  <option value="5">5 - Excellent</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Completion Notes
+                </label>
+                <textarea
+                  value={formData.completionNotes}
+                  onChange={(e) => setFormData({ ...formData, completionNotes: e.target.value })}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  rows={3}
+                  placeholder="Any notes about the job completion..."
+                />
+              </div>
+            </>
           )}
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Customer Satisfaction (1-5)
-            </label>
-            <select
-              value={formData.customerSatisfaction}
-              onChange={(e) => setFormData({ ...formData, customerSatisfaction: e.target.value })}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            >
-              <option value="">Not rated</option>
-              <option value="1">1 - Very Poor</option>
-              <option value="2">2 - Poor</option>
-              <option value="3">3 - Average</option>
-              <option value="4">4 - Good</option>
-              <option value="5">5 - Excellent</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Completion Notes
-            </label>
-            <textarea
-              value={formData.completionNotes}
-              onChange={(e) => setFormData({ ...formData, completionNotes: e.target.value })}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              rows={3}
-              placeholder="Any notes about the job completion..."
-            />
-          </div>
 
           <div className="space-y-3">
             <div className="flex items-center space-x-2">

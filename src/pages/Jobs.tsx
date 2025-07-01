@@ -3,14 +3,14 @@ import React, { useState } from 'react';
 import { StatusBadge } from '../components/StatusBadge';
 import { ScheduleJobDialog } from '../components/ScheduleJobDialog';
 import { EditJobDialog } from '../components/EditJobDialog';
-import { Plus, Calendar, MapPin, Users, Edit, DollarSign, Phone, Mail } from 'lucide-react';
+import { Plus, Calendar, MapPin, Users, Edit, DollarSign, Phone, Mail, CheckCircle } from 'lucide-react';
 import { useJobs, Job } from '@/hooks/useJobs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 
 export const Jobs = () => {
-  const { jobs, isLoading } = useJobs();
+  const { jobs, isLoading, updateJob } = useJobs();
   const [isScheduleDialogOpen, setIsScheduleDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
@@ -18,6 +18,24 @@ export const Jobs = () => {
   const handleEditJob = (job: Job) => {
     setSelectedJob(job);
     setIsEditDialogOpen(true);
+  };
+
+  const handleMarkDone = (job: Job) => {
+    const hours = prompt('Enter total hours worked:');
+    if (hours && !isNaN(parseFloat(hours))) {
+      const actualHours = parseFloat(hours);
+      const totalHourlyRate = job.hourly_rate * job.movers_needed;
+      const calculatedTotal = totalHourlyRate * actualHours;
+      
+      updateJob({ 
+        id: job.id, 
+        updates: { 
+          status: 'completed',
+          actual_duration_hours: actualHours,
+          actual_total: calculatedTotal
+        } 
+      });
+    }
   };
 
   const handleCall = (phone: string) => {
@@ -32,7 +50,7 @@ export const Jobs = () => {
   const totalRevenue = jobs
     .filter(job => job.status === 'completed' && job.is_paid)
     .reduce((sum, job) => {
-      const jobRevenue = job.actual_total || (job.hourly_rate * (job.actual_duration_hours || 0));
+      const jobRevenue = job.actual_total || (job.hourly_rate * job.movers_needed * (job.actual_duration_hours || 0));
       return sum + jobRevenue;
     }, 0);
 
@@ -43,7 +61,7 @@ export const Jobs = () => {
   const unpaidRevenue = jobs
     .filter(job => job.status === 'completed' && !job.is_paid)
     .reduce((sum, job) => {
-      const jobRevenue = job.actual_total || (job.hourly_rate * (job.actual_duration_hours || 0));
+      const jobRevenue = job.actual_total || (job.hourly_rate * job.movers_needed * (job.actual_duration_hours || 0));
       return sum + jobRevenue;
     }, 0);
 
@@ -123,8 +141,9 @@ export const Jobs = () => {
       {/* Jobs Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
         {jobs.map((job) => {
-          const jobTotal = job.actual_total || (job.hourly_rate * (job.actual_duration_hours || 0));
-          const isEstimated = !job.actual_total && job.actual_duration_hours;
+          const totalHourlyRate = job.hourly_rate * job.movers_needed;
+          const jobTotal = job.actual_total || (totalHourlyRate * (job.actual_duration_hours || 0));
+          const isCompleted = job.status === 'completed';
           
           return (
             <Card key={job.id} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-lg transition-shadow">
@@ -184,39 +203,28 @@ export const Jobs = () => {
                     <span className="font-medium">${job.hourly_rate}/hr</span>
                   </div>
                   <div className="flex justify-between items-center text-sm mt-1">
-                    <span className="text-gray-600">Total rate:</span>
-                    <span className="font-medium">${(job.hourly_rate * job.movers_needed)}/hr</span>
+                    <span className="text-gray-600">Total hourly rate:</span>
+                    <span className="font-medium">${totalHourlyRate}/hr</span>
                   </div>
-                  <div className="flex justify-between items-center text-sm mt-1">
-                    <span className="text-gray-600">Hours Worked:</span>
-                    <span className="font-medium">
-                      {job.actual_duration_hours || 0}h
-                      {job.actual_duration_hours !== job.estimated_duration_hours && (
-                        <span className="text-gray-400 ml-1">(est: {job.estimated_duration_hours}h)</span>
-                      )}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center text-sm mt-1">
-                    <span className="text-gray-600">Total Cost:</span>
-                    <div className="text-right">
-                      <span className={`font-semibold ${job.is_paid ? 'text-green-600' : 'text-orange-600'}`}>
-                        ${jobTotal.toLocaleString()}
-                      </span>
-                      {isEstimated && (
-                        <span className="block text-xs text-gray-400">
-                          (rate-based)
-                        </span>
-                      )}
-                      {job.actual_total && (
-                        <span className="block text-xs text-blue-600">
-                          (actual amount)
-                        </span>
-                      )}
+                  {isCompleted && job.actual_duration_hours && (
+                    <div className="flex justify-between items-center text-sm mt-1">
+                      <span className="text-gray-600">Hours worked:</span>
+                      <span className="font-medium">{job.actual_duration_hours}h</span>
                     </div>
-                  </div>
+                  )}
+                  {isCompleted && (
+                    <div className="flex justify-between items-center text-sm mt-1">
+                      <span className="text-gray-600">Total cost:</span>
+                      <div className="text-right">
+                        <span className={`font-semibold ${job.is_paid ? 'text-green-600' : 'text-orange-600'}`}>
+                          ${jobTotal.toLocaleString()}
+                        </span>
+                      </div>
+                    </div>
+                  )}
                   {job.payment_method && job.is_paid && (
                     <div className="flex justify-between items-center text-sm mt-1">
-                      <span className="text-gray-600">Payment Method:</span>
+                      <span className="text-gray-600">Payment method:</span>
                       <span className="font-medium text-green-600 capitalize">
                         {job.payment_method.replace('_', ' ')}
                       </span>
@@ -231,6 +239,16 @@ export const Jobs = () => {
                 )}
 
                 <div className="mt-4 flex gap-2">
+                  {job.status !== 'completed' && (
+                    <Button 
+                      onClick={() => handleMarkDone(job)}
+                      variant="outline"
+                      className="flex-1 hover:bg-green-50 hover:border-green-300 text-green-600"
+                    >
+                      <CheckCircle className="h-3 w-3 mr-2" />
+                      Mark Done
+                    </Button>
+                  )}
                   <Button 
                     onClick={() => handleEditJob(job)}
                     variant="outline"
