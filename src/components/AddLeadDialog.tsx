@@ -17,7 +17,7 @@ export const AddLeadDialog: React.FC<AddLeadDialogProps> = ({ open, onOpenChange
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [source, setSource] = useState('');
-  const [estimatedValue, setEstimatedValue] = useState('');
+  const [leadCost, setLeadCost] = useState('');
   const { addLead, isAddingLead } = useLeads();
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -33,7 +33,7 @@ export const AddLeadDialog: React.FC<AddLeadDialogProps> = ({ open, onOpenChange
       email: email || null,
       source: source as 'website' | 'referral' | 'google_ads' | 'facebook' | 'phone' | 'walk_in' | 'other',
       status: 'new' as const,
-      estimated_value: estimatedValue ? parseFloat(estimatedValue) : null,
+      lead_cost: leadCost ? parseFloat(leadCost) : null,
       notes: null,
       follow_up_date: null,
       assigned_to: null
@@ -47,7 +47,7 @@ export const AddLeadDialog: React.FC<AddLeadDialogProps> = ({ open, onOpenChange
     setPhone('');
     setEmail('');
     setSource('');
-    setEstimatedValue('');
+    setLeadCost('');
     onOpenChange(false);
   };
 
@@ -103,15 +103,18 @@ export const AddLeadDialog: React.FC<AddLeadDialogProps> = ({ open, onOpenChange
             </Select>
           </div>
           <div>
-            <Label htmlFor="estimatedValue">Estimated Value ($)</Label>
+            <Label htmlFor="leadCost">Lead Generation Cost ($)</Label>
             <Input
-              id="estimatedValue"
+              id="leadCost"
               type="number"
               step="0.01"
-              value={estimatedValue}
-              onChange={(e) => setEstimatedValue(e.target.value)}
+              value={leadCost}
+              onChange={(e) => setLeadCost(e.target.value)}
               placeholder="0.00"
             />
+            <p className="text-xs text-gray-500 mt-1">
+              How much did it cost you to generate this lead?
+            </p>
           </div>
           <div className="flex gap-2 pt-4">
             <Button type="submit" className="flex-1" disabled={isAddingLead}>

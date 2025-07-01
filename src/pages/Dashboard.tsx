@@ -47,7 +47,7 @@ export const Dashboard = () => {
   const [showAddLead, setShowAddLead] = useState(false);
   const [showAddTimeEntry, setShowAddTimeEntry] = useState(false);
 
-  // Calculate key metrics
+  // Calculate key metrics with real financial data
   const activeEmployees = employees.filter(emp => emp.status === 'active').length;
   const activeJobs = jobs.filter(job => job.status === 'in_progress').length;
   const pendingLeads = leads.filter(lead => lead.status === 'new').length;
@@ -62,9 +62,33 @@ export const Dashboard = () => {
     })
     .reduce((total, entry) => total + (entry.regular_hours || 0) + (entry.overtime_hours || 0), 0);
 
-  // Calculate revenue estimates
-  const averageHourlyRate = employees.reduce((sum, emp) => sum + emp.hourly_wage, 0) / (employees.length || 1);
-  const estimatedWeeklyRevenue = thisWeekHours * averageHourlyRate;
+  // Calculate REAL revenue (only paid jobs)
+  const realRevenue = jobs
+    .filter(job => job.status === 'completed' && job.is_paid)
+    .reduce((sum, job) => {
+      const jobRevenue = job.actual_total || (job.hourly_rate * job.movers_needed * (job.actual_duration_hours || 0));
+      return sum + jobRevenue;
+    }, 0);
+
+  // Calculate unpaid revenue (completed but not paid)
+  const unpaidRevenue = jobs
+    .filter(job => job.status === 'completed' && !job.is_paid)
+    .reduce((sum, job) => {
+      const jobRevenue = job.actual_total || (job.hourly_rate * job.movers_needed * (job.actual_duration_hours || 0));
+      return sum + jobRevenue;
+    }, 0);
+
+  // Calculate total lead costs
+  const totalLeadCosts = leads.reduce((sum, lead) => sum + (lead.lead_cost || 0), 0);
+
+  // Calculate payroll costs (from paid time entries)
+  const payrollCosts = timeEntries
+    .filter(entry => entry.is_paid)
+    .reduce((sum, entry) => sum + (entry.total_pay || 0), 0);
+
+  // Calculate profit (real revenue - payroll - lead costs)
+  const grossProfit = realRevenue - payrollCosts - totalLeadCosts;
+  const profitMargin = realRevenue > 0 ? (grossProfit / realRevenue) * 100 : 0;
 
   // Job status distribution
   const jobStatusCounts = {
@@ -132,10 +156,10 @@ export const Dashboard = () => {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-purple-800 bg-clip-text text-transparent">
-            Dashboard
+            Financial Dashboard
           </h1>
           <p className="text-gray-600 mt-2">
-            Welcome back! Here's what's happening with your business today.
+            Real-time business performance and financial insights
           </p>
         </div>
         <div className="flex gap-3">
@@ -150,8 +174,78 @@ export const Dashboard = () => {
         </div>
       </div>
 
-      {/* Key Metrics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      {/* Key Financial Metrics Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+        <Card className="border-l-4 border-l-green-500 hover:shadow-lg transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-gray-600">Paid Revenue</CardTitle>
+            <DollarSign className="h-5 w-5 text-green-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold text-green-700">${realRevenue.toLocaleString()}</div>
+            <p className="text-xs text-gray-500 mt-1">
+              From {jobs.filter(j => j.is_paid).length} paid jobs
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-l-4 border-l-red-500 hover:shadow-lg transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-gray-600">Unpaid Revenue</CardTitle>
+            <AlertTriangle className="h-5 w-5 text-red-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold text-red-700">${unpaidRevenue.toLocaleString()}</div>
+            <p className="text-xs text-gray-500 mt-1">
+              From {jobs.filter(j => j.status === 'completed' && !j.is_paid).length} unpaid jobs
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-l-4 border-l-purple-500 hover:shadow-lg transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-gray-600">Gross Profit</CardTitle>
+            <TrendingUp className="h-5 w-5 text-purple-600" />
+          </CardHeader>
+          <CardContent>
+            <div className={`text-3xl font-bold ${grossProfit >= 0 ? 'text-green-700' : 'text-red-700'}`}>
+              ${grossProfit.toLocaleString()}
+            </div>
+            <p className="text-xs text-gray-500 mt-1">
+              {profitMargin.toFixed(1)}% margin
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-l-4 border-l-yellow-500 hover:shadow-lg transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-gray-600">Lead Costs</CardTitle>
+            <Users className="h-5 w-5 text-yellow-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold text-yellow-700">${totalLeadCosts.toLocaleString()}</div>
+            <p className="text-xs text-gray-500 mt-1">
+              {leads.length} total leads
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-l-4 border-l-blue-500 hover:shadow-lg transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-gray-600">Payroll Paid</CardTitle>
+            <Clock className="h-5 w-5 text-blue-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold text-blue-700">${payrollCosts.toLocaleString()}</div>
+            <p className="text-xs text-gray-500 mt-1">
+              {thisWeekHours.toFixed(1)}h this week
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Business Overview */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <Card className="border-l-4 border-l-purple-500 hover:shadow-lg transition-shadow">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-gray-600">Active Employees</CardTitle>
@@ -178,19 +272,6 @@ export const Dashboard = () => {
           </CardContent>
         </Card>
 
-        <Card className="border-l-4 border-l-green-500 hover:shadow-lg transition-shadow">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">This Week Hours</CardTitle>
-            <Clock className="h-5 w-5 text-green-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-green-700">{thisWeekHours.toFixed(1)}</div>
-            <p className="text-xs text-gray-500 mt-1">
-              ${estimatedWeeklyRevenue.toFixed(0)} estimated revenue
-            </p>
-          </CardContent>
-        </Card>
-
         <Card className="border-l-4 border-l-yellow-500 hover:shadow-lg transition-shadow">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-gray-600">Pending Leads</CardTitle>
@@ -200,6 +281,21 @@ export const Dashboard = () => {
             <div className="text-3xl font-bold text-yellow-700">{pendingLeads}</div>
             <p className="text-xs text-gray-500 mt-1">
               {conversionRate.toFixed(1)}% conversion rate
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-l-4 border-l-green-500 hover:shadow-lg transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-gray-600">ROI</CardTitle>
+            <CheckCircle className="h-5 w-5 text-green-600" />
+          </CardHeader>
+          <CardContent>
+            <div className={`text-3xl font-bold ${grossProfit >= totalLeadCosts ? 'text-green-700' : 'text-red-700'}`}>
+              {totalLeadCosts > 0 ? ((grossProfit / totalLeadCosts) * 100).toFixed(0) : '0'}%
+            </div>
+            <p className="text-xs text-gray-500 mt-1">
+              Return on marketing investment
             </p>
           </CardContent>
         </Card>
@@ -399,19 +495,19 @@ export const Dashboard = () => {
               <CardContent className="space-y-4">
                 <div className="text-center">
                   <p className="text-2xl font-bold text-green-600">
-                    ${estimatedWeeklyRevenue.toFixed(0)}
+                    ${realRevenue.toLocaleString()}
                   </p>
                   <p className="text-sm text-gray-500">Estimated weekly revenue</p>
                 </div>
                 
                 <div className="pt-4 border-t">
                   <div className="flex justify-between text-sm">
-                    <span>Average hourly rate:</span>
-                    <span className="font-medium">${averageHourlyRate.toFixed(0)}/hr</span>
+                    <span>Total lead costs:</span>
+                    <span className="font-medium">${totalLeadCosts.toFixed(0)}</span>
                   </div>
                   <div className="flex justify-between text-sm mt-2">
-                    <span>Total hours this week:</span>
-                    <span className="font-medium">{thisWeekHours.toFixed(1)}h</span>
+                    <span>Total payroll costs:</span>
+                    <span className="font-medium">${payrollCosts.toFixed(0)}</span>
                   </div>
                 </div>
               </CardContent>

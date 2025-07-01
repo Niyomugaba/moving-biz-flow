@@ -75,7 +75,7 @@ export const LeadContactCard = ({ lead, children }: LeadContactCardProps) => {
 
             <div className="flex items-center text-sm text-gray-600">
               <DollarSign className="h-4 w-4 mr-2" />
-              Estimated Value: ${(lead.estimated_value || 0).toLocaleString()}
+              Lead Cost: ${(lead.lead_cost || 0).toLocaleString()}
             </div>
 
             {lead.notes && (
