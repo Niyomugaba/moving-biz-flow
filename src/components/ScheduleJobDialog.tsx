@@ -1,8 +1,9 @@
-
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import { Button } from './ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { useJobs } from '@/hooks/useJobs';
+import { useClients } from '@/hooks/useClients';
 import { useIsMobile } from '@/hooks/use-mobile';
 
 interface ScheduleJobDialogProps {
@@ -12,8 +13,10 @@ interface ScheduleJobDialogProps {
 
 export const ScheduleJobDialog = ({ open, onOpenChange }: ScheduleJobDialogProps) => {
   const { addJob, isAddingJob } = useJobs();
+  const { clients } = useClients();
   const isMobile = useIsMobile();
   const [formData, setFormData] = useState({
+    selectedClientId: '',
     clientName: '',
     clientPhone: '',
     clientEmail: '',
@@ -30,6 +33,28 @@ export const ScheduleJobDialog = ({ open, onOpenChange }: ScheduleJobDialogProps
     estimatedDuration: '4'
   });
 
+  const handleClientSelect = (clientId: string) => {
+    const selectedClient = clients.find(c => c.id === clientId);
+    if (selectedClient) {
+      setFormData({
+        ...formData,
+        selectedClientId: clientId,
+        clientName: selectedClient.name,
+        clientPhone: selectedClient.phone,
+        clientEmail: selectedClient.email || '',
+      });
+    } else {
+      // "new" client selected
+      setFormData({
+        ...formData,
+        selectedClientId: '',
+        clientName: '',
+        clientPhone: '',
+        clientEmail: '',
+      });
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -40,6 +65,7 @@ export const ScheduleJobDialog = ({ open, onOpenChange }: ScheduleJobDialogProps
       const estimatedTotal = hourlyRate * moversNeeded * estimatedDuration;
 
       const jobData = {
+        client_id: formData.selectedClientId || null,
         client_name: formData.clientName,
         client_phone: formData.clientPhone,
         client_email: formData.clientEmail || null,
@@ -64,6 +90,7 @@ export const ScheduleJobDialog = ({ open, onOpenChange }: ScheduleJobDialogProps
 
       // Reset form
       setFormData({
+        selectedClientId: '',
         clientName: '',
         clientPhone: '',
         clientEmail: '',
@@ -101,6 +128,25 @@ export const ScheduleJobDialog = ({ open, onOpenChange }: ScheduleJobDialogProps
           <DialogTitle>Schedule New Job</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Select Client
+            </label>
+            <Select value={formData.selectedClientId} onValueChange={handleClientSelect}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select existing client or create new..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="new">+ Create New Client</SelectItem>
+                {clients.map((client) => (
+                  <SelectItem key={client.id} value={client.id}>
+                    {client.name} - {client.phone}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -113,6 +159,7 @@ export const ScheduleJobDialog = ({ open, onOpenChange }: ScheduleJobDialogProps
                 onChange={(e) => setFormData({ ...formData, clientName: e.target.value })}
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 placeholder="Enter client name"
+                disabled={!!formData.selectedClientId}
               />
             </div>
             
@@ -127,6 +174,7 @@ export const ScheduleJobDialog = ({ open, onOpenChange }: ScheduleJobDialogProps
                 onChange={(e) => setFormData({ ...formData, clientPhone: e.target.value })}
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 placeholder="(555) 123-4567"
+                disabled={!!formData.selectedClientId}
               />
             </div>
           </div>
@@ -141,6 +189,7 @@ export const ScheduleJobDialog = ({ open, onOpenChange }: ScheduleJobDialogProps
               onChange={(e) => setFormData({ ...formData, clientEmail: e.target.value })}
               className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               placeholder="client@example.com"
+              disabled={!!formData.selectedClientId}
             />
           </div>
 

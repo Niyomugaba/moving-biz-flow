@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -59,6 +58,7 @@ export const useJobs = () => {
 
   const addJobMutation = useMutation({
     mutationFn: async (jobData: {
+      client_id?: string | null;
       client_name: string;
       client_phone: string;
       client_email?: string | null;
@@ -72,7 +72,6 @@ export const useJobs = () => {
       movers_needed: number;
       truck_size?: string | null;
       special_requirements?: string | null;
-      client_id?: string | null;
       is_paid?: boolean;
       payment_method?: string | null;
       paid_at?: string | null;
@@ -80,6 +79,7 @@ export const useJobs = () => {
       console.log('Creating job with data:', jobData);
       
       const insertData = {
+        client_id: jobData.client_id,
         client_name: jobData.client_name,
         client_phone: jobData.client_phone,
         client_email: jobData.client_email,
@@ -93,7 +93,6 @@ export const useJobs = () => {
         movers_needed: jobData.movers_needed,
         truck_size: jobData.truck_size,
         special_requirements: jobData.special_requirements,
-        client_id: jobData.client_id,
         is_paid: jobData.is_paid || false,
         payment_method: jobData.payment_method,
         paid_at: jobData.paid_at,
