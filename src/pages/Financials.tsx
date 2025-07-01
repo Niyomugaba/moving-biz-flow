@@ -1,215 +1,267 @@
 
-import React from 'react';
-import { DollarSign, TrendingUp, Clock, Users, Calendar, CheckCircle } from 'lucide-react';
-import { useJobs } from '@/hooks/useJobs';
-import { useEmployees } from '@/hooks/useEmployees';
-import { useTimeEntries } from '@/hooks/useTimeEntries';
-import { useLeads } from '@/hooks/useLeads';
+import React, { useMemo } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useJobs } from "@/hooks/useJobs";
+import { useLeads } from "@/hooks/useLeads";
+import { useTimeEntries } from "@/hooks/useTimeEntries";
+import { useEmployees } from "@/hooks/useEmployees";
+import { DollarSign, TrendingUp, TrendingDown, Users, Calendar, Target } from "lucide-react";
 
 export const Financials = () => {
   const { jobs } = useJobs();
-  const { employees } = useEmployees();
-  const { timeEntries } = useTimeEntries();
   const { leads } = useLeads();
+  const { timeEntries } = useTimeEntries();
+  const { employees } = useEmployees();
 
-  // Financial calculations using actual totals when available
-  const totalRevenue = jobs
-    .filter(job => job.status === 'completed' && job.is_paid)
-    .reduce((sum, job) => {
-      // Use actual_total if available, otherwise calculate from hours and rate
-      const jobRevenue = job.actual_total || (job.hourly_rate * (job.actual_duration_hours || 0));
-      return sum + jobRevenue;
-    }, 0);
+  const financialMetrics = useMemo(() => {
+    // Calculate real revenue (only paid jobs)
+    const paidRevenue = jobs
+      .filter(job => job.status === 'completed' && job.is_paid)
+      .reduce((sum, job) => {
+        const jobRevenue = job.actual_total || (job.hourly_rate * job.movers_needed * (job.actual_duration_hours || 0));
+        return sum + jobRevenue;
+      }, 0);
 
-  const pendingPayments = jobs
-    .filter(job => job.status === 'completed' && !job.is_paid)
-    .reduce((sum, job) => {
-      const jobRevenue = job.actual_total || (job.hourly_rate * (job.actual_duration_hours || 0));
-      return sum + jobRevenue;
-    }, 0);
+    // Calculate unpaid revenue
+    const unpaidRevenue = jobs
+      .filter(job => job.status === 'completed' && !job.is_paid)
+      .reduce((sum, job) => {
+        const jobRevenue = job.actual_total || (job.hourly_rate * job.movers_needed * (job.actual_duration_hours || 0));
+        return sum + jobRevenue;
+      }, 0);
 
-  const monthlyPayroll = timeEntries
-    .filter(entry => {
-      const entryDate = new Date(entry.entry_date);
-      const currentDate = new Date();
-      return entryDate.getMonth() === currentDate.getMonth() && 
-             entryDate.getFullYear() === currentDate.getFullYear();
-    })
-    .reduce((sum, entry) => sum + (entry.hourly_rate * (entry.regular_hours || 0)), 0);
+    // Calculate total lead costs
+    const totalLeadCosts = leads.reduce((sum, lead) => sum + (lead.lead_cost || 0), 0);
 
-  const totalLeadValue = leads.reduce((sum, lead) => sum + (lead.estimated_value || 0), 0);
+    // Calculate payroll costs
+    const totalPayroll = timeEntries
+      .filter(entry => entry.is_paid)
+      .reduce((sum, entry) => sum + (entry.total_pay || 0), 0);
 
-  const unpaidPayroll = timeEntries
-    .filter(entry => !entry.is_paid)
-    .reduce((sum, entry) => sum + (entry.hourly_rate * (entry.regular_hours || 0)), 0);
+    // Calculate gross profit
+    const grossProfit = paidRevenue - totalPayroll - totalLeadCosts;
+    const profitMargin = paidRevenue > 0 ? (grossProfit / paidRevenue) * 100 : 0;
 
-  const netProfit = totalRevenue - monthlyPayroll;
-  const profitMargin = totalRevenue > 0 ? ((netProfit / totalRevenue) * 100) : 0;
+    // Calculate ROI
+    const roi = totalLeadCosts > 0 ? ((grossProfit / totalLeadCosts) * 100) : 0;
 
-  // Recent transactions with actual amounts
-  const recentJobs = jobs
-    .filter(job => job.status === 'completed')
-    .sort((a, b) => new Date(b.job_date).getTime() - new Date(a.job_date).getTime())
-    .slice(0, 10);
+    // Lead conversion metrics
+    const convertedLeads = leads.filter(lead => lead.status === 'converted').length;
+    const conversionRate = leads.length > 0 ? (convertedLeads / leads.length) * 100 : 0;
+
+    return {
+      paidRevenue,
+      unpaidRevenue,
+      totalRevenue: paidRevenue + unpaidRevenue,
+      totalLeadCosts,
+      totalPayroll,
+      grossProfit,
+      profitMargin,
+      roi,
+      conversionRate,
+      convertedLeads
+    };
+  }, [jobs, leads, timeEntries]);
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900">Financial Overview</h1>
-        <p className="text-gray-600 mt-2">Track revenue, expenses, and financial performance</p>
-      </div>
-
-      {/* Key Financial Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-white p-6 rounded-lg shadow-sm border">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Total Revenue</p>
-              <p className="text-2xl font-bold text-green-600">${totalRevenue.toLocaleString()}</p>
-            </div>
-            <DollarSign className="h-8 w-8 text-green-500" />
-          </div>
-        </div>
-
-        <div className="bg-white p-6 rounded-lg shadow-sm border">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Pending Payments</p>
-              <p className="text-2xl font-bold text-orange-600">${pendingPayments.toLocaleString()}</p>
-            </div>
-            <Clock className="h-8 w-8 text-orange-500" />
-          </div>
-        </div>
-
-        <div className="bg-white p-6 rounded-lg shadow-sm border">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Monthly Payroll</p>
-              <p className="text-2xl font-bold text-blue-600">${monthlyPayroll.toLocaleString()}</p>
-            </div>
-            <Users className="h-8 w-8 text-blue-500" />
-          </div>
-        </div>
-
-        <div className="bg-white p-6 rounded-lg shadow-sm border">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Net Profit</p>
-              <p className={`text-2xl font-bold ${netProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                ${netProfit.toLocaleString()}
-              </p>
-            </div>
-            <TrendingUp className={`h-8 w-8 ${netProfit >= 0 ? 'text-green-500' : 'text-red-500'}`} />
-          </div>
+    <div className="p-6 space-y-8 bg-gradient-to-br from-purple-25 to-gold-25 min-h-screen">
+      {/* Header */}
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-purple-800 bg-clip-text text-transparent">
+            Financial Overview
+          </h1>
+          <p className="text-gray-600 mt-2">
+            Comprehensive financial analysis and business performance metrics
+          </p>
         </div>
       </div>
 
-      {/* Additional Metrics */}
+      {/* Revenue Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white p-6 rounded-lg shadow-sm border">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Pipeline Value</p>
-              <p className="text-2xl font-bold text-purple-600">${totalLeadValue.toLocaleString()}</p>
+        <Card className="border-l-4 border-l-green-500 hover:shadow-lg transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-gray-600">Paid Revenue</CardTitle>
+            <DollarSign className="h-5 w-5 text-green-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold text-green-700">
+              ${financialMetrics.paidRevenue.toLocaleString()}
             </div>
-            <Calendar className="h-8 w-8 text-purple-500" />
-          </div>
-        </div>
+            <p className="text-xs text-gray-500 mt-1">
+              Money in the bank
+            </p>
+          </CardContent>
+        </Card>
 
-        <div className="bg-white p-6 rounded-lg shadow-sm border">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Unpaid Payroll</p>
-              <p className="text-2xl font-bold text-red-600">${unpaidPayroll.toLocaleString()}</p>
+        <Card className="border-l-4 border-l-orange-500 hover:shadow-lg transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-gray-600">Unpaid Revenue</CardTitle>
+            <Calendar className="h-5 w-5 text-orange-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold text-orange-700">
+              ${financialMetrics.unpaidRevenue.toLocaleString()}
             </div>
-            <Clock className="h-8 w-8 text-red-500" />
-          </div>
-        </div>
+            <p className="text-xs text-gray-500 mt-1">
+              Outstanding invoices
+            </p>
+          </CardContent>
+        </Card>
 
-        <div className="bg-white p-6 rounded-lg shadow-sm border">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Profit Margin</p>
-              <p className={`text-2xl font-bold ${profitMargin >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                {profitMargin.toFixed(1)}%
-              </p>
+        <Card className="border-l-4 border-l-blue-500 hover:shadow-lg transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-gray-600">Total Revenue</CardTitle>
+            <TrendingUp className="h-5 w-5 text-blue-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold text-blue-700">
+              ${financialMetrics.totalRevenue.toLocaleString()}
             </div>
-            <CheckCircle className={`h-8 w-8 ${profitMargin >= 0 ? 'text-green-500' : 'text-red-500'}`} />
-          </div>
-        </div>
+            <p className="text-xs text-gray-500 mt-1">
+              Paid + Unpaid combined
+            </p>
+          </CardContent>
+        </Card>
       </div>
 
-      {/* Recent Transactions */}
-      <div className="bg-white rounded-lg shadow-sm border">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <h2 className="text-lg font-semibold text-gray-900">Recent Completed Jobs</h2>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Client</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hours</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rate</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {recentJobs.map((job) => {
-                const jobTotal = job.actual_total || (job.hourly_rate * (job.actual_duration_hours || 0));
-                const isActualAmount = !!job.actual_total;
-                
-                return (
-                  <tr key={job.id}>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div>
-                        <div className="text-sm font-medium text-gray-900">{job.client_name}</div>
-                        <div className="text-sm text-gray-500">{job.client_phone}</div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {job.job_date}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {job.actual_duration_hours || 0}h
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      ${job.hourly_rate}/hr
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      ${jobTotal.toLocaleString()}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        isActualAmount ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'
-                      }`}>
-                        {isActualAmount ? 'Actual' : 'Calculated'}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        job.is_paid ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                      }`}>
-                        {job.is_paid ? 'Paid' : 'Unpaid'}
-                      </span>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+      {/* Cost and Profit Analysis */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <Card className="border-l-4 border-l-red-500 hover:shadow-lg transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-gray-600">Lead Costs</CardTitle>
+            <Target className="h-5 w-5 text-red-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-red-700">
+              ${financialMetrics.totalLeadCosts.toLocaleString()}
+            </div>
+            <p className="text-xs text-gray-500 mt-1">
+              Marketing investment
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-l-4 border-l-purple-500 hover:shadow-lg transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-gray-600">Payroll Costs</CardTitle>
+            <Users className="h-5 w-5 text-purple-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-purple-700">
+              ${financialMetrics.totalPayroll.toLocaleString()}
+            </div>
+            <p className="text-xs text-gray-500 mt-1">
+              Employee wages paid
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className={`border-l-4 ${financialMetrics.grossProfit >= 0 ? 'border-l-green-500' : 'border-l-red-500'} hover:shadow-lg transition-shadow`}>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-gray-600">Gross Profit</CardTitle>
+            {financialMetrics.grossProfit >= 0 ? 
+              <TrendingUp className="h-5 w-5 text-green-600" /> : 
+              <TrendingDown className="h-5 w-5 text-red-600" />
+            }
+          </CardHeader>
+          <CardContent>
+            <div className={`text-2xl font-bold ${financialMetrics.grossProfit >= 0 ? 'text-green-700' : 'text-red-700'}`}>
+              ${financialMetrics.grossProfit.toLocaleString()}
+            </div>
+            <p className="text-xs text-gray-500 mt-1">
+              {financialMetrics.profitMargin.toFixed(1)}% margin
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className={`border-l-4 ${financialMetrics.roi >= 0 ? 'border-l-green-500' : 'border-l-red-500'} hover:shadow-lg transition-shadow`}>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-gray-600">ROI</CardTitle>
+            <DollarSign className={`h-5 w-5 ${financialMetrics.roi >= 0 ? 'text-green-600' : 'text-red-600'}`} />
+          </CardHeader>
+          <CardContent>
+            <div className={`text-2xl font-bold ${financialMetrics.roi >= 0 ? 'text-green-700' : 'text-red-700'}`}>
+              {financialMetrics.roi.toFixed(0)}%
+            </div>
+            <p className="text-xs text-gray-500 mt-1">
+              Return on marketing spend
+            </p>
+          </CardContent>
+        </Card>
       </div>
 
-      {recentJobs.length === 0 && (
-        <div className="text-center py-12">
-          <div className="text-gray-500 text-lg">No completed jobs yet</div>
-          <p className="text-gray-400 mt-2">Financial data will appear here once you complete some jobs</p>
-        </div>
-      )}
+      {/* Business Performance */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Revenue Breakdown</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-gray-600">Jobs Completed</span>
+                <span className="font-medium">
+                  {jobs.filter(j => j.status === 'completed').length}
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-gray-600">Jobs Paid</span>
+                <span className="font-medium text-green-600">
+                  {jobs.filter(j => j.is_paid).length}
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-gray-600">Average Job Value</span>
+                <span className="font-medium">
+                  ${jobs.length > 0 ? (financialMetrics.totalRevenue / jobs.length).toFixed(0) : '0'}
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-gray-600">Payment Rate</span>
+                <span className="font-medium">
+                  {jobs.filter(j => j.status === 'completed').length > 0 
+                    ? ((jobs.filter(j => j.is_paid).length / jobs.filter(j => j.status === 'completed').length) * 100).toFixed(1)
+                    : '0'
+                  }%
+                </span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Lead Performance</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-gray-600">Total Leads</span>
+                <span className="font-medium">{leads.length}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-gray-600">Converted Leads</span>
+                <span className="font-medium text-green-600">
+                  {financialMetrics.convertedLeads}
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-gray-600">Conversion Rate</span>
+                <span className="font-medium">
+                  {financialMetrics.conversionRate.toFixed(1)}%
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-gray-600">Cost Per Lead</span>
+                <span className="font-medium">
+                  ${leads.length > 0 ? (financialMetrics.totalLeadCosts / leads.length).toFixed(0) : '0'}
+                </span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 };

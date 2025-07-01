@@ -10,7 +10,7 @@ export interface Lead {
   email: string | null;
   source: 'website' | 'referral' | 'google_ads' | 'facebook' | 'phone' | 'walk_in' | 'other';
   status: 'new' | 'contacted' | 'quoted' | 'converted' | 'lost';
-  lead_cost: number | null; // Changed from estimated_value to lead_cost
+  lead_cost: number | null; // This represents the cost to generate the lead
   notes: string | null;
   follow_up_date: string | null;
   assigned_to: string | null;
@@ -27,13 +27,15 @@ export const useLeads = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('leads')
-        .select('*, estimated_value as lead_cost') // Map estimated_value to lead_cost
+        .select('*')
         .order('created_at', { ascending: false });
       
       if (error) throw error;
+      
+      // Map estimated_value from database to lead_cost for the interface
       return data.map(lead => ({
         ...lead,
-        lead_cost: lead.lead_cost
+        lead_cost: lead.estimated_value
       })) as Lead[];
     }
   });
@@ -44,8 +46,15 @@ export const useLeads = () => {
       const { data: leadResult, error: leadError } = await supabase
         .from('leads')
         .insert({
-          ...leadData,
-          estimated_value: leadData.lead_cost // Map lead_cost back to estimated_value for DB
+          name: leadData.name,
+          phone: leadData.phone,
+          email: leadData.email,
+          source: leadData.source,
+          status: leadData.status,
+          estimated_value: leadData.lead_cost, // Map lead_cost back to estimated_value for DB
+          notes: leadData.notes,
+          follow_up_date: leadData.follow_up_date,
+          assigned_to: leadData.assigned_to
         })
         .select()
         .single();
@@ -88,11 +97,13 @@ export const useLeads = () => {
 
   const updateLeadMutation = useMutation({
     mutationFn: async ({ id, updates }: { id: string; updates: Partial<Lead> }) => {
-      const dbUpdates = {
-        ...updates,
-        estimated_value: updates.lead_cost // Map lead_cost back to estimated_value for DB
-      };
-      delete dbUpdates.lead_cost;
+      const dbUpdates: any = { ...updates };
+      
+      // Map lead_cost back to estimated_value for database
+      if (updates.lead_cost !== undefined) {
+        dbUpdates.estimated_value = updates.lead_cost;
+        delete dbUpdates.lead_cost;
+      }
 
       const { data, error } = await supabase
         .from('leads')
