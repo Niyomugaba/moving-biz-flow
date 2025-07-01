@@ -36,7 +36,7 @@ import { AddTimeEntryDialog } from "@/components/AddTimeEntryDialog";
 
 export const Dashboard = () => {
   const navigate = useNavigate();
-  const { employees } = useEmployees();
+  const { employees, addEmployee } = useEmployees();
   const { jobs } = useJobs();
   const { leads } = useLeads();
   const { timeEntries } = useTimeEntries();
@@ -86,6 +86,17 @@ export const Dashboard = () => {
   const recentLeads = leads
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
     .slice(0, 5);
+
+  const handleAddEmployee = (employeeData: any) => {
+    addEmployee({
+      name: employeeData.name,
+      phone: employeeData.phone,
+      email: employeeData.email,
+      hourly_wage: parseFloat(employeeData.hourlyWage),
+      hire_date: employeeData.hireDate,
+      status: 'active'
+    });
+  };
 
   const handleExportData = () => {
     toast.success("Dashboard data exported successfully!");
@@ -459,7 +470,8 @@ export const Dashboard = () => {
       {/* Dialog Components */}
       <AddEmployeeDialog 
         open={showAddEmployee} 
-        onOpenChange={setShowAddEmployee} 
+        onOpenChange={setShowAddEmployee}
+        onAddEmployee={handleAddEmployee}
       />
       
       <ScheduleJobDialog 
