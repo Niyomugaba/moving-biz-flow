@@ -238,16 +238,19 @@ export type Database = {
           estimated_total: number
           hourly_rate: number
           id: string
+          invoice_number: string | null
           is_paid: boolean
           job_date: string
           job_number: string
           movers_needed: number
           origin_address: string
           paid_at: string | null
+          payment_due_date: string | null
           payment_method: string | null
           special_requirements: string | null
           start_time: string
           status: Database["public"]["Enums"]["job_status"]
+          tax_amount: number | null
           truck_size: string | null
           updated_at: string
         }
@@ -266,16 +269,19 @@ export type Database = {
           estimated_total: number
           hourly_rate: number
           id?: string
+          invoice_number?: string | null
           is_paid?: boolean
           job_date: string
           job_number?: string
           movers_needed?: number
           origin_address: string
           paid_at?: string | null
+          payment_due_date?: string | null
           payment_method?: string | null
           special_requirements?: string | null
           start_time: string
           status?: Database["public"]["Enums"]["job_status"]
+          tax_amount?: number | null
           truck_size?: string | null
           updated_at?: string
         }
@@ -294,16 +300,19 @@ export type Database = {
           estimated_total?: number
           hourly_rate?: number
           id?: string
+          invoice_number?: string | null
           is_paid?: boolean
           job_date?: string
           job_number?: string
           movers_needed?: number
           origin_address?: string
           paid_at?: string | null
+          payment_due_date?: string | null
           payment_method?: string | null
           special_requirements?: string | null
           start_time?: string
           status?: Database["public"]["Enums"]["job_status"]
+          tax_amount?: number | null
           truck_size?: string | null
           updated_at?: string
         }

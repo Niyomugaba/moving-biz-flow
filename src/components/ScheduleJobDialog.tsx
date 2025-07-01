@@ -23,53 +23,75 @@ export const ScheduleJobDialog = ({ open, onOpenChange }: ScheduleJobDialogProps
     startTime: '',
     hourlyRate: '',
     moversNeeded: '2',
+    truckSize: '',
     notes: '',
-    paid: false
+    isPaid: false,
+    paymentMethod: '',
+    estimatedDuration: '4'
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    const hourlyRate = parseFloat(formData.hourlyRate);
-    const moversNeeded = parseInt(formData.moversNeeded);
-    const estimatedDuration = 4; // Default 4 hours
-    const estimatedTotal = hourlyRate * moversNeeded * estimatedDuration;
+    try {
+      const hourlyRate = parseFloat(formData.hourlyRate);
+      const moversNeeded = parseInt(formData.moversNeeded);
+      const estimatedDuration = parseFloat(formData.estimatedDuration);
+      const estimatedTotal = hourlyRate * moversNeeded * estimatedDuration;
 
-    addJob({
-      client_name: formData.clientName,
-      client_phone: formData.clientPhone,
-      client_email: formData.clientEmail || null,
-      origin_address: formData.originAddress,
-      destination_address: formData.destinationAddress,
-      job_date: formData.jobDate,
-      start_time: formData.startTime,
-      hourly_rate: hourlyRate,
-      movers_needed: moversNeeded,
-      estimated_duration_hours: estimatedDuration,
-      estimated_total: estimatedTotal,
-      special_requirements: formData.notes || null
-    });
+      const jobData = {
+        client_name: formData.clientName,
+        client_phone: formData.clientPhone,
+        client_email: formData.clientEmail || null,
+        origin_address: formData.originAddress,
+        destination_address: formData.destinationAddress,
+        job_date: formData.jobDate,
+        start_time: formData.startTime,
+        hourly_rate: hourlyRate,
+        movers_needed: moversNeeded,
+        estimated_duration_hours: estimatedDuration,
+        estimated_total: estimatedTotal,
+        truck_size: formData.truckSize || null,
+        special_requirements: formData.notes || null,
+        is_paid: formData.isPaid,
+        payment_method: formData.isPaid ? formData.paymentMethod : null,
+        paid_at: formData.isPaid ? new Date().toISOString() : null
+      };
 
-    // Reset form
-    setFormData({
-      clientName: '',
-      clientPhone: '',
-      clientEmail: '',
-      originAddress: '',
-      destinationAddress: '',
-      jobDate: '',
-      startTime: '',
-      hourlyRate: '',
-      moversNeeded: '2',
-      notes: '',
-      paid: false
-    });
-    
-    onOpenChange(false);
+      console.log('Submitting job data:', jobData);
+      
+      await addJob(jobData);
+
+      // Reset form
+      setFormData({
+        clientName: '',
+        clientPhone: '',
+        clientEmail: '',
+        originAddress: '',
+        destinationAddress: '',
+        jobDate: '',
+        startTime: '',
+        hourlyRate: '',
+        moversNeeded: '2',
+        truckSize: '',
+        notes: '',
+        isPaid: false,
+        paymentMethod: '',
+        estimatedDuration: '4'
+      });
+      
+      onOpenChange(false);
+    } catch (error) {
+      console.error('Error creating job:', error);
+    }
   };
 
   const totalRate = formData.hourlyRate && formData.moversNeeded
     ? (parseFloat(formData.hourlyRate) * parseInt(formData.moversNeeded)).toFixed(2)
+    : '0.00';
+
+  const estimatedTotal = formData.hourlyRate && formData.moversNeeded && formData.estimatedDuration
+    ? (parseFloat(formData.hourlyRate) * parseInt(formData.moversNeeded) * parseFloat(formData.estimatedDuration)).toFixed(2)
     : '0.00';
 
   return (
@@ -178,7 +200,7 @@ export const ScheduleJobDialog = ({ open, onOpenChange }: ScheduleJobDialogProps
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Hourly Rate ($ per mover) *
@@ -207,6 +229,38 @@ export const ScheduleJobDialog = ({ open, onOpenChange }: ScheduleJobDialogProps
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Estimated Duration (hours) *
+              </label>
+              <input
+                type="number"
+                step="0.5"
+                min="0.5"
+                required
+                value={formData.estimatedDuration}
+                onChange={(e) => setFormData({ ...formData, estimatedDuration: e.target.value })}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="4"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Truck Size (Optional)
+            </label>
+            <select
+              value={formData.truckSize}
+              onChange={(e) => setFormData({ ...formData, truckSize: e.target.value })}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            >
+              <option value="">Select truck size...</option>
+              <option value="small">Small (10-14 ft)</option>
+              <option value="medium">Medium (16-20 ft)</option>
+              <option value="large">Large (22-26 ft)</option>
+            </select>
           </div>
 
           {/* Total Rate Display */}
@@ -215,9 +269,50 @@ export const ScheduleJobDialog = ({ open, onOpenChange }: ScheduleJobDialogProps
               <span className="text-lg font-medium text-gray-900">Total Hourly Rate:</span>
               <span className="text-2xl font-bold text-blue-600">${totalRate}/hour</span>
             </div>
+            <div className="flex justify-between items-center mt-2">
+              <span className="text-lg font-medium text-gray-900">Estimated Total:</span>
+              <span className="text-2xl font-bold text-green-600">${estimatedTotal}</span>
+            </div>
             <p className="text-sm text-gray-600 mt-1">
-              ${formData.hourlyRate || '0'} × {formData.moversNeeded} movers = ${totalRate}/hour
+              ${formData.hourlyRate || '0'} × {formData.moversNeeded} movers × {formData.estimatedDuration} hours = ${estimatedTotal}
             </p>
+          </div>
+
+          {/* Payment Section */}
+          <div className="border-t pt-4">
+            <div className="flex items-center space-x-2 mb-3">
+              <input
+                type="checkbox"
+                id="isPaid"
+                checked={formData.isPaid}
+                onChange={(e) => setFormData({ ...formData, isPaid: e.target.checked, paymentMethod: e.target.checked ? formData.paymentMethod : '' })}
+                className="rounded border-gray-300"
+              />
+              <label htmlFor="isPaid" className="text-sm font-medium text-gray-700">
+                Mark as paid
+              </label>
+            </div>
+
+            {formData.isPaid && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Payment Method *
+                </label>
+                <select
+                  required={formData.isPaid}
+                  value={formData.paymentMethod}
+                  onChange={(e) => setFormData({ ...formData, paymentMethod: e.target.value })}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="">Select payment method...</option>
+                  <option value="cash">Cash</option>
+                  <option value="check">Check</option>
+                  <option value="credit_card">Credit Card</option>
+                  <option value="bank_transfer">Bank Transfer</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+            )}
           </div>
 
           <div>
