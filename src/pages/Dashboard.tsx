@@ -42,7 +42,16 @@ export const Dashboard = () => {
   const { employees, addEmployee } = useEmployees();
   const { jobs } = useJobs();
   const { leads } = useLeads();
-  const { timeEntries, approveTimeEntry, rejectTimeEntry, updateTimeEntry, isApprovingTimeEntry, isRejectingTimeEntry } = useTimeEntries();
+  const { 
+    timeEntries, 
+    approveTimeEntry, 
+    rejectTimeEntry, 
+    updateTimeEntry, 
+    markAsPaid,
+    isApprovingTimeEntry, 
+    isRejectingTimeEntry,
+    isMarkingAsPaid 
+  } = useTimeEntries();
 
   // State for dialog controls
   const [showAddEmployee, setShowAddEmployee] = useState(false);
@@ -151,8 +160,8 @@ export const Dashboard = () => {
     approveTimeEntry(id);
   };
 
-  const handleRejectTimeEntry = (id: string) => {
-    rejectTimeEntry(id);
+  const handleRejectTimeEntry = (id: string, reason?: string) => {
+    rejectTimeEntry({ id, reason });
   };
 
   const handleResetTimeEntryStatus = (id: string) => {
@@ -164,6 +173,14 @@ export const Dashboard = () => {
         approved_by: null 
       } 
     });
+  };
+
+  const handleMarkAsPaid = (id: string) => {
+    markAsPaid(id);
+  };
+
+  const handleUpdateTimeEntry = (id: string, updates: Partial<TimeEntry>) => {
+    updateTimeEntry({ id, updates });
   };
 
   const handleExportData = () => {
@@ -387,8 +404,11 @@ export const Dashboard = () => {
                 onApprove={handleApproveTimeEntry}
                 onReject={handleRejectTimeEntry}
                 onResetStatus={handleResetTimeEntryStatus}
+                onMarkAsPaid={handleMarkAsPaid}
+                onUpdateEntry={handleUpdateTimeEntry}
                 isApproving={isApprovingTimeEntry}
                 isRejecting={isRejectingTimeEntry}
+                isMarkingAsPaid={isMarkingAsPaid}
               />
             ))}
           </div>

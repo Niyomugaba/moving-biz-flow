@@ -96,11 +96,14 @@ export const TimeLogs = () => {
   const paginatedEntries = filteredEntries.slice(startIndex, startIndex + itemsPerPage);
 
   const handleResetStatus = (id: string) => {
-    updateTimeEntry(id, { 
-      status: 'pending',
-      approved_at: null,
-      approved_by: null,
-      manager_notes: null
+    updateTimeEntry({ 
+      id, 
+      updates: { 
+        status: 'pending',
+        approved_at: null,
+        approved_by: null,
+        manager_notes: null
+      }
     });
   };
 
@@ -244,10 +247,10 @@ export const TimeLogs = () => {
               key={entry.id}
               entry={entry}
               onApprove={approveTimeEntry}
-              onReject={rejectTimeEntry}
+              onReject={(id: string, reason?: string) => rejectTimeEntry({ id, reason })}
               onResetStatus={handleResetStatus}
               onMarkAsPaid={markAsPaid}
-              onUpdateEntry={updateTimeEntry}
+              onUpdateEntry={(id: string, updates) => updateTimeEntry({ id, updates })}
               isApproving={isApprovingTimeEntry}
               isRejecting={isRejectingTimeEntry}
               isMarkingAsPaid={isMarkingAsPaid}
