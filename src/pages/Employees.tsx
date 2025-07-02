@@ -56,8 +56,7 @@ export const Employees = () => {
       status: 'active',
       hire_date: employeeData.hireDate,
       position: employeeData.position || 'mover',
-      department: employeeData.department || 'operations',
-      pin: employeeData.pin || null
+      department: employeeData.department || 'operations'
     });
   };
 
