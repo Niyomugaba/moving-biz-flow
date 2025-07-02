@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import { useEmployees } from '@/hooks/useEmployees';
 import { useJobs } from '@/hooks/useJobs';
-import { useTimeEntries } from '@/hooks/useTimeEntries';
+import { useTimeEntries, TimeEntry } from '@/hooks/useTimeEntries';
 import { AddTimeEntryDialog } from '@/components/AddTimeEntryDialog';
 import { TimeEntryCard } from '@/components/TimeEntryCard';
 import { FilterBar } from '@/components/FilterBar';
@@ -253,7 +253,7 @@ export const TimeLogs = () => {
               key={entry.id}
               entry={entry}
               onApprove={approveTimeEntry}
-              onReject={(id: string, reason?: string) => rejectTimeEntry({ id, reason })}
+              onReject={(id: string, reason?: string) => rejectTimeEntry(id)}
               onResetStatus={handleResetStatus}
               onMarkAsPaid={markAsPaid}
               onUpdateEntry={(id: string, updates) => updateTimeEntry({ id, updates })}
