@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -127,14 +126,12 @@ export const EmployeePortal = () => {
     return (
       <div className="min-h-screen bg-purple-600 flex items-center justify-center p-6">
         <div className="max-w-lg w-full">
-          {/* Header */}
+          {/* Header with Truck Icon for Employees */}
           <div className="text-center mb-8">
             <div className="flex justify-center mb-6">
-              <img 
-                src="/lovable-uploads/6319d82c-0bdd-465a-9925-c9401c11e50a.png" 
-                alt="Bantu Movers Logo" 
-                className="h-20 w-auto filter brightness-0 invert"
-              />
+              <div className="w-20 h-20 bg-yellow-500 rounded-full flex items-center justify-center">
+                <Truck className="w-12 h-12 text-purple-800" />
+              </div>
             </div>
             <h1 className="text-4xl font-bold text-white mb-3">Join Bantu Movers</h1>
             <p className="text-purple-100 text-lg">Complete the form below to request mover access</p>
@@ -154,14 +151,12 @@ export const EmployeePortal = () => {
   return (
     <div className="min-h-screen bg-purple-600 flex items-center justify-center p-6">
       <div className="max-w-md w-full">
-        {/* Header Section */}
+        {/* Header Section with Truck Icon for Mobile */}
         <div className="text-center mb-10">
           <div className="flex justify-center mb-6">
-            <img 
-              src="/lovable-uploads/6319d82c-0bdd-465a-9925-c9401c11e50a.png" 
-              alt="Bantu Movers Logo" 
-              className="h-24 w-auto filter brightness-0 invert"
-            />
+            <div className="w-24 h-24 bg-yellow-500 rounded-full flex items-center justify-center shadow-2xl">
+              <Truck className="w-14 h-14 text-purple-800" />
+            </div>
           </div>
           <h1 className="text-3xl font-bold text-white mb-2">Bantu Movers</h1>
           <p className="text-purple-100 text-xl font-medium">Mover Portal</p>
@@ -183,9 +178,9 @@ export const EmployeePortal = () => {
           </div>
           <div className="text-center p-4 bg-white/10 backdrop-blur-sm rounded-xl border border-white/20">
             <div className="w-12 h-12 bg-yellow-500 rounded-lg flex items-center justify-center mx-auto mb-3">
-              <Users className="w-6 h-6 text-purple-800" />
+              <Truck className="w-6 h-6 text-purple-800" />
             </div>
-            <p className="text-white text-sm font-medium">Team Hub</p>
+            <p className="text-white text-sm font-medium">Mobile Ready</p>
           </div>
         </div>
 
@@ -194,7 +189,7 @@ export const EmployeePortal = () => {
           <CardHeader className="text-center pb-6 bg-yellow-500 rounded-t-lg">
             <div className="flex justify-center mb-4">
               <div className="w-16 h-16 bg-purple-600 rounded-full flex items-center justify-center">
-                <LogIn className="w-8 h-8 text-white" />
+                <Truck className="w-8 h-8 text-white" />
               </div>
             </div>
             <CardTitle className="text-2xl font-bold text-purple-800">
