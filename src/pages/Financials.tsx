@@ -1,6 +1,8 @@
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { DateRangeFilter, DateRange } from "@/components/DateRangeFilter";
+import { filterDataByDateRange } from "@/hooks/useDateFilter";
 import { useJobs } from "@/hooks/useJobs";
 import { useLeads } from "@/hooks/useLeads";
 import { useTimeEntries } from "@/hooks/useTimeEntries";
@@ -12,10 +14,20 @@ export const Financials = () => {
   const { leads } = useLeads();
   const { timeEntries } = useTimeEntries();
   const { employees } = useEmployees();
+  
+  const [selectedDateRange, setSelectedDateRange] = useState<DateRange>('this_month');
+
+  const filteredData = useMemo(() => {
+    return {
+      jobs: filterDataByDateRange(jobs, selectedDateRange, 'job_date'),
+      leads: filterDataByDateRange(leads, selectedDateRange, 'created_at'),
+      timeEntries: filterDataByDateRange(timeEntries, selectedDateRange, 'entry_date')
+    };
+  }, [jobs, leads, timeEntries, selectedDateRange]);
 
   const financialMetrics = useMemo(() => {
     // Calculate real revenue (only paid jobs)
-    const paidRevenue = jobs
+    const paidRevenue = filteredData.jobs
       .filter(job => job.status === 'completed' && job.is_paid)
       .reduce((sum, job) => {
         const jobRevenue = job.actual_total || (job.hourly_rate * job.movers_needed * (job.actual_duration_hours || 0));
@@ -23,7 +35,7 @@ export const Financials = () => {
       }, 0);
 
     // Calculate unpaid revenue
-    const unpaidRevenue = jobs
+    const unpaidRevenue = filteredData.jobs
       .filter(job => job.status === 'completed' && !job.is_paid)
       .reduce((sum, job) => {
         const jobRevenue = job.actual_total || (job.hourly_rate * job.movers_needed * (job.actual_duration_hours || 0));
@@ -31,10 +43,10 @@ export const Financials = () => {
       }, 0);
 
     // Calculate total lead costs
-    const totalLeadCosts = leads.reduce((sum, lead) => sum + (lead.lead_cost || 0), 0);
+    const totalLeadCosts = filteredData.leads.reduce((sum, lead) => sum + (lead.lead_cost || 0), 0);
 
     // Calculate payroll costs
-    const totalPayroll = timeEntries
+    const totalPayroll = filteredData.timeEntries
       .filter(entry => entry.is_paid)
       .reduce((sum, entry) => sum + (entry.total_pay || 0), 0);
 
@@ -46,8 +58,8 @@ export const Financials = () => {
     const roi = totalLeadCosts > 0 ? ((grossProfit / totalLeadCosts) * 100) : 0;
 
     // Lead conversion metrics
-    const convertedLeads = leads.filter(lead => lead.status === 'converted').length;
-    const conversionRate = leads.length > 0 ? (convertedLeads / leads.length) * 100 : 0;
+    const convertedLeads = filteredData.leads.filter(lead => lead.status === 'converted').length;
+    const conversionRate = filteredData.leads.length > 0 ? (convertedLeads / filteredData.leads.length) * 100 : 0;
 
     return {
       paidRevenue,
@@ -61,7 +73,19 @@ export const Financials = () => {
       conversionRate,
       convertedLeads
     };
-  }, [jobs, leads, timeEntries]);
+  }, [filteredData]);
+
+  const getRangeDisplayText = () => {
+    const rangeLabels = {
+      'today': 'Today',
+      'this_week': 'This Week',
+      'this_month': 'This Month', 
+      'this_quarter': 'This Quarter',
+      'this_year': 'This Year',
+      'since_inception': 'Since Inception'
+    };
+    return rangeLabels[selectedDateRange];
+  };
 
   return (
     <div className="p-6 space-y-8 bg-gradient-to-br from-purple-25 to-gold-25 min-h-screen">
@@ -72,10 +96,16 @@ export const Financials = () => {
             Financial Overview
           </h1>
           <p className="text-gray-600 mt-2">
-            Comprehensive financial analysis and business performance metrics
+            Comprehensive financial analysis and business performance metrics - {getRangeDisplayText()}
           </p>
         </div>
       </div>
+
+      {/* Date Range Filter */}
+      <DateRangeFilter
+        selectedRange={selectedDateRange}
+        onRangeChange={setSelectedDateRange}
+      />
 
       {/* Revenue Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -195,33 +225,33 @@ export const Financials = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Card>
           <CardHeader>
-            <CardTitle>Revenue Breakdown</CardTitle>
+            <CardTitle>Revenue Breakdown - {getRangeDisplayText()}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
               <div className="flex justify-between items-center">
                 <span className="text-sm text-gray-600">Jobs Completed</span>
                 <span className="font-medium">
-                  {jobs.filter(j => j.status === 'completed').length}
+                  {filteredData.jobs.filter(j => j.status === 'completed').length}
                 </span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-sm text-gray-600">Jobs Paid</span>
                 <span className="font-medium text-green-600">
-                  {jobs.filter(j => j.is_paid).length}
+                  {filteredData.jobs.filter(j => j.is_paid).length}
                 </span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-sm text-gray-600">Average Job Value</span>
                 <span className="font-medium">
-                  ${jobs.length > 0 ? (financialMetrics.totalRevenue / jobs.length).toFixed(0) : '0'}
+                  ${filteredData.jobs.length > 0 ? (financialMetrics.totalRevenue / filteredData.jobs.length).toFixed(0) : '0'}
                 </span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-sm text-gray-600">Payment Rate</span>
                 <span className="font-medium">
-                  {jobs.filter(j => j.status === 'completed').length > 0 
-                    ? ((jobs.filter(j => j.is_paid).length / jobs.filter(j => j.status === 'completed').length) * 100).toFixed(1)
+                  {filteredData.jobs.filter(j => j.status === 'completed').length > 0 
+                    ? ((filteredData.jobs.filter(j => j.is_paid).length / filteredData.jobs.filter(j => j.status === 'completed').length) * 100).toFixed(1)
                     : '0'
                   }%
                 </span>
@@ -232,13 +262,13 @@ export const Financials = () => {
 
         <Card>
           <CardHeader>
-            <CardTitle>Lead Performance</CardTitle>
+            <CardTitle>Lead Performance - {getRangeDisplayText()}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
               <div className="flex justify-between items-center">
                 <span className="text-sm text-gray-600">Total Leads</span>
-                <span className="font-medium">{leads.length}</span>
+                <span className="font-medium">{filteredData.leads.length}</span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-sm text-gray-600">Converted Leads</span>
@@ -255,7 +285,7 @@ export const Financials = () => {
               <div className="flex justify-between items-center">
                 <span className="text-sm text-gray-600">Cost Per Lead</span>
                 <span className="font-medium">
-                  ${leads.length > 0 ? (financialMetrics.totalLeadCosts / leads.length).toFixed(0) : '0'}
+                  ${filteredData.leads.length > 0 ? (financialMetrics.totalLeadCosts / filteredData.leads.length).toFixed(0) : '0'}
                 </span>
               </div>
             </div>

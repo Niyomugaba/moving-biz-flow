@@ -479,15 +479,13 @@ export const Jobs = () => {
                       <Eye className="h-3 w-3 mr-2" />
                       Review
                     </Button>
-                    {isCancelled && (
-                      <Button 
-                        onClick={() => handleDeleteJob(job)}
-                        variant="outline"
-                        className="hover:bg-red-50 hover:border-red-300 text-red-600"
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
-                    )}
+                    <Button 
+                      onClick={() => handleDeleteJob(job)}
+                      variant="outline"
+                      className="hover:bg-red-50 hover:border-red-300 text-red-600"
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
                   </div>
                 )}
               </CardContent>
