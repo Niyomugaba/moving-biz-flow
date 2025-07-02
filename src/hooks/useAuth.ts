@@ -30,19 +30,25 @@ export const useAuth = () => {
         setUser(session?.user ?? null);
         
         if (session?.user) {
-          // Fetch user profile and role - using raw SQL for now since profiles table might not be in types yet
-          setTimeout(async () => {
-            try {
-              const [profileResponse, roleResponse] = await Promise.all([
-                supabase.rpc('get_user_profile', { user_id: session.user.id }),
-                supabase
-                  .from('user_roles')
-                  .select('role')
-                  .eq('user_id', session.user.id)
-                  .maybeSingle()
-              ]);
+          // Fetch user profile and role
+          try {
+            const [profileResponse, roleResponse] = await Promise.all([
+              supabase
+                .from('profiles')
+                .select('*')
+                .eq('id', session.user.id)
+                .maybeSingle(),
+              supabase
+                .from('user_roles')
+                .select('role')
+                .eq('user_id', session.user.id)
+                .maybeSingle()
+            ]);
 
-              // For now, create a basic profile from user metadata
+            if (profileResponse.data) {
+              setProfile(profileResponse.data);
+            } else {
+              // Create a basic profile from user metadata if none exists
               const basicProfile: Profile = {
                 id: session.user.id,
                 email: session.user.email || null,
@@ -51,14 +57,14 @@ export const useAuth = () => {
                 updated_at: new Date().toISOString()
               };
               setProfile(basicProfile);
-              
-              if (roleResponse.data) {
-                setUserRole({ role: roleResponse.data.role as 'owner' | 'admin' | 'manager' | 'employee' });
-              }
-            } catch (error) {
-              console.error('Error fetching user data:', error);
             }
-          }, 0);
+            
+            if (roleResponse.data) {
+              setUserRole({ role: roleResponse.data.role as 'owner' | 'admin' | 'manager' | 'employee' });
+            }
+          } catch (error) {
+            console.error('Error fetching user data:', error);
+          }
         } else {
           setProfile(null);
           setUserRole(null);
