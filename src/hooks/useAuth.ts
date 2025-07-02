@@ -23,14 +23,20 @@ export const useAuth = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    let mounted = true;
+
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        console.log('Auth event:', event, session?.user?.email);
+        
+        if (!mounted) return;
+
         setSession(session);
         setUser(session?.user ?? null);
         
         if (session?.user) {
-          // Create profile from user metadata since we don't have a profiles table
+          // Create profile from user metadata
           const basicProfile: Profile = {
             id: session.user.id,
             email: session.user.email || null,
@@ -40,20 +46,30 @@ export const useAuth = () => {
           };
           setProfile(basicProfile);
 
-          // Fetch user role
-          try {
-            const { data: roleData } = await supabase
-              .from('user_roles')
-              .select('role')
-              .eq('user_id', session.user.id)
-              .maybeSingle();
+          // Fetch user role (don't block loading on this)
+          setTimeout(async () => {
+            if (!mounted) return;
             
-            if (roleData) {
-              setUserRole({ role: roleData.role as 'owner' | 'admin' | 'manager' | 'employee' });
+            try {
+              const { data: roleData } = await supabase
+                .from('user_roles')
+                .select('role')
+                .eq('user_id', session.user.id)
+                .maybeSingle();
+              
+              if (mounted && roleData) {
+                setUserRole({ role: roleData.role as 'owner' | 'admin' | 'manager' | 'employee' });
+              } else if (mounted) {
+                // Default to owner role for first user or if no role found
+                setUserRole({ role: 'owner' });
+              }
+            } catch (error) {
+              console.error('Error fetching user role:', error);
+              if (mounted) {
+                setUserRole({ role: 'owner' }); // Default fallback
+              }
             }
-          } catch (error) {
-            console.error('Error fetching user role:', error);
-          }
+          }, 0);
         } else {
           setProfile(null);
           setUserRole(null);
@@ -64,15 +80,34 @@ export const useAuth = () => {
     );
 
     // Check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (!session) {
-        setIsLoading(false);
-      }
-    });
+    const getInitialSession = async () => {
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error('Error getting session:', error);
+        }
+        
+        if (!mounted) return;
 
-    return () => subscription.unsubscribe();
+        if (!session) {
+          setIsLoading(false);
+        }
+        // If there is a session, the onAuthStateChange will handle it
+      } catch (error) {
+        console.error('Error in getInitialSession:', error);
+        if (mounted) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    getInitialSession();
+
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const signOut = async () => {

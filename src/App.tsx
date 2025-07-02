@@ -17,6 +17,7 @@ import { TimeLogs } from "./pages/TimeLogs";
 import { EmployeeRequests } from "./pages/EmployeeRequests";
 import { UserManagement } from "./pages/UserManagement";
 import { Auth } from "./pages/Auth";
+import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -28,18 +29,15 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
+          {/* Root route - handles authentication redirect */}
+          <Route path="/" element={<Index />} />
+          
           {/* Public routes */}
           <Route path="/auth" element={<Auth />} />
           <Route path="/employee-portal" element={<EmployeePortal />} />
           <Route path="/manager-login" element={<ManagerLogin />} />
           
           {/* Protected routes */}
-          <Route path="/" element={
-            <ProtectedLayout>
-              <Dashboard />
-            </ProtectedLayout>
-          } />
-          
           <Route path="/dashboard" element={
             <ProtectedLayout>
               <Dashboard />
