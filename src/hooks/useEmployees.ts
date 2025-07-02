@@ -1,3 +1,4 @@
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -50,14 +51,14 @@ export const useEmployees = () => {
       hire_date: string;
       position?: string;
       department?: string;
-      pin?: string | null;
+      accessCode?: string | null;
     }) => {
       console.log('Creating employee with data:', employeeData);
       
-      // Prepare notes field with PIN if provided
+      // Prepare notes field with access code if provided
       let notes = '';
-      if (employeeData.pin) {
-        notes = `Portal Access: Enabled\nPIN: ${employeeData.pin}`;
+      if (employeeData.accessCode) {
+        notes = `Portal Access: Enabled\nAccess Code: ${employeeData.accessCode}`;
       }
       
       // Match database schema exactly - employee_number will be auto-generated
@@ -89,10 +90,10 @@ export const useEmployees = () => {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['employees'] });
-      const hasPin = data.notes && data.notes.includes('PIN:');
+      const hasAccessCode = data.notes && data.notes.includes('Access Code:');
       toast({
         title: "Employee Added Successfully",
-        description: hasPin 
+        description: hasAccessCode 
           ? `${data.name} has been added with portal access enabled.`
           : `${data.name} has been added to your team.`,
       });

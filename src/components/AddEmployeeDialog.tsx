@@ -22,7 +22,7 @@ export const AddEmployeeDialog = ({ open, onOpenChange, onAddEmployee }: AddEmpl
   });
   
   const [enablePortalAccess, setEnablePortalAccess] = useState(false);
-  const [pin, setPin] = useState('');
+  const [accessCode, setAccessCode] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,7 +30,7 @@ export const AddEmployeeDialog = ({ open, onOpenChange, onAddEmployee }: AddEmpl
     // Prepare employee data
     const employeeData = {
       ...formData,
-      pin: enablePortalAccess ? pin : null
+      accessCode: enablePortalAccess ? accessCode : null
     };
     
     onAddEmployee(employeeData);
@@ -46,13 +46,15 @@ export const AddEmployeeDialog = ({ open, onOpenChange, onAddEmployee }: AddEmpl
       department: 'operations'
     });
     setEnablePortalAccess(false);
-    setPin('');
+    setAccessCode('');
     onOpenChange(false);
   };
 
-  const generateRandomPin = () => {
-    const randomPin = Math.floor(1000 + Math.random() * 9000).toString();
-    setPin(randomPin);
+  const generateRandomCode = () => {
+    const words = ['Tiger', 'Eagle', 'Lion', 'Shark', 'Wolf', 'Bear', 'Hawk', 'Fox'];
+    const numbers = Math.floor(100 + Math.random() * 900).toString();
+    const randomCode = words[Math.floor(Math.random() * words.length)] + numbers;
+    setAccessCode(randomCode);
   };
 
   return (
@@ -168,7 +170,7 @@ export const AddEmployeeDialog = ({ open, onOpenChange, onAddEmployee }: AddEmpl
                   Enable Portal Access
                 </label>
                 <p className="text-xs text-gray-500">
-                  Allow employee to access the employee portal with a PIN
+                  Allow employee to access the employee portal with an access code
                 </p>
               </div>
               <Switch
@@ -180,35 +182,28 @@ export const AddEmployeeDialog = ({ open, onOpenChange, onAddEmployee }: AddEmpl
             {enablePortalAccess && (
               <div className="space-y-2">
                 <label className="block text-sm font-medium text-gray-700">
-                  Portal PIN (4 digits)
+                  Portal Access Code
                 </label>
                 <div className="flex gap-2">
                   <input
                     type="text"
-                    placeholder="Enter 4-digit PIN"
-                    maxLength={4}
-                    pattern="\d{4}"
-                    value={pin}
-                    onChange={(e) => {
-                      const value = e.target.value.replace(/[^0-9]/g, '');
-                      if (value.length <= 4) {
-                        setPin(value);
-                      }
-                    }}
-                    className="flex-1 border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-center font-mono text-lg"
+                    placeholder="Enter access code (word or phrase)"
+                    value={accessCode}
+                    onChange={(e) => setAccessCode(e.target.value)}
+                    className="flex-1 border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-center"
                     required={enablePortalAccess}
                   />
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={generateRandomPin}
+                    onClick={generateRandomCode}
                     className="px-3"
                   >
                     Generate
                   </Button>
                 </div>
                 <p className="text-xs text-gray-500">
-                  This PIN will be used by the employee to access their dashboard
+                  This access code will be used by the employee to access their dashboard
                 </p>
               </div>
             )}

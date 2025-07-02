@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,31 +10,31 @@ import { EmployeeDashboard } from './EmployeeDashboard';
 import { Shield, Users, Hash, LogIn, Truck } from 'lucide-react';
 
 export const EmployeePortal = () => {
-  const [pin, setPin] = useState('');
-  const [step, setStep] = useState<'pin' | 'request' | 'dashboard'>('pin');
+  const [accessCode, setAccessCode] = useState('');
+  const [step, setStep] = useState<'code' | 'request' | 'dashboard'>('code');
   const [isLoading, setIsLoading] = useState(false);
   const [employeeData, setEmployeeData] = useState<any>(null);
   const { toast } = useToast();
 
-  const handlePinVerification = async () => {
-    if (!pin) {
+  const handleCodeVerification = async () => {
+    if (!accessCode) {
       toast({
-        title: "PIN Required",
-        description: "Please enter your PIN.",
+        title: "Access Code Required",
+        description: "Please enter your access code.",
         variant: "destructive",
       });
       return;
     }
 
     setIsLoading(true);
-    console.log('Checking for employee with pin:', pin);
+    console.log('Checking for employee with access code:', accessCode);
 
     try {
-      // Check if employee exists with this PIN in the notes field
+      // Check if employee exists with this access code in the notes field
       const { data: employee, error: employeeError } = await supabase
         .from('employees')
         .select('*')
-        .like('notes', `%PIN: ${pin}%`)
+        .like('notes', `%Access Code: ${accessCode}%`)
         .eq('status', 'active')
         .maybeSingle();
 
@@ -43,7 +44,7 @@ export const EmployeePortal = () => {
       }
 
       if (employee) {
-        setEmployeeData({ ...employee, pin });
+        setEmployeeData({ ...employee, accessCode });
         toast({
           title: "Welcome Back!",
           description: `Hello ${employee.name}! Redirecting to your dashboard...`,
@@ -53,11 +54,11 @@ export const EmployeePortal = () => {
           setStep('dashboard');
         }, 1500);
       } else {
-        // Check if there's a pending request with this PIN
+        // Check if there's a pending request with this access code
         const { data: pendingRequest, error: requestError } = await supabase
           .from('employee_requests')
           .select('*')
-          .like('notes', `%PIN: ${pin}%`)
+          .like('notes', `%Access Code: ${accessCode}%`)
           .eq('status', 'pending')
           .maybeSingle();
 
@@ -74,17 +75,17 @@ export const EmployeePortal = () => {
         } else {
           setStep('request');
           toast({
-            title: "PIN Not Found",
+            title: "Access Code Not Found",
             description: "You'll need to request access as a new mover.",
             variant: "destructive",
           });
         }
       }
     } catch (error) {
-      console.error('Error during PIN verification:', error);
+      console.error('Error during access code verification:', error);
       toast({
         title: "Error",
-        description: "Failed to verify PIN. Please try again.",
+        description: "Failed to verify access code. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -93,8 +94,8 @@ export const EmployeePortal = () => {
   };
 
   const handleLogout = () => {
-    setStep('pin');
-    setPin('');
+    setStep('code');
+    setAccessCode('');
     setEmployeeData(null);
     toast({
       title: "Logged Out",
@@ -108,8 +109,8 @@ export const EmployeePortal = () => {
       description: "Your mover access request has been submitted for approval.",
     });
     
-    setStep('pin');
-    setPin('');
+    setStep('code');
+    setAccessCode('');
     setEmployeeData(null);
   };
 
@@ -139,7 +140,7 @@ export const EmployeePortal = () => {
           
           <div className="bg-white rounded-2xl p-8 shadow-2xl">
             <NewEmployeeRequestForm 
-              onBack={() => setStep('pin')}
+              onBack={() => setStep('code')}
               onSuccess={handleRequestSubmitted}
             />
           </div>
@@ -174,7 +175,7 @@ export const EmployeePortal = () => {
             <div className="w-12 h-12 bg-yellow-500 rounded-lg flex items-center justify-center mx-auto mb-3">
               <Hash className="w-6 h-6 text-purple-800" />
             </div>
-            <p className="text-white text-sm font-medium">PIN Access</p>
+            <p className="text-white text-sm font-medium">Code Access</p>
           </div>
           <div className="text-center p-4 bg-white/10 backdrop-blur-sm rounded-xl border border-white/20">
             <div className="w-12 h-12 bg-yellow-500 rounded-lg flex items-center justify-center mx-auto mb-3">
@@ -196,7 +197,7 @@ export const EmployeePortal = () => {
               Mover Login
             </CardTitle>
             <CardDescription className="text-purple-600 text-base">
-              Enter your PIN to access your dashboard
+              Enter your access code to access your dashboard
             </CardDescription>
           </CardHeader>
           
@@ -204,20 +205,20 @@ export const EmployeePortal = () => {
             <div className="space-y-6">
               <div>
                 <label className="text-sm font-semibold text-purple-700 mb-3 block">
-                  Your PIN
+                  Your Access Code
                 </label>
                 <Input
-                  type="password"
-                  placeholder="Enter your PIN"
-                  value={pin}
-                  onChange={(e) => setPin(e.target.value)}
-                  className="h-12 text-center text-lg font-mono border-2 border-purple-200 focus:border-purple-500 focus:ring-purple-500"
+                  type="text"
+                  placeholder="Enter your access code"
+                  value={accessCode}
+                  onChange={(e) => setAccessCode(e.target.value)}
+                  className="h-12 text-center text-lg border-2 border-purple-200 focus:border-purple-500 focus:ring-purple-500"
                 />
               </div>
               
               <Button 
-                onClick={handlePinVerification}
-                disabled={isLoading || !pin.trim()}
+                onClick={handleCodeVerification}
+                disabled={isLoading || !accessCode.trim()}
                 className="w-full h-12 bg-purple-600 hover:bg-purple-700 text-white font-bold text-lg"
               >
                 {isLoading ? 'Verifying...' : 'Access Dashboard'}
@@ -233,7 +234,7 @@ export const EmployeePortal = () => {
               New to Bantu Movers?
             </p>
             <p className="text-purple-100 text-sm">
-              Enter any PIN above to request mover access and join our team
+              Enter any access code above to request mover access and join our team
             </p>
           </div>
         </div>
