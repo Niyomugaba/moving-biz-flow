@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import { Button } from './ui/button';
+import { Switch } from './ui/switch';
 
 interface AddEmployeeDialogProps {
   open: boolean;
@@ -15,25 +16,48 @@ export const AddEmployeeDialog = ({ open, onOpenChange, onAddEmployee }: AddEmpl
     phone: '',
     email: '',
     hourlyWage: '',
-    hireDate: new Date().toISOString().split('T')[0]
+    hireDate: new Date().toISOString().split('T')[0],
+    position: 'mover',
+    department: 'operations'
   });
+  
+  const [enablePortalAccess, setEnablePortalAccess] = useState(false);
+  const [pin, setPin] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onAddEmployee(formData);
+    
+    // Prepare employee data
+    const employeeData = {
+      ...formData,
+      pin: enablePortalAccess ? pin : null
+    };
+    
+    onAddEmployee(employeeData);
+    
+    // Reset form
     setFormData({
       name: '',
       phone: '',
       email: '',
       hourlyWage: '',
-      hireDate: new Date().toISOString().split('T')[0]
+      hireDate: new Date().toISOString().split('T')[0],
+      position: 'mover',
+      department: 'operations'
     });
+    setEnablePortalAccess(false);
+    setPin('');
     onOpenChange(false);
+  };
+
+  const generateRandomPin = () => {
+    const randomPin = Math.floor(1000 + Math.random() * 9000).toString();
+    setPin(randomPin);
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Add New Employee</DialogTitle>
         </DialogHeader>
@@ -76,6 +100,39 @@ export const AddEmployeeDialog = ({ open, onOpenChange, onAddEmployee }: AddEmpl
             />
           </div>
           
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Position
+              </label>
+              <select
+                value={formData.position}
+                onChange={(e) => setFormData({ ...formData, position: e.target.value })}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="mover">Mover</option>
+                <option value="driver">Driver</option>
+                <option value="team_lead">Team Lead</option>
+                <option value="supervisor">Supervisor</option>
+              </select>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Department
+              </label>
+              <select
+                value={formData.department}
+                onChange={(e) => setFormData({ ...formData, department: e.target.value })}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="operations">Operations</option>
+                <option value="logistics">Logistics</option>
+                <option value="administration">Administration</option>
+              </select>
+            </div>
+          </div>
+          
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Hourly Wage ($)
@@ -101,6 +158,60 @@ export const AddEmployeeDialog = ({ open, onOpenChange, onAddEmployee }: AddEmpl
               onChange={(e) => setFormData({ ...formData, hireDate: e.target.value })}
               className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
+          </div>
+
+          {/* Portal Access Section */}
+          <div className="border-t pt-4">
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <label className="block text-sm font-medium text-gray-700">
+                  Enable Portal Access
+                </label>
+                <p className="text-xs text-gray-500">
+                  Allow employee to access the employee portal with a PIN
+                </p>
+              </div>
+              <Switch
+                checked={enablePortalAccess}
+                onCheckedChange={setEnablePortalAccess}
+              />
+            </div>
+            
+            {enablePortalAccess && (
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700">
+                  Portal PIN (4 digits)
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    placeholder="Enter 4-digit PIN"
+                    maxLength={4}
+                    pattern="\d{4}"
+                    value={pin}
+                    onChange={(e) => {
+                      const value = e.target.value.replace(/[^0-9]/g, '');
+                      if (value.length <= 4) {
+                        setPin(value);
+                      }
+                    }}
+                    className="flex-1 border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-center font-mono text-lg"
+                    required={enablePortalAccess}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={generateRandomPin}
+                    className="px-3"
+                  >
+                    Generate
+                  </Button>
+                </div>
+                <p className="text-xs text-gray-500">
+                  This PIN will be used by the employee to access their dashboard
+                </p>
+              </div>
+            )}
           </div>
           
           <div className="flex gap-2 pt-4">

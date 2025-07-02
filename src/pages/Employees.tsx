@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { StatusBadge } from '../components/StatusBadge';
 import { AddEmployeeDialog } from '../components/AddEmployeeDialog';
@@ -48,6 +47,7 @@ export const Employees = () => {
   const [departmentFilter, setDepartmentFilter] = useState<string>('all');
 
   const handleAddEmployee = (employeeData: any) => {
+    console.log('Adding employee with data:', employeeData);
     addEmployee({
       name: employeeData.name,
       phone: employeeData.phone,
@@ -56,7 +56,8 @@ export const Employees = () => {
       status: 'active',
       hire_date: employeeData.hireDate,
       position: employeeData.position || 'mover',
-      department: employeeData.department || 'operations'
+      department: employeeData.department || 'operations',
+      pin: employeeData.pin || null
     });
   };
 

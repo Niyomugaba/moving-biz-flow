@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -51,7 +50,16 @@ export const useEmployees = () => {
       hire_date: string;
       position?: string;
       department?: string;
+      pin?: string | null;
     }) => {
+      console.log('Creating employee with data:', employeeData);
+      
+      // Prepare notes field with PIN if provided
+      let notes = '';
+      if (employeeData.pin) {
+        notes = `Portal Access: Enabled\nPIN: ${employeeData.pin}`;
+      }
+      
       // Match database schema exactly - employee_number will be auto-generated
       const { data, error } = await supabase
         .from('employees')
@@ -65,19 +73,36 @@ export const useEmployees = () => {
           status: employeeData.status,
           hire_date: employeeData.hire_date,
           position: employeeData.position || 'mover',
-          department: employeeData.department || 'operations'
+          department: employeeData.department || 'operations',
+          notes: notes || null
         })
         .select()
         .single();
       
-      if (error) throw error;
+      if (error) {
+        console.error('Error creating employee:', error);
+        throw error;
+      }
+      
+      console.log('Employee created successfully:', data);
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['employees'] });
+      const hasPin = data.notes && data.notes.includes('PIN:');
       toast({
         title: "Employee Added Successfully",
-        description: "New employee has been added to your team.",
+        description: hasPin 
+          ? `${data.name} has been added with portal access enabled.`
+          : `${data.name} has been added to your team.`,
+      });
+    },
+    onError: (error: any) => {
+      console.error('Error in addEmployeeMutation:', error);
+      toast({
+        title: "Error Adding Employee",
+        description: error.message || "Failed to add employee. Please try again.",
+        variant: "destructive",
       });
     }
   });
