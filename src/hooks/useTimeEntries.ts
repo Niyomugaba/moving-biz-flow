@@ -72,7 +72,17 @@ export const useTimeEntries = () => {
       const totalPay = regularPay + overtimePay;
 
       const insertData = {
-        ...timeEntryData,
+        employee_id: timeEntryData.employee_id,
+        job_id: timeEntryData.job_id || null,
+        entry_date: timeEntryData.entry_date,
+        clock_in_time: timeEntryData.clock_in_time,
+        clock_out_time: timeEntryData.clock_out_time,
+        regular_hours: timeEntryData.regular_hours,
+        overtime_hours: timeEntryData.overtime_hours || null,
+        hourly_rate: timeEntryData.hourly_rate,
+        overtime_rate: timeEntryData.overtime_rate || null,
+        break_duration_minutes: timeEntryData.break_duration_minutes || null,
+        notes: timeEntryData.notes || null,
         total_pay: totalPay,
         status: 'pending' as const
       };
@@ -127,18 +137,20 @@ export const useTimeEntries = () => {
     onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['timeEntries'] });
       
-      const statusText = variables.updates.status === 'approved' ? 'approved' : 
-                        variables.updates.status === 'rejected' ? 'rejected' : 'updated';
-      
       if (variables.updates.status === 'pending') {
         toast({
           title: "Status Reset",
           description: "Time entry status has been reset to pending.",
         });
+      } else if (variables.updates.is_paid) {
+        toast({
+          title: "Payment Recorded",
+          description: "Employee has been marked as paid.",
+        });
       } else {
         toast({
           title: "Time Entry Updated",
-          description: `Time entry has been ${statusText}.`,
+          description: "Time entry has been updated successfully.",
         });
       }
     },
@@ -160,7 +172,7 @@ export const useTimeEntries = () => {
         .update({ 
           status: 'approved',
           approved_at: new Date().toISOString(),
-          approved_by: 'manager' // In a real app, this would be the current user ID
+          approved_by: 'manager'
         })
         .eq('id', id)
         .select()
@@ -176,7 +188,7 @@ export const useTimeEntries = () => {
       queryClient.invalidateQueries({ queryKey: ['timeEntries'] });
       toast({
         title: "Time Entry Approved",
-        description: "The time entry has been approved.",
+        description: "The time entry has been approved and is ready for payment.",
       });
     },
     onError: (error) => {
@@ -190,11 +202,14 @@ export const useTimeEntries = () => {
   });
 
   const rejectTimeEntryMutation = useMutation({
-    mutationFn: async (id: string) => {
-      console.log('Rejecting time entry:', id);
+    mutationFn: async ({ id, reason }: { id: string; reason?: string }) => {
+      console.log('Rejecting time entry:', id, reason);
       const { data, error } = await supabase
         .from('time_entries')
-        .update({ status: 'rejected' })
+        .update({ 
+          status: 'rejected',
+          manager_notes: reason || null
+        })
         .eq('id', id)
         .select()
         .single();
@@ -222,6 +237,42 @@ export const useTimeEntries = () => {
     }
   });
 
+  const markAsPaidMutation = useMutation({
+    mutationFn: async (id: string) => {
+      console.log('Marking time entry as paid:', id);
+      const { data, error } = await supabase
+        .from('time_entries')
+        .update({ 
+          is_paid: true,
+          paid_at: new Date().toISOString()
+        })
+        .eq('id', id)
+        .select()
+        .single();
+      
+      if (error) {
+        console.error('Error marking as paid:', error);
+        throw error;
+      }
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['timeEntries'] });
+      toast({
+        title: "Payment Recorded",
+        description: "Employee has been marked as paid for this time entry.",
+      });
+    },
+    onError: (error) => {
+      console.error('Error marking as paid:', error);
+      toast({
+        title: "Error Recording Payment",
+        description: "There was an error recording the payment. Please try again.",
+        variant: "destructive",
+      });
+    }
+  });
+
   return {
     timeEntries,
     isLoading,
@@ -230,9 +281,11 @@ export const useTimeEntries = () => {
     updateTimeEntry: updateTimeEntryMutation.mutate,
     approveTimeEntry: approveTimeEntryMutation.mutate,
     rejectTimeEntry: rejectTimeEntryMutation.mutate,
+    markAsPaid: markAsPaidMutation.mutate,
     isAddingTimeEntry: addTimeEntryMutation.isPending,
     isUpdatingTimeEntry: updateTimeEntryMutation.isPending,
     isApprovingTimeEntry: approveTimeEntryMutation.isPending,
-    isRejectingTimeEntry: rejectTimeEntryMutation.isPending
+    isRejectingTimeEntry: rejectTimeEntryMutation.isPending,
+    isMarkingAsPaid: markAsPaidMutation.isPending
   };
 };

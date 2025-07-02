@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -104,6 +103,8 @@ export const EmployeeDashboard = ({ employee, onLogout }: EmployeeDashboardProps
   // Filter time entries for this employee
   const employeeTimeEntries = timeEntries.filter(entry => entry.employee_id === employee.id);
   const paidEntries = employeeTimeEntries.filter(entry => entry.is_paid);
+  const approvedEntries = employeeTimeEntries.filter(entry => entry.status === 'approved' && !entry.is_paid);
+  const pendingEntries = employeeTimeEntries.filter(entry => entry.status === 'pending');
   
   // Calculate totals
   const totalHoursWorked = employeeTimeEntries.reduce((sum, entry) => 
@@ -111,6 +112,7 @@ export const EmployeeDashboard = ({ employee, onLogout }: EmployeeDashboardProps
   );
   
   const totalEarned = paidEntries.reduce((sum, entry) => sum + (entry.total_pay || 0), 0);
+  const pendingEarnings = approvedEntries.reduce((sum, entry) => sum + (entry.total_pay || 0), 0);
   
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -143,6 +145,18 @@ export const EmployeeDashboard = ({ employee, onLogout }: EmployeeDashboardProps
     const ampm = hour24 < 12 ? 'AM' : 'PM';
     
     return `${hour12}:${minutes} ${ampm}`;
+  };
+
+  const getPaymentStatusBadge = (entry: any) => {
+    if (entry.is_paid) {
+      return <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">Paid</span>;
+    } else if (entry.status === 'approved') {
+      return <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">Approved - Payment Pending</span>;
+    } else if (entry.status === 'rejected') {
+      return <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">Rejected</span>;
+    } else {
+      return <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">Pending Approval</span>;
+    }
   };
 
   const TabButton = ({ id, icon: Icon, label, isActive, onClick }: any) => (
@@ -244,7 +258,7 @@ export const EmployeeDashboard = ({ employee, onLogout }: EmployeeDashboardProps
             </Card>
 
             {/* Quick Stats */}
-            <div className="grid md:grid-cols-3 gap-4">
+            <div className="grid md:grid-cols-4 gap-4">
               <Card className="border-yellow-200 bg-yellow-50">
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
@@ -261,10 +275,22 @@ export const EmployeeDashboard = ({ employee, onLogout }: EmployeeDashboardProps
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-green-700 text-sm font-medium">Total Earned</p>
+                      <p className="text-green-700 text-sm font-medium">Total Paid</p>
                       <p className="text-2xl font-bold text-green-800">${totalEarned.toFixed(2)}</p>
                     </div>
                     <DollarSign className="h-8 w-8 text-green-600" />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="border-blue-200 bg-blue-50">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-blue-700 text-sm font-medium">Pending Payment</p>
+                      <p className="text-2xl font-bold text-blue-800">${pendingEarnings.toFixed(2)}</p>
+                    </div>
+                    <AlertCircle className="h-8 w-8 text-blue-600" />
                   </div>
                 </CardContent>
               </Card>
@@ -273,10 +299,8 @@ export const EmployeeDashboard = ({ employee, onLogout }: EmployeeDashboardProps
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-purple-700 text-sm font-medium">Pending Hours</p>
-                      <p className="text-2xl font-bold text-purple-800">
-                        {employeeTimeEntries.filter(e => e.status === 'pending').length}
-                      </p>
+                      <p className="text-purple-700 text-sm font-medium">Pending Approval</p>
+                      <p className="text-2xl font-bold text-purple-800">{pendingEntries.length}</p>
                     </div>
                     <AlertCircle className="h-8 w-8 text-purple-600" />
                   </div>
@@ -287,30 +311,47 @@ export const EmployeeDashboard = ({ employee, onLogout }: EmployeeDashboardProps
             {/* Recent Submissions */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-purple-800">Recent Submissions</CardTitle>
+                <CardTitle className="text-purple-800">Recent Time Submissions</CardTitle>
               </CardHeader>
               <CardContent>
                 {employeeTimeEntries.slice(0, 5).map((entry) => (
-                  <div key={entry.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg mb-2">
-                    <div>
+                  <div key={entry.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg mb-3">
+                    <div className="flex-1">
                       <div className="font-medium text-gray-900">
                         {new Date(entry.entry_date).toLocaleDateString()}
                       </div>
                       <div className="text-sm text-gray-600">
                         {formatTimeDisplay(entry.clock_in_time)} - {entry.clock_out_time ? formatTimeDisplay(entry.clock_out_time) : 'In Progress'}
                       </div>
+                      <div className="text-sm text-gray-600">
+                        {((entry.regular_hours || 0) + (entry.overtime_hours || 0)).toFixed(1)} hours
+                        {entry.job_id && (
+                          <span className="ml-2 text-purple-600">
+                            • Job: {jobs.find(j => j.id === entry.job_id)?.job_number || 'Unknown'}
+                          </span>
+                        )}
+                      </div>
+                      {entry.manager_notes && (
+                        <div className="text-sm text-red-600 mt-1">
+                          Manager Note: {entry.manager_notes}
+                        </div>
+                      )}
                     </div>
                     <div className="text-right">
                       <div className="font-semibold text-gray-900">
-                        {((entry.regular_hours || 0) + (entry.overtime_hours || 0)).toFixed(1)} hrs
+                        ${(entry.total_pay || 0).toFixed(2)}
                       </div>
-                      <div className={`text-xs px-2 py-1 rounded-full flex items-center gap-1 ${getStatusColor(entry.status)}`}>
-                        {getStatusIcon(entry.status)}
-                        {entry.status.charAt(0).toUpperCase() + entry.status.slice(1)}
+                      <div className="mt-1">
+                        {getPaymentStatusBadge(entry)}
                       </div>
                     </div>
                   </div>
                 ))}
+                {employeeTimeEntries.length === 0 && (
+                  <div className="text-center text-gray-500 py-8">
+                    No time entries yet. Submit your first entry!
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
@@ -402,61 +443,96 @@ export const EmployeeDashboard = ({ employee, onLogout }: EmployeeDashboardProps
                 <CardTitle className="text-purple-800">Earnings Summary</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid md:grid-cols-2 gap-6">
+                <div className="grid md:grid-cols-3 gap-6">
                   <div className="bg-green-50 p-4 rounded-lg border border-green-200">
                     <h3 className="font-semibold text-green-800 mb-2">Total Paid Earnings</h3>
                     <p className="text-3xl font-bold text-green-600">${totalEarned.toFixed(2)}</p>
+                    <p className="text-sm text-green-600 mt-1">{paidEntries.length} paid entries</p>
                   </div>
+                  
+                  <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                    <h3 className="font-semibold text-blue-800 mb-2">Approved (Pending Payment)</h3>
+                    <p className="text-3xl font-bold text-blue-600">${pendingEarnings.toFixed(2)}</p>
+                    <p className="text-sm text-blue-600 mt-1">{approvedEntries.length} approved entries</p>
+                  </div>
+                  
                   <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
-                    <h3 className="font-semibold text-yellow-800 mb-2">Pending Earnings</h3>
+                    <h3 className="font-semibold text-yellow-800 mb-2">Pending Approval</h3>
                     <p className="text-3xl font-bold text-yellow-600">
-                      ${employeeTimeEntries
-                        .filter(e => e.status === 'approved' && !e.is_paid)
-                        .reduce((sum, e) => sum + (e.total_pay || 0), 0)
-                        .toFixed(2)}
+                      ${pendingEntries.reduce((sum, e) => sum + (e.total_pay || 0), 0).toFixed(2)}
                     </p>
+                    <p className="text-sm text-yellow-600 mt-1">{pendingEntries.length} pending entries</p>
                   </div>
                 </div>
               </CardContent>
             </Card>
 
+            {/* Detailed Earnings History */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-purple-800">Job Earnings Breakdown</CardTitle>
-                <CardDescription>Your earnings from paid jobs</CardDescription>
+                <CardTitle className="text-purple-800">Earnings History</CardTitle>
+                <CardDescription>Detailed breakdown of all your work entries</CardDescription>
               </CardHeader>
               <CardContent>
-                {paidEntries.length === 0 ? (
-                  <div className="text-center text-gray-500 py-8">
-                    No paid earnings yet.
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {paidEntries.map((entry) => (
-                      <div key={entry.id} className="flex items-center justify-between p-4 bg-green-50 rounded-lg border border-green-200">
-                        <div>
-                          <div className="font-medium text-green-800">
+                <div className="space-y-3">
+                  {employeeTimeEntries.map((entry) => (
+                    <div key={entry.id} className={`p-4 rounded-lg border ${
+                      entry.is_paid ? 'bg-green-50 border-green-200' :
+                      entry.status === 'approved' ? 'bg-blue-50 border-blue-200' :
+                      entry.status === 'rejected' ? 'bg-red-50 border-red-200' :
+                      'bg-yellow-50 border-yellow-200'
+                    }`}>
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <div className="font-medium">
                             {new Date(entry.entry_date).toLocaleDateString()}
+                            {entry.job_id && (
+                              <span className="ml-2 text-sm text-gray-600">
+                                • Job: {jobs.find(j => j.id === entry.job_id)?.job_number || 'Unknown'}
+                              </span>
+                            )}
                           </div>
-                          <div className="text-sm text-green-600">
+                          <div className="text-sm text-gray-600 mt-1">
                             {((entry.regular_hours || 0) + (entry.overtime_hours || 0)).toFixed(1)} hours worked
+                            {entry.regular_hours && entry.overtime_hours && entry.overtime_hours > 0 && (
+                              <span className="ml-2">
+                                ({entry.regular_hours}h regular + {entry.overtime_hours}h overtime)
+                              </span>
+                            )}
                           </div>
                           {entry.notes && (
-                            <div className="text-sm text-gray-600 mt-1">{entry.notes}</div>
+                            <div className="text-sm text-gray-600 mt-1 italic">
+                              Note: {entry.notes}
+                            </div>
+                          )}
+                          {entry.manager_notes && (
+                            <div className="text-sm text-red-600 mt-1">
+                              Manager Note: {entry.manager_notes}
+                            </div>
                           )}
                         </div>
                         <div className="text-right">
-                          <div className="font-bold text-green-700 text-lg">
+                          <div className="font-bold text-lg">
                             ${(entry.total_pay || 0).toFixed(2)}
                           </div>
-                          <div className="text-xs text-green-600">
-                            Paid {entry.paid_at ? new Date(entry.paid_at).toLocaleDateString() : ''}
+                          <div className="mt-1">
+                            {getPaymentStatusBadge(entry)}
                           </div>
+                          {entry.is_paid && entry.paid_at && (
+                            <div className="text-xs text-green-600 mt-1">
+                              Paid: {new Date(entry.paid_at).toLocaleDateString()}
+                            </div>
+                          )}
                         </div>
                       </div>
-                    ))}
-                  </div>
-                )}
+                    </div>
+                  ))}
+                  {employeeTimeEntries.length === 0 && (
+                    <div className="text-center text-gray-500 py-8">
+                      No earnings history yet.
+                    </div>
+                  )}
+                </div>
               </CardContent>
             </Card>
           </div>
