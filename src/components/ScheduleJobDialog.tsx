@@ -1,136 +1,90 @@
 
 import React, { useState } from 'react';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
-import { Switch } from '@/components/ui/switch';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
+import { Button } from './ui/button';
+import { Input } from './ui/input';
+import { Label } from './ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { Textarea } from './ui/textarea';
 import { useJobs } from '@/hooks/useJobs';
 import { useClients } from '@/hooks/useClients';
-import { toast } from 'sonner';
 
 interface ScheduleJobDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  leadData?: {
+    name: string;
+    phone: string;
+    email?: string;
+  };
 }
 
-export const ScheduleJobDialog = ({ open, onOpenChange }: ScheduleJobDialogProps) => {
-  const { addJob } = useJobs();
-  const { clients, addClient } = useClients();
-  
+export const ScheduleJobDialog = ({ open, onOpenChange, leadData }: ScheduleJobDialogProps) => {
   const [formData, setFormData] = useState({
-    clientName: '',
-    clientPhone: '',
-    clientEmail: '',
-    originAddress: '',
-    destinationAddress: '',
-    jobDate: '',
-    startTime: '',
-    hourlyRate: '50',
-    moversNeeded: '2',
-    estimatedHours: '4',
-    truckSize: '',
-    truckServiceFee: '',
-    specialRequirements: '',
-    isPaid: false,
-    paymentMethod: '',
+    client_id: '',
+    client_name: leadData?.name || '',
+    client_phone: leadData?.phone || '',
+    client_email: leadData?.email || '',
+    origin_address: '',
+    destination_address: '',
+    job_date: '',
+    start_time: '',
+    hourly_rate: 50,
+    movers_needed: 2,
+    estimated_total: 100,
+    truck_size: '',
+    special_requirements: '',
+    is_paid: false,
+    payment_method: '',
+    paid_at: null as string | null
   });
 
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { addJob, isAddingJob } = useJobs();
+  const { clients } = useClients();
 
-  const resetForm = () => {
-    setFormData({
-      clientName: '',
-      clientPhone: '',
-      clientEmail: '',
-      originAddress: '',
-      destinationAddress: '',
-      jobDate: '',
-      startTime: '',
-      hourlyRate: '50',
-      moversNeeded: '2',
-      estimatedHours: '4',
-      truckSize: '',
-      truckServiceFee: '',
-      specialRequirements: '',
-      isPaid: false,
-      paymentMethod: '',
-    });
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    const jobData = {
+      ...formData,
+      estimated_total: Number(formData.estimated_total),
+      hourly_rate: Number(formData.hourly_rate),
+      movers_needed: Number(formData.movers_needed),
+      truck_size: formData.truck_size || null,
+      special_requirements: formData.special_requirements || null,
+      paid_at: formData.is_paid && formData.paid_at ? formData.paid_at : null
+    };
+
+    console.log('Submitting job data:', jobData);
+    addJob(jobData);
+    onOpenChange(false);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSubmitting(true);
+  const handleInputChange = (field: string, value: any) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+    
+    // Auto-calculate estimated total when hourly rate or duration changes
+    if (field === 'hourly_rate' || field === 'movers_needed') {
+      const rate = field === 'hourly_rate' ? Number(value) : formData.hourly_rate;
+      const movers = field === 'movers_needed' ? Number(value) : formData.movers_needed;
+      setFormData(prev => ({ 
+        ...prev, 
+        [field]: value,
+        estimated_total: rate * movers * 2 // Default 2 hour minimum
+      }));
+    }
+  };
 
-    try {
-      const hourlyRate = parseFloat(formData.hourlyRate);
-      const moversNeeded = parseInt(formData.moversNeeded);
-      const estimatedHours = parseFloat(formData.estimatedHours);
-      const truckServiceFee = formData.truckServiceFee ? parseFloat(formData.truckServiceFee) : undefined;
-
-      // Check if client exists
-      let existingClient = clients.find(
-        client => client.phone === formData.clientPhone || 
-        (formData.clientEmail && client.email === formData.clientEmail)
-      );
-
-      let clientId = existingClient?.id;
-
-      // Create new client if doesn't exist
-      if (!existingClient && formData.clientName && formData.clientPhone) {
-        console.log('Creating new client...');
-        try {
-          const newClient = await addClient({
-            name: formData.clientName,
-            phone: formData.clientPhone,
-            email: formData.clientEmail || null,
-            primary_address: formData.originAddress,
-            company_name: null,
-            preferred_contact_method: 'phone'
-          });
-          clientId = newClient.id;
-          console.log('Created new client with ID:', clientId);
-        } catch (clientError) {
-          console.error('Error creating client:', clientError);
-          throw new Error('Failed to create client');
-        }
-      }
-
-      const estimatedTotal = (hourlyRate * moversNeeded * estimatedHours) + (truckServiceFee || 0);
-
-      const jobData = {
+  const handleClientSelect = (clientId: string) => {
+    const client = clients.find(c => c.id === clientId);
+    if (client) {
+      setFormData(prev => ({
+        ...prev,
         client_id: clientId,
-        client_name: formData.clientName,
-        client_phone: formData.clientPhone,
-        client_email: formData.clientEmail || null,
-        origin_address: formData.originAddress,
-        destination_address: formData.destinationAddress,
-        job_date: formData.jobDate,
-        start_time: formData.startTime,
-        hourly_rate: hourlyRate,
-        movers_needed: moversNeeded,
-        estimated_duration_hours: estimatedHours,
-        estimated_total: estimatedTotal,
-        truck_size: formData.truckSize || null,
-        truck_service_fee: truckServiceFee,
-        special_requirements: formData.specialRequirements || null,
-        is_paid: formData.isPaid,
-        payment_method: formData.paymentMethod || null,
-        paid_at: formData.isPaid ? new Date().toISOString() : null,
-      };
-
-      console.log('Submitting job data:', jobData);
-      await addJob(jobData);
-      
-      resetForm();
-      onOpenChange(false);
-    } catch (error) {
-      console.error('Error creating job:', error);
-      toast.error('Failed to schedule job. Please try again.');
-    } finally {
-      setIsSubmitting(false);
+        client_name: client.name,
+        client_phone: client.phone,
+        client_email: client.email || ''
+      }));
     }
   };
 
@@ -138,84 +92,97 @@ export const ScheduleJobDialog = ({ open, onOpenChange }: ScheduleJobDialogProps
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-purple-800">Schedule New Job</DialogTitle>
-          <DialogDescription>
-            Enter the job details to schedule a new moving job.
-          </DialogDescription>
+          <DialogTitle>Schedule New Job</DialogTitle>
         </DialogHeader>
         
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="clientName">Client Name *</Label>
+              <Label>Select Existing Client (Optional)</Label>
+              <Select onValueChange={handleClientSelect}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Choose existing client..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {clients.map((client) => (
+                    <SelectItem key={client.id} value={client.id}>
+                      {client.name} - {client.phone}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="client_name">Client Name *</Label>
               <Input
-                id="clientName"
-                value={formData.clientName}
-                onChange={(e) => setFormData({...formData, clientName: e.target.value})}
+                id="client_name"
+                value={formData.client_name}
+                onChange={(e) => handleInputChange('client_name', e.target.value)}
                 required
               />
             </div>
-            
             <div className="space-y-2">
-              <Label htmlFor="clientPhone">Client Phone *</Label>
+              <Label htmlFor="client_phone">Client Phone *</Label>
               <Input
-                id="clientPhone"
-                value={formData.clientPhone}
-                onChange={(e) => setFormData({...formData, clientPhone: e.target.value})}
+                id="client_phone"
+                value={formData.client_phone}
+                onChange={(e) => handleInputChange('client_phone', e.target.value)}
                 required
               />
             </div>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="clientEmail">Client Email</Label>
+            <Label htmlFor="client_email">Client Email</Label>
             <Input
-              id="clientEmail"
+              id="client_email"
               type="email"
-              value={formData.clientEmail}
-              onChange={(e) => setFormData({...formData, clientEmail: e.target.value})}
+              value={formData.client_email}
+              onChange={(e) => handleInputChange('client_email', e.target.value)}
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="originAddress">Origin Address *</Label>
+            <Label htmlFor="origin_address">Origin Address *</Label>
             <Input
-              id="originAddress"
-              value={formData.originAddress}
-              onChange={(e) => setFormData({...formData, originAddress: e.target.value})}
+              id="origin_address"
+              value={formData.origin_address}
+              onChange={(e) => handleInputChange('origin_address', e.target.value)}
               required
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="destinationAddress">Destination Address *</Label>
+            <Label htmlFor="destination_address">Destination Address *</Label>
             <Input
-              id="destinationAddress"
-              value={formData.destinationAddress}
-              onChange={(e) => setFormData({...formData, destinationAddress: e.target.value})}
+              id="destination_address"
+              value={formData.destination_address}
+              onChange={(e) => handleInputChange('destination_address', e.target.value)}
               required
             />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="jobDate">Job Date *</Label>
+              <Label htmlFor="job_date">Job Date *</Label>
               <Input
-                id="jobDate"
+                id="job_date"
                 type="date"
-                value={formData.jobDate}
-                onChange={(e) => setFormData({...formData, jobDate: e.target.value})}
+                value={formData.job_date}
+                onChange={(e) => handleInputChange('job_date', e.target.value)}
                 required
               />
             </div>
-            
             <div className="space-y-2">
-              <Label htmlFor="startTime">Start Time *</Label>
+              <Label htmlFor="start_time">Start Time *</Label>
               <Input
-                id="startTime"
+                id="start_time"
                 type="time"
-                value={formData.startTime}
-                onChange={(e) => setFormData({...formData, startTime: e.target.value})}
+                value={formData.start_time}
+                onChange={(e) => handleInputChange('start_time', e.target.value)}
                 required
               />
             </div>
@@ -223,119 +190,114 @@ export const ScheduleJobDialog = ({ open, onOpenChange }: ScheduleJobDialogProps
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="hourlyRate">Hourly Rate ($) *</Label>
+              <Label htmlFor="hourly_rate">Hourly Rate ($) *</Label>
               <Input
-                id="hourlyRate"
+                id="hourly_rate"
                 type="number"
+                value={formData.hourly_rate}
+                onChange={(e) => handleInputChange('hourly_rate', e.target.value)}
+                required
                 min="0"
                 step="0.01"
-                value={formData.hourlyRate}
-                onChange={(e) => setFormData({...formData, hourlyRate: e.target.value})}
-                required
               />
             </div>
-            
             <div className="space-y-2">
-              <Label htmlFor="moversNeeded">Movers Needed *</Label>
+              <Label htmlFor="movers_needed">Movers Needed *</Label>
               <Input
-                id="moversNeeded"
+                id="movers_needed"
                 type="number"
+                value={formData.movers_needed}
+                onChange={(e) => handleInputChange('movers_needed', e.target.value)}
+                required
                 min="1"
-                value={formData.moversNeeded}
-                onChange={(e) => setFormData({...formData, moversNeeded: e.target.value})}
-                required
               />
             </div>
-            
             <div className="space-y-2">
-              <Label htmlFor="estimatedHours">Estimated Hours *</Label>
+              <Label htmlFor="estimated_total">Estimated Total ($) *</Label>
               <Input
-                id="estimatedHours"
+                id="estimated_total"
                 type="number"
-                min="0"
-                step="0.5"
-                value={formData.estimatedHours}
-                onChange={(e) => setFormData({...formData, estimatedHours: e.target.value})}
+                value={formData.estimated_total}
+                onChange={(e) => handleInputChange('estimated_total', e.target.value)}
                 required
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="truckSize">Truck Size</Label>
-              <Select value={formData.truckSize} onValueChange={(value) => setFormData({...formData, truckSize: value})}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select truck size (optional)" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="small">Small</SelectItem>
-                  <SelectItem value="medium">Medium</SelectItem>
-                  <SelectItem value="large">Large</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="truckServiceFee">Truck Service Fee ($)</Label>
-              <Input
-                id="truckServiceFee"
-                type="number"
                 min="0"
                 step="0.01"
-                value={formData.truckServiceFee}
-                onChange={(e) => setFormData({...formData, truckServiceFee: e.target.value})}
-                placeholder="90"
               />
             </div>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="specialRequirements">Special Requirements</Label>
+            <Label htmlFor="truck_size">Truck Size</Label>
+            <Select onValueChange={(value) => handleInputChange('truck_size', value)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select truck size..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="small">Small Truck</SelectItem>
+                <SelectItem value="medium">Medium Truck</SelectItem>
+                <SelectItem value="large">Large Truck</SelectItem>
+                <SelectItem value="extra_large">Extra Large Truck</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="special_requirements">Special Requirements</Label>
             <Textarea
-              id="specialRequirements"
-              value={formData.specialRequirements}
-              onChange={(e) => setFormData({...formData, specialRequirements: e.target.value})}
-              placeholder="Any special requirements or notes..."
+              id="special_requirements"
+              value={formData.special_requirements}
+              onChange={(e) => handleInputChange('special_requirements', e.target.value)}
+              rows={3}
             />
           </div>
 
           <div className="flex items-center space-x-2">
-            <Switch
-              id="isPaid"
-              checked={formData.isPaid}
-              onCheckedChange={(checked) => setFormData({...formData, isPaid: checked})}
+            <input
+              type="checkbox"
+              id="is_paid"
+              checked={formData.is_paid}
+              onChange={(e) => handleInputChange('is_paid', e.target.checked)}
+              className="rounded"
             />
-            <Label htmlFor="isPaid">Mark as Paid</Label>
+            <Label htmlFor="is_paid">Mark as Paid</Label>
           </div>
 
-          {formData.isPaid && (
-            <div className="space-y-2">
-              <Label htmlFor="paymentMethod">Payment Method</Label>
-              <Select value={formData.paymentMethod} onValueChange={(value) => setFormData({...formData, paymentMethod: value})}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select payment method" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="cash">Cash</SelectItem>
-                  <SelectItem value="check">Check</SelectItem>
-                  <SelectItem value="credit_card">Credit Card</SelectItem>
-                  <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
-                  <SelectItem value="zelle">Zelle</SelectItem>
-                  <SelectItem value="venmo">Venmo</SelectItem>
-                </SelectContent>
-              </Select>
+          {formData.is_paid && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="payment_method">Payment Method</Label>
+                <Select onValueChange={(value) => handleInputChange('payment_method', value)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select payment method..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="cash">Cash</SelectItem>
+                    <SelectItem value="check">Check</SelectItem>
+                    <SelectItem value="credit_card">Credit Card</SelectItem>
+                    <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="paid_at">Payment Date</Label>
+                <Input
+                  id="paid_at"
+                  type="datetime-local"
+                  value={formData.paid_at || ''}
+                  onChange={(e) => handleInputChange('paid_at', e.target.value)}
+                />
+              </div>
             </div>
           )}
 
-          <DialogFooter>
+          <div className="flex justify-end space-x-2 pt-4">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button type="submit" disabled={isSubmitting} className="bg-purple-600 hover:bg-purple-700">
-              {isSubmitting ? 'Scheduling...' : 'Schedule Job'}
+            <Button type="submit" disabled={isAddingJob}>
+              {isAddingJob ? 'Scheduling...' : 'Schedule Job'}
             </Button>
-          </DialogFooter>
+          </div>
         </form>
       </DialogContent>
     </Dialog>

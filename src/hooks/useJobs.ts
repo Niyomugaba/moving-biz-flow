@@ -1,3 +1,4 @@
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -5,36 +6,51 @@ import { useToast } from '@/hooks/use-toast';
 export interface Job {
   id: string;
   job_number: string;
-  client_id: string | null;
+  client_id?: string;
   client_name: string;
   client_phone: string;
-  client_email: string | null;
+  client_email?: string;
   origin_address: string;
   destination_address: string;
   job_date: string;
   start_time: string;
-  estimated_duration_hours: number;
-  actual_duration_hours: number | null;
   hourly_rate: number;
-  estimated_total: number;
-  actual_total: number | null;
   movers_needed: number;
-  truck_size: string | null;
-  truck_service_fee: number | null;
-  truck_rental_cost: number | null;
-  truck_gas_cost: number | null;
-  special_requirements: string | null;
+  estimated_total: number;
+  actual_duration_hours?: number;
+  actual_total?: number;
+  truck_size?: string;
+  special_requirements?: string;
   status: 'scheduled' | 'in_progress' | 'completed' | 'cancelled' | 'rescheduled';
-  completion_notes: string | null;
-  customer_satisfaction: number | null;
+  customer_satisfaction?: number;
   is_paid: boolean;
-  paid_at: string | null;
-  payment_method: string | null;
-  payment_due_date: string | null;
-  invoice_number: string | null;
-  tax_amount: number | null;
+  payment_method?: string;
+  paid_at?: string;
+  payment_due_date?: string;
+  tax_amount?: number;
+  invoice_number?: string;
+  completion_notes?: string;
   created_at: string;
   updated_at: string;
+}
+
+export interface CreateJobData {
+  client_id?: string;
+  client_name: string;
+  client_phone: string;
+  client_email?: string;
+  origin_address: string;
+  destination_address: string;
+  job_date: string;
+  start_time: string;
+  hourly_rate: number;
+  movers_needed: number;
+  estimated_total: number;
+  truck_size?: string;
+  special_requirements?: string;
+  is_paid?: boolean;
+  payment_method?: string;
+  paid_at?: string;
 }
 
 export const useJobs = () => {
@@ -54,32 +70,14 @@ export const useJobs = () => {
         console.error('Error fetching jobs:', error);
         throw error;
       }
+      
       console.log('Jobs fetched successfully:', data?.length);
       return data as Job[];
     }
   });
 
   const addJobMutation = useMutation({
-    mutationFn: async (jobData: {
-      client_id?: string | null;
-      client_name: string;
-      client_phone: string;
-      client_email?: string | null;
-      origin_address: string;
-      destination_address: string;
-      job_date: string;
-      start_time: string;
-      estimated_duration_hours: number;
-      hourly_rate: number;
-      estimated_total: number;
-      movers_needed: number;
-      truck_size?: string | null;
-      truck_service_fee?: number | null;
-      special_requirements?: string | null;
-      is_paid?: boolean;
-      payment_method?: string | null;
-      paid_at?: string | null;
-    }) => {
+    mutationFn: async (jobData: CreateJobData) => {
       console.log('Creating job with data:', jobData);
       
       const insertData = {
@@ -91,12 +89,10 @@ export const useJobs = () => {
         destination_address: jobData.destination_address,
         job_date: jobData.job_date,
         start_time: jobData.start_time,
-        estimated_duration_hours: jobData.estimated_duration_hours,
         hourly_rate: jobData.hourly_rate,
         estimated_total: jobData.estimated_total,
         movers_needed: jobData.movers_needed,
         truck_size: jobData.truck_size,
-        truck_service_fee: jobData.truck_service_fee,
         special_requirements: jobData.special_requirements,
         is_paid: jobData.is_paid || false,
         payment_method: jobData.payment_method,
@@ -108,31 +104,29 @@ export const useJobs = () => {
 
       const { data, error } = await supabase
         .from('jobs')
-        .insert([insertData])
+        .insert(insertData)
         .select()
         .single();
-      
+
       if (error) {
         console.error('Supabase error creating job:', error);
         throw error;
       }
-      
-      console.log('Job created successfully:', data);
-      return data;
+
+      return data as Job;
     },
-    onSuccess: (data) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['jobs'] });
-      queryClient.invalidateQueries({ queryKey: ['clients'] }); // Refresh clients list
       toast({
-        title: "Job Scheduled Successfully",
-        description: `Job ${data.job_number} has been added to your schedule.`,
+        title: "Job Created",
+        description: "Job has been successfully scheduled.",
       });
     },
-    onError: (error) => {
+    onError: (error: any) => {
       console.error('Error in addJobMutation:', error);
       toast({
-        title: "Error Scheduling Job",
-        description: "There was an error creating the job. Please try again.",
+        title: "Error",
+        description: error.message || "Failed to create job.",
         variant: "destructive",
       });
     }
@@ -147,25 +141,46 @@ export const useJobs = () => {
         .eq('id', id)
         .select()
         .single();
-      
-      if (error) {
-        console.error('Error updating job:', error);
-        throw error;
-      }
-      return data;
+
+      if (error) throw error;
+      return data as Job;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['jobs'] });
       toast({
         title: "Job Updated",
-        description: "Job information has been updated.",
+        description: "Job has been successfully updated.",
       });
     },
-    onError: (error) => {
-      console.error('Error updating job:', error);
+    onError: (error: any) => {
       toast({
-        title: "Error Updating Job",
-        description: "There was an error updating the job. Please try again.",
+        title: "Error",
+        description: error.message || "Failed to update job.",
+        variant: "destructive",
+      });
+    }
+  });
+
+  const deleteJobMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('jobs')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['jobs'] });
+      toast({
+        title: "Job Deleted",
+        description: "Job has been successfully deleted.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete job.",
         variant: "destructive",
       });
     }
@@ -175,9 +190,11 @@ export const useJobs = () => {
     jobs,
     isLoading,
     error,
-    addJob: addJobMutation.mutateAsync, // Changed to mutateAsync for better error handling
+    addJob: addJobMutation.mutate,
     updateJob: updateJobMutation.mutate,
+    deleteJob: deleteJobMutation.mutate,
     isAddingJob: addJobMutation.isPending,
-    isUpdatingJob: updateJobMutation.isPending
+    isUpdatingJob: updateJobMutation.isPending,
+    isDeletingJob: deleteJobMutation.isPending
   };
 };

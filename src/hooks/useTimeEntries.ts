@@ -1,3 +1,4 @@
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -5,25 +6,38 @@ import { useToast } from '@/hooks/use-toast';
 export interface TimeEntry {
   id: string;
   employee_id: string;
-  job_id: string | null;
+  job_id?: string;
   entry_date: string;
   clock_in_time: string;
-  clock_out_time: string | null;
-  regular_hours: number | null;
-  overtime_hours: number | null;
+  clock_out_time?: string;
+  regular_hours?: number;
+  overtime_hours?: number;
   hourly_rate: number;
-  overtime_rate: number | null;
-  total_pay: number | null;
-  notes: string | null;
+  overtime_rate?: number;
+  total_pay?: number;
   status: 'pending' | 'approved' | 'rejected';
-  manager_notes: string | null;
-  approved_by: string | null;
-  approved_at: string | null;
+  notes?: string;
+  manager_notes?: string;
+  approved_by?: string;
+  approved_at?: string;
   is_paid: boolean;
-  paid_at: string | null;
-  break_duration_minutes: number | null;
+  paid_at?: string;
+  break_duration_minutes?: number;
   created_at: string;
   updated_at: string;
+}
+
+export interface CreateTimeEntryData {
+  employee_id: string;
+  job_id?: string;
+  entry_date: string;
+  clock_in_time: string;
+  clock_out_time: string;
+  regular_hours: number;
+  overtime_hours?: number;
+  hourly_rate: number;
+  overtime_rate?: number;
+  notes?: string;
 }
 
 export const useTimeEntries = () => {
@@ -31,9 +45,8 @@ export const useTimeEntries = () => {
   const queryClient = useQueryClient();
 
   const { data: timeEntries = [], isLoading, error } = useQuery({
-    queryKey: ['timeEntries'],
+    queryKey: ['time-entries'],
     queryFn: async () => {
-      console.log('Fetching time entries...');
       const { data, error } = await supabase
         .from('time_entries')
         .select('*')
@@ -43,75 +56,64 @@ export const useTimeEntries = () => {
         console.error('Error fetching time entries:', error);
         throw error;
       }
-      console.log('Time entries fetched successfully:', data?.length);
+      
       return data as TimeEntry[];
     }
   });
 
   const addTimeEntryMutation = useMutation({
-    mutationFn: async (timeEntryData: {
-      employee_id: string;
-      job_id?: string;
-      entry_date: string;
-      clock_in_time: string;
-      clock_out_time: string;
-      regular_hours: number;
-      overtime_hours?: number;
-      hourly_rate: number;
-      overtime_rate?: number;
-      break_duration_minutes?: number;
-      notes?: string;
-    }) => {
-      console.log('Creating time entry with data:', timeEntryData);
+    mutationFn: async (entryData: CreateTimeEntryData) => {
+      console.log('Creating time entry with data:', entryData);
       
-      const regularPay = timeEntryData.regular_hours * timeEntryData.hourly_rate;
-      const overtimePay = timeEntryData.overtime_hours && timeEntryData.overtime_rate 
-        ? timeEntryData.overtime_hours * timeEntryData.overtime_rate 
+      // Calculate total pay
+      const regularPay = entryData.regular_hours * entryData.hourly_rate;
+      const overtimePay = entryData.overtime_hours && entryData.overtime_rate 
+        ? entryData.overtime_hours * entryData.overtime_rate 
         : 0;
       const totalPay = regularPay + overtimePay;
-
+      
       const insertData = {
-        employee_id: timeEntryData.employee_id,
-        job_id: timeEntryData.job_id || null,
-        entry_date: timeEntryData.entry_date,
-        clock_in_time: timeEntryData.clock_in_time,
-        clock_out_time: timeEntryData.clock_out_time,
-        regular_hours: timeEntryData.regular_hours,
-        overtime_hours: timeEntryData.overtime_hours || null,
-        hourly_rate: timeEntryData.hourly_rate,
-        overtime_rate: timeEntryData.overtime_rate || null,
-        break_duration_minutes: timeEntryData.break_duration_minutes || null,
-        notes: timeEntryData.notes || null,
+        employee_id: entryData.employee_id,
+        job_id: entryData.job_id || null,
+        entry_date: entryData.entry_date,
+        clock_in_time: entryData.clock_in_time,
+        clock_out_time: entryData.clock_out_time,
+        regular_hours: entryData.regular_hours,
+        overtime_hours: entryData.overtime_hours || null,
+        hourly_rate: entryData.hourly_rate,
+        overtime_rate: entryData.overtime_rate || null,
         total_pay: totalPay,
+        notes: entryData.notes || null,
         status: 'pending' as const
       };
 
+      console.log('Inserting time entry data:', insertData);
+
       const { data, error } = await supabase
         .from('time_entries')
-        .insert([insertData])
+        .insert(insertData)
         .select()
         .single();
-      
+
       if (error) {
         console.error('Supabase error creating time entry:', error);
         throw error;
       }
-      
-      console.log('Time entry created successfully:', data);
-      return data;
+
+      return data as TimeEntry;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['timeEntries'] });
+      queryClient.invalidateQueries({ queryKey: ['time-entries'] });
       toast({
-        title: "Hours Submitted",
-        description: "Your work hours have been submitted for approval.",
+        title: "Time Entry Added",
+        description: "Time entry has been successfully added.",
       });
     },
-    onError: (error) => {
+    onError: (error: any) => {
       console.error('Error in addTimeEntryMutation:', error);
       toast({
-        title: "Error Submitting Hours",
-        description: "There was an error submitting your hours. Please try again.",
+        title: "Error",
+        description: error.message || "Failed to add time entry.",
         variant: "destructive",
       });
     }
@@ -120,153 +122,77 @@ export const useTimeEntries = () => {
   const updateTimeEntryMutation = useMutation({
     mutationFn: async ({ id, updates }: { id: string; updates: Partial<TimeEntry> }) => {
       console.log('Updating time entry:', id, updates);
+      
+      // Recalculate total pay if hours or rates are being updated
+      if (updates.regular_hours !== undefined || updates.overtime_hours !== undefined || 
+          updates.hourly_rate !== undefined || updates.overtime_rate !== undefined) {
+        
+        // Get current entry to fill in missing values
+        const { data: currentEntry } = await supabase
+          .from('time_entries')
+          .select('*')
+          .eq('id', id)
+          .single();
+        
+        if (currentEntry) {
+          const regularHours = updates.regular_hours ?? currentEntry.regular_hours ?? 0;
+          const overtimeHours = updates.overtime_hours ?? currentEntry.overtime_hours ?? 0;
+          const hourlyRate = updates.hourly_rate ?? currentEntry.hourly_rate ?? 0;
+          const overtimeRate = updates.overtime_rate ?? currentEntry.overtime_rate ?? (hourlyRate * 1.5);
+          
+          const regularPay = regularHours * hourlyRate;
+          const overtimePay = overtimeHours * overtimeRate;
+          updates.total_pay = regularPay + overtimePay;
+        }
+      }
+      
       const { data, error } = await supabase
         .from('time_entries')
         .update(updates)
         .eq('id', id)
         .select()
         .single();
-      
-      if (error) {
-        console.error('Error updating time entry:', error);
-        throw error;
-      }
-      return data;
+
+      if (error) throw error;
+      return data as TimeEntry;
     },
-    onSuccess: (data, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['timeEntries'] });
-      
-      if (variables.updates.status === 'pending') {
-        toast({
-          title: "Status Reset",
-          description: "Time entry status has been reset to pending.",
-        });
-      } else if (variables.updates.is_paid) {
-        toast({
-          title: "Payment Recorded",
-          description: "Employee has been marked as paid.",
-        });
-      } else {
-        toast({
-          title: "Time Entry Updated",
-          description: "Time entry has been updated successfully.",
-        });
-      }
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['time-entries'] });
+      toast({
+        title: "Time Entry Updated",
+        description: "Time entry has been successfully updated.",
+      });
     },
-    onError: (error) => {
+    onError: (error: any) => {
       console.error('Error updating time entry:', error);
       toast({
-        title: "Error Updating Time Entry",
-        description: "There was an error updating the time entry. Please try again.",
+        title: "Error",
+        description: error.message || "Failed to update time entry.",
         variant: "destructive",
       });
     }
   });
 
-  const approveTimeEntryMutation = useMutation({
+  const deleteTimeEntryMutation = useMutation({
     mutationFn: async (id: string) => {
-      console.log('Approving time entry:', id);
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('time_entries')
-        .update({ 
-          status: 'approved',
-          approved_at: new Date().toISOString(),
-          approved_by: null // Set to null instead of 'manager' string
-        })
-        .eq('id', id)
-        .select()
-        .single();
-      
-      if (error) {
-        console.error('Error approving time entry:', error);
-        throw error;
-      }
-      return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['timeEntries'] });
-      toast({
-        title: "Time Entry Approved",
-        description: "The time entry has been approved and is ready for payment.",
-      });
-    },
-    onError: (error) => {
-      console.error('Error approving time entry:', error);
-      toast({
-        title: "Error Approving Time Entry",
-        description: "There was an error approving the time entry. Please try again.",
-        variant: "destructive",
-      });
-    }
-  });
+        .delete()
+        .eq('id', id);
 
-  const rejectTimeEntryMutation = useMutation({
-    mutationFn: async ({ id, reason }: { id: string; reason?: string }) => {
-      console.log('Rejecting time entry:', id, reason);
-      const { data, error } = await supabase
-        .from('time_entries')
-        .update({ 
-          status: 'rejected',
-          manager_notes: reason || null
-        })
-        .eq('id', id)
-        .select()
-        .single();
-      
-      if (error) {
-        console.error('Error rejecting time entry:', error);
-        throw error;
-      }
-      return data;
+      if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['timeEntries'] });
+      queryClient.invalidateQueries({ queryKey: ['time-entries'] });
       toast({
-        title: "Time Entry Rejected",
-        description: "The time entry has been rejected.",
+        title: "Time Entry Deleted",
+        description: "Time entry has been successfully deleted.",
       });
     },
-    onError: (error) => {
-      console.error('Error rejecting time entry:', error);
+    onError: (error: any) => {
       toast({
-        title: "Error Rejecting Time Entry",
-        description: "There was an error rejecting the time entry. Please try again.",
-        variant: "destructive",
-      });
-    }
-  });
-
-  const markAsPaidMutation = useMutation({
-    mutationFn: async (id: string) => {
-      console.log('Marking time entry as paid:', id);
-      const { data, error } = await supabase
-        .from('time_entries')
-        .update({ 
-          is_paid: true,
-          paid_at: new Date().toISOString()
-        })
-        .eq('id', id)
-        .select()
-        .single();
-      
-      if (error) {
-        console.error('Error marking as paid:', error);
-        throw error;
-      }
-      return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['timeEntries'] });
-      toast({
-        title: "Payment Recorded",
-        description: "Employee has been marked as paid for this time entry.",
-      });
-    },
-    onError: (error) => {
-      console.error('Error marking as paid:', error);
-      toast({
-        title: "Error Recording Payment",
-        description: "There was an error recording the payment. Please try again.",
+        title: "Error",
+        description: error.message || "Failed to delete time entry.",
         variant: "destructive",
       });
     }
@@ -276,15 +202,11 @@ export const useTimeEntries = () => {
     timeEntries,
     isLoading,
     error,
-    addTimeEntry: addTimeEntryMutation.mutateAsync,
+    addTimeEntry: addTimeEntryMutation.mutate,
     updateTimeEntry: updateTimeEntryMutation.mutate,
-    approveTimeEntry: approveTimeEntryMutation.mutate,
-    rejectTimeEntry: rejectTimeEntryMutation.mutate,
-    markAsPaid: markAsPaidMutation.mutate,
+    deleteTimeEntry: deleteTimeEntryMutation.mutate,
     isAddingTimeEntry: addTimeEntryMutation.isPending,
     isUpdatingTimeEntry: updateTimeEntryMutation.isPending,
-    isApprovingTimeEntry: approveTimeEntryMutation.isPending,
-    isRejectingTimeEntry: rejectTimeEntryMutation.isPending,
-    isMarkingAsPaid: markAsPaidMutation.isPending
+    isDeletingTimeEntry: deleteTimeEntryMutation.isPending
   };
 };
