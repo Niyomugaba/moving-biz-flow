@@ -53,7 +53,7 @@ export const filterDataByDateRange = <T extends { created_at?: string; job_date?
   dateRange: DateRange,
   dateField: 'created_at' | 'job_date' | 'entry_date' = 'created_at'
 ): T[] => {
-  const { startDate, endDate } = useDateFilter(dateRange).valueOf();
+  const { startDate, endDate } = useDateFilter(dateRange);
   
   if (!startDate || !endDate) {
     return data; // Return all data for 'since_inception'
