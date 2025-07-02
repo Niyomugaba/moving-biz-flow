@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -14,6 +13,17 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 export const Leads = () => {
+  const { 
+    leads, 
+    isLoading, 
+    addLead, 
+    updateLead, 
+    deleteLead, 
+    isAddingLead, 
+    isUpdatingLead, 
+    isDeletingLead 
+  } = useLeads();
+  
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isScheduleDialogOpen, setIsScheduleDialogOpen] = useState(false);
   const [selectedLead, setSelectedLead] = useState<any>(null);
@@ -22,8 +32,6 @@ export const Leads = () => {
   const [sourceFilter, setSourceFilter] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
-
-  const { leads, isLoading, updateLead, deleteLead } = useLeads();
 
   const filteredLeads = leads.filter(lead => {
     const matchesSearch = lead.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -44,7 +52,7 @@ export const Leads = () => {
     setIsScheduleDialogOpen(true);
   };
 
-  const handleStatusChange = (leadId: string, newStatus: string) => {
+  const handleStatusChange = (leadId: string, newStatus: 'new' | 'contacted' | 'quoted' | 'converted' | 'lost') => {
     updateLead({ id: leadId, updates: { status: newStatus } });
   };
 
@@ -85,7 +93,7 @@ export const Leads = () => {
   }
 
   return (
-    <div className="p-4 sm:p-6 space-y-4 sm:space-y-6 max-w-full overflow-x-hidden">
+    <div className="space-y-6 p-4 md:p-6 bg-blue-50 min-h-screen">
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
         <h1 className="text-2xl sm:text-3xl font-bold text-purple-800">Leads Management</h1>
         <Button 
@@ -161,96 +169,89 @@ export const Leads = () => {
       {/* Mobile-Optimized Lead Cards */}
       <div className="space-y-4">
         {paginatedLeads.map((lead) => (
-          <Card key={lead.id} className="hover:shadow-md transition-shadow border-l-4 border-l-purple-500">
-            <CardContent className="p-4 sm:p-6">
-              <div className="space-y-4">
-                {/* Header Row - Mobile Stacked */}
-                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-2">
-                      <User className="h-4 w-4 text-purple-600 flex-shrink-0" />
-                      <h3 className="font-semibold text-lg text-gray-900 truncate">{lead.name}</h3>
-                    </div>
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2 text-sm text-gray-600">
-                        <Phone className="h-3 w-3 flex-shrink-0" />
-                        <span className="break-all">{lead.phone}</span>
-                      </div>
-                      {lead.email && (
-                        <div className="flex items-center gap-2 text-sm text-gray-600">
-                          <Mail className="h-3 w-3 flex-shrink-0" />
-                          <span className="break-all">{lead.email}</span>
-                        </div>
-                      )}
-                    </div>
+          <Card key={lead.id} className="bg-white rounded-lg shadow-sm border border-blue-200 overflow-hidden hover:shadow-lg transition-shadow">
+            <CardContent className="p-4 md:p-6">
+              <div className="flex justify-between items-start mb-4">
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">{lead.name}</h3>
+                  <div className="flex items-center gap-2 text-sm text-gray-600 mt-1">
+                    <Phone className="h-3 w-3" />
+                    <button 
+                      onClick={() => handleCall(lead.phone)}
+                      className="hover:text-blue-600 underline"
+                    >
+                      {lead.phone}
+                    </button>
                   </div>
-                  
-                  {/* Status and Source Badges */}
-                  <div className="flex flex-wrap gap-2 sm:flex-col sm:items-end">
-                    <Badge className={`${getStatusColor(lead.status)} text-xs px-2 py-1`}>
-                      {lead.status.charAt(0).toUpperCase() + lead.status.slice(1)}
-                    </Badge>
-                    <Badge variant="outline" className={`${getSourceColor(lead.source)} text-xs px-2 py-1`}>
-                      {lead.source.replace('_', ' ').charAt(0).toUpperCase() + lead.source.replace('_', ' ').slice(1)}
-                    </Badge>
-                  </div>
-                </div>
-
-                {/* Info Row */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-                  {lead.estimated_value && (
-                    <div className="flex items-center gap-2 text-green-600">
-                      <DollarSign className="h-3 w-3" />
-                      <span>Est. Value: ${lead.estimated_value}</span>
+                  {lead.email && (
+                    <div className="flex items-center gap-2 text-sm text-gray-600">
+                      <Mail className="h-3 w-3" />
+                      <button 
+                        onClick={() => handleEmail(lead.email!)}
+                        className="hover:text-blue-600 underline"
+                      >
+                        {lead.email}
+                      </button>
                     </div>
                   )}
-                  <div className="flex items-center gap-2 text-gray-500">
-                    <Calendar className="h-3 w-3" />
-                    <span>Created: {new Date(lead.created_at).toLocaleDateString()}</span>
-                  </div>
                 </div>
-
-                {/* Notes */}
-                {lead.notes && (
-                  <div className="bg-gray-50 p-3 rounded-lg">
-                    <p className="text-sm text-gray-700 line-clamp-2">{lead.notes}</p>
+                <div className="flex flex-col items-end gap-2">
+                  <StatusBadge status={lead.status} variant="lead" />
+                  <Badge className="bg-gray-100 text-gray-700 capitalize">
+                    {lead.source?.replace('_', ' ')}
+                  </Badge>
+                </div>
+              </div>
+              
+              <div className="space-y-3">
+                {lead.estimated_value && (
+                  <div className="flex items-center text-sm text-gray-600">
+                    <DollarSign className="h-4 w-4 mr-2" />
+                    Estimated Value: ${lead.estimated_value.toLocaleString()}
                   </div>
                 )}
+                
+                {lead.follow_up_date && (
+                  <div className="flex items-center text-sm text-gray-600">
+                    <Calendar className="h-4 w-4 mr-2" />
+                    Follow-up: {lead.follow_up_date}
+                  </div>
+                )}
+                
+                {lead.notes && (
+                  <div className="text-sm text-gray-600">
+                    <p className="line-clamp-2">{lead.notes}</p>
+                  </div>
+                )}
+              </div>
 
-                {/* Actions - Mobile Optimized */}
-                <div className="flex flex-col sm:flex-row gap-2 pt-2 border-t">
-                  <div className="flex-1">
-                    <Select value={lead.status} onValueChange={(value) => handleStatusChange(lead.id, value)}>
-                      <SelectTrigger className="w-full text-xs sm:text-sm">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="new">New</SelectItem>
-                        <SelectItem value="contacted">Contacted</SelectItem>
-                        <SelectItem value="quoted">Quoted</SelectItem>
-                        <SelectItem value="converted">Converted</SelectItem>
-                        <SelectItem value="lost">Lost</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+              <div className="mt-4 pt-4 border-t border-gray-200">
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <Select
+                    value={lead.status}
+                    onValueChange={(value: 'new' | 'contacted' | 'quoted' | 'converted' | 'lost') => handleStatusChange(lead.id, value)}
+                  >
+                    <SelectTrigger className="flex-1 text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="new">New</SelectItem>
+                      <SelectItem value="contacted">Contacted</SelectItem>
+                      <SelectItem value="quoted">Quoted</SelectItem>
+                      <SelectItem value="converted">Converted</SelectItem>
+                      <SelectItem value="lost">Lost</SelectItem>
+                    </SelectContent>
+                  </Select>
                   
-                  <div className="flex gap-2">
-                    <Button
-                      size="sm"
+                  {lead.status === 'quoted' && (
+                    <Button 
                       onClick={() => handleScheduleJob(lead)}
-                      className="bg-green-600 hover:bg-green-700 text-xs sm:text-sm flex-1 sm:flex-none"
+                      className="bg-green-600 hover:bg-green-700 text-white text-xs px-3 py-2"
                     >
-                      Schedule Job
+                      <Calendar className="h-3 w-3 mr-1" />
+                      Schedule
                     </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => deleteLead(lead.id)}
-                      className="text-red-600 hover:text-red-700 hover:bg-red-50 text-xs sm:text-sm flex-1 sm:flex-none"
-                    >
-                      Delete
-                    </Button>
-                  </div>
+                  )}
                 </div>
               </div>
             </CardContent>
@@ -278,11 +279,17 @@ export const Leads = () => {
       )}
 
       {/* Pagination */}
-      {totalPages > 1 && (
+      {filteredLeads.length > 0 && (
         <PaginationControls
           currentPage={currentPage}
           totalPages={totalPages}
+          itemsPerPage={itemsPerPage}
+          totalItems={filteredLeads.length}
           onPageChange={setCurrentPage}
+          onItemsPerPageChange={(items) => {
+            setItemsPerPage(items);
+            setCurrentPage(1);
+          }}
         />
       )}
 

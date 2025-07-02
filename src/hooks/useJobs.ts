@@ -30,6 +30,9 @@ export interface Job {
   tax_amount?: number;
   invoice_number?: string;
   completion_notes?: string;
+  truck_service_fee?: number;
+  truck_rental_cost?: number;
+  truck_gas_cost?: number;
   created_at: string;
   updated_at: string;
 }
@@ -97,7 +100,8 @@ export const useJobs = () => {
         is_paid: jobData.is_paid || false,
         payment_method: jobData.payment_method,
         paid_at: jobData.paid_at,
-        status: 'scheduled' as const
+        status: 'scheduled' as const,
+        estimated_duration_hours: 2 // Default 2 hours minimum
       };
 
       console.log('Inserting job data:', insertData);

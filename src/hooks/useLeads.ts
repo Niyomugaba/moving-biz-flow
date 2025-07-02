@@ -7,15 +7,27 @@ export interface Lead {
   id: string;
   name: string;
   phone: string;
-  email: string | null;
+  email?: string;
   source: 'website' | 'referral' | 'google_ads' | 'facebook' | 'phone' | 'walk_in' | 'other';
   status: 'new' | 'contacted' | 'quoted' | 'converted' | 'lost';
-  lead_cost: number | null; // This represents the cost to generate the lead
-  notes: string | null;
-  follow_up_date: string | null;
-  assigned_to: string | null;
+  assigned_to?: string;
+  follow_up_date?: string;
+  estimated_value?: number;
+  notes?: string;
   created_at: string;
   updated_at: string;
+}
+
+export interface CreateLeadData {
+  name: string;
+  phone: string;
+  email?: string;
+  source?: Lead['source'];
+  status?: Lead['status'];
+  assigned_to?: string;
+  follow_up_date?: string;
+  estimated_value?: number;
+  notes?: string;
 }
 
 export const useLeads = () => {
@@ -30,66 +42,37 @@ export const useLeads = () => {
         .select('*')
         .order('created_at', { ascending: false });
       
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching leads:', error);
+        throw error;
+      }
       
-      // Map estimated_value from database to lead_cost for the interface
-      return data.map(lead => ({
-        ...lead,
-        lead_cost: lead.estimated_value
-      })) as Lead[];
+      return data as Lead[];
     }
   });
 
   const addLeadMutation = useMutation({
-    mutationFn: async (leadData: Omit<Lead, 'id' | 'created_at' | 'updated_at'>) => {
-      // When adding a lead, also add them to clients table
-      const { data: leadResult, error: leadError } = await supabase
+    mutationFn: async (leadData: CreateLeadData) => {
+      const { data, error } = await supabase
         .from('leads')
-        .insert({
-          name: leadData.name,
-          phone: leadData.phone,
-          email: leadData.email,
-          source: leadData.source,
-          status: leadData.status,
-          estimated_value: leadData.lead_cost, // Map lead_cost back to estimated_value for DB
-          notes: leadData.notes,
-          follow_up_date: leadData.follow_up_date,
-          assigned_to: leadData.assigned_to
-        })
+        .insert(leadData)
         .select()
         .single();
-      
-      if (leadError) throw leadError;
 
-      // Add to clients table
-      const { error: clientError } = await supabase
-        .from('clients')
-        .insert({
-          name: leadData.name,
-          phone: leadData.phone,
-          email: leadData.email,
-          primary_address: 'Address not provided',
-          notes: `Added from lead. Source: ${leadData.source}. Status: ${leadData.status}`
-        });
-
-      if (clientError) {
-        console.warn('Could not add to clients (may already exist):', clientError);
-      }
-      
-      return leadResult;
+      if (error) throw error;
+      return data as Lead;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['leads'] });
-      queryClient.invalidateQueries({ queryKey: ['clients'] });
       toast({
-        title: "Lead Added Successfully",
-        description: "New lead has been added to your pipeline and client list.",
+        title: "Lead Added",
+        description: "Lead has been successfully added.",
       });
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast({
         title: "Error",
-        description: "Failed to add lead. Please try again.",
+        description: error.message || "Failed to add lead.",
         variant: "destructive",
       });
     }
@@ -97,60 +80,53 @@ export const useLeads = () => {
 
   const updateLeadMutation = useMutation({
     mutationFn: async ({ id, updates }: { id: string; updates: Partial<Lead> }) => {
-      const dbUpdates: any = { ...updates };
-      
-      // Map lead_cost back to estimated_value for database
-      if (updates.lead_cost !== undefined) {
-        dbUpdates.estimated_value = updates.lead_cost;
-        delete dbUpdates.lead_cost;
-      }
-
       const { data, error } = await supabase
         .from('leads')
-        .update(dbUpdates)
+        .update(updates)
         .eq('id', id)
         .select()
         .single();
-      
+
       if (error) throw error;
-
-      // If status is converted, create a job
-      if (updates.status === 'converted') {
-        const leadData = leads.find(l => l.id === id);
-        if (leadData) {
-          const { error: jobError } = await supabase
-            .from('jobs')
-            .insert({
-              client_name: leadData.name,
-              client_phone: leadData.phone,
-              client_email: leadData.email,
-              origin_address: 'TBD - Contact client for details',
-              destination_address: 'TBD - Contact client for details',
-              job_date: new Date().toISOString().split('T')[0],
-              start_time: '09:00:00',
-              estimated_duration_hours: 4,
-              hourly_rate: 150, // Default rate
-              estimated_total: 600,
-              movers_needed: 2,
-              status: 'scheduled'
-            });
-
-          if (jobError) {
-            console.warn('Could not create job from converted lead:', jobError);
-          } else {
-            queryClient.invalidateQueries({ queryKey: ['jobs'] });
-          }
-        }
-      }
-      
-      return data;
+      return data as Lead;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['leads'] });
-      queryClient.invalidateQueries({ queryKey: ['clients'] });
       toast({
         title: "Lead Updated",
-        description: "Lead information has been updated.",
+        description: "Lead has been successfully updated.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update lead.",
+        variant: "destructive",
+      });
+    }
+  });
+
+  const deleteLeadMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('leads')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['leads'] });
+      toast({
+        title: "Lead Deleted",
+        description: "Lead has been successfully deleted.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete lead.",
+        variant: "destructive",
       });
     }
   });
@@ -161,7 +137,9 @@ export const useLeads = () => {
     error,
     addLead: addLeadMutation.mutate,
     updateLead: updateLeadMutation.mutate,
+    deleteLead: deleteLeadMutation.mutate,
     isAddingLead: addLeadMutation.isPending,
-    isUpdatingLead: updateLeadMutation.isPending
+    isUpdatingLead: updateLeadMutation.isPending,
+    isDeletingLead: deleteLeadMutation.isPending
   };
 };
