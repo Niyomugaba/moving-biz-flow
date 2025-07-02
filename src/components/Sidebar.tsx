@@ -1,27 +1,39 @@
+
 import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { BarChart3, Users, Calendar, UserCheck, DollarSign, Phone, Clock, LogOut } from 'lucide-react';
-import { useManagerAuth } from '@/hooks/useManagerAuth';
+import { BarChart3, Users, Calendar, UserCheck, DollarSign, Phone, Clock, LogOut, Settings, Shield } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
+import { RoleGuard } from '@/components/RoleGuard';
 import { Button } from '@/components/ui/button';
 
 export const Sidebar = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { logout, managerSession } = useManagerAuth();
+  const { signOut, profile, userRole } = useAuth();
 
   const menuItems = [
-    { icon: BarChart3, label: 'Dashboard', path: '/' },
-    { icon: Phone, label: 'Leads', path: '/leads' },
-    { icon: Calendar, label: 'Jobs', path: '/jobs' },
-    { icon: Users, label: 'Employees', path: '/employees' },
-    { icon: Clock, label: 'Time Logs', path: '/time-logs' },
-    { icon: UserCheck, label: 'Clients', path: '/clients' },
-    { icon: DollarSign, label: 'Financials', path: '/financials' }
+    { icon: BarChart3, label: 'Dashboard', path: '/', roles: ['owner', 'admin', 'manager', 'employee'] },
+    { icon: Phone, label: 'Leads', path: '/leads', roles: ['owner', 'admin', 'manager'] },
+    { icon: Calendar, label: 'Jobs', path: '/jobs', roles: ['owner', 'admin', 'manager'] },
+    { icon: Users, label: 'Employees', path: '/employees', roles: ['owner', 'admin', 'manager'] },
+    { icon: Clock, label: 'Time Logs', path: '/time-logs', roles: ['owner', 'admin', 'manager'] },
+    { icon: UserCheck, label: 'Clients', path: '/clients', roles: ['owner', 'admin', 'manager'] },
+    { icon: DollarSign, label: 'Financials', path: '/financials', roles: ['owner', 'admin'] },
+    { icon: Shield, label: 'User Management', path: '/user-management', roles: ['owner'] }
   ];
 
-  const handleLogout = () => {
-    logout();
-    navigate('/manager-login');
+  const handleLogout = async () => {
+    await signOut();
+    navigate('/auth');
+  };
+
+  const getRoleBadgeColor = (role: string) => {
+    switch (role) {
+      case 'owner': return 'bg-purple-600 text-white';
+      case 'admin': return 'bg-blue-600 text-white';
+      case 'manager': return 'bg-green-600 text-white';
+      default: return 'bg-gray-600 text-white';
+    }
   };
 
   return (
@@ -35,8 +47,15 @@ export const Sidebar = () => {
           />
         </div>
         <p className="text-gray-400 text-sm">Management Portal</p>
-        {managerSession && (
-          <p className="text-amber-400 text-xs mt-1">Welcome, {managerSession.name}</p>
+        {profile && (
+          <div className="mt-2">
+            <p className="text-amber-400 text-xs font-medium">{profile.full_name || profile.email}</p>
+            {userRole && (
+              <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium mt-1 ${getRoleBadgeColor(userRole.role)}`}>
+                {userRole.role.toUpperCase()}
+              </span>
+            )}
+          </div>
         )}
       </div>
       
@@ -46,18 +65,19 @@ export const Sidebar = () => {
           const isActive = location.pathname === item.path;
           
           return (
-            <Link
-              key={item.path}
-              to={item.path}
-              className={`flex items-center space-x-3 p-3 rounded-lg transition-colors ${
-                isActive 
-                  ? 'bg-purple-600 text-white' 
-                  : 'text-gray-300 hover:bg-gray-800 hover:text-white'
-              }`}
-            >
-              <Icon className="h-5 w-5" />
-              <span>{item.label}</span>
-            </Link>
+            <RoleGuard key={item.path} allowedRoles={item.roles as any}>
+              <Link
+                to={item.path}
+                className={`flex items-center space-x-3 p-3 rounded-lg transition-colors ${
+                  isActive 
+                    ? 'bg-purple-600 text-white' 
+                    : 'text-gray-300 hover:bg-gray-800 hover:text-white'
+                }`}
+              >
+                <Icon className="h-5 w-5" />
+                <span>{item.label}</span>
+              </Link>
+            </RoleGuard>
           );
         })}
       </nav>
