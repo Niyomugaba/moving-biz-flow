@@ -12,10 +12,10 @@ export interface Client {
   secondary_address: string | null;
   company_name: string | null;
   preferred_contact_method: string | null;
-  notes: string | null;
-  rating: number | null;
   total_jobs_completed: number | null;
   total_revenue: number | null;
+  rating: number | null;
+  notes: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -24,13 +24,13 @@ export const useClients = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: clients = [], isLoading, error } = useQuery({
+  const { data: clients = [], isLoading } = useQuery({
     queryKey: ['clients'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('clients')
         .select('*')
-        .order('name', { ascending: true });
+        .order('name');
       
       if (error) throw error;
       return data as Client[];
@@ -38,42 +38,43 @@ export const useClients = () => {
   });
 
   const addClientMutation = useMutation({
-    mutationFn: async (clientData: Omit<Client, 'id' | 'created_at' | 'updated_at' | 'rating' | 'total_jobs_completed' | 'total_revenue'>) => {
+    mutationFn: async (clientData: {
+      name: string;
+      phone: string;
+      email?: string | null;
+      primary_address: string;
+      company_name?: string | null;
+      preferred_contact_method?: string | null;
+    }) => {
+      console.log('Creating client with data:', clientData);
+      
       const { data, error } = await supabase
         .from('clients')
         .insert([clientData])
         .select()
         .single();
       
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['clients'] });
-      toast({
-        title: "Client Added Successfully",
-        description: "New client has been added to your database.",
-      });
-    }
-  });
-
-  const updateClientMutation = useMutation({
-    mutationFn: async ({ id, updates }: { id: string; updates: Partial<Client> }) => {
-      const { data, error } = await supabase
-        .from('clients')
-        .update(updates)
-        .eq('id', id)
-        .select()
-        .single();
+      if (error) {
+        console.error('Error creating client:', error);
+        throw error;
+      }
       
-      if (error) throw error;
+      console.log('Client created successfully:', data);
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['clients'] });
       toast({
-        title: "Client Updated",
-        description: "Client information has been updated successfully.",
+        title: "Client Added",
+        description: `${data.name} has been added as a new client.`,
+      });
+    },
+    onError: (error) => {
+      console.error('Error in addClientMutation:', error);
+      toast({
+        title: "Error Adding Client",
+        description: "There was an error adding the client. Please try again.",
+        variant: "destructive",
       });
     }
   });
@@ -81,10 +82,7 @@ export const useClients = () => {
   return {
     clients,
     isLoading,
-    error,
-    addClient: addClientMutation.mutate,
-    updateClient: updateClientMutation.mutate,
-    isAddingClient: addClientMutation.isPending,
-    isUpdatingClient: updateClientMutation.isPending
+    addClient: addClientMutation.mutateAsync, // Return mutateAsync for promise handling
+    isAddingClient: addClientMutation.isPending
   };
 };

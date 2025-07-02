@@ -5,22 +5,29 @@ import { Button } from './ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { useJobs } from '@/hooks/useJobs';
 import { useClients } from '@/hooks/useClients';
+import { useLeads } from '@/hooks/useLeads';
 import { useIsMobile } from '@/hooks/use-mobile';
 
 interface ScheduleJobDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  leadId?: string; // Optional lead ID for converting leads to clients
 }
 
-export const ScheduleJobDialog = ({ open, onOpenChange }: ScheduleJobDialogProps) => {
+export const ScheduleJobDialog = ({ open, onOpenChange, leadId }: ScheduleJobDialogProps) => {
   const { addJob, isAddingJob } = useJobs();
-  const { clients } = useClients();
+  const { clients, addClient } = useClients();
+  const { leads, updateLead } = useLeads();
   const isMobile = useIsMobile();
+  
+  // Find the lead if leadId is provided
+  const selectedLead = leadId ? leads.find(lead => lead.id === leadId) : null;
+  
   const [formData, setFormData] = useState({
     selectedClientId: '',
-    clientName: '',
-    clientPhone: '',
-    clientEmail: '',
+    clientName: selectedLead?.name || '',
+    clientPhone: selectedLead?.phone || '',
+    clientEmail: selectedLead?.email || '',
     originAddress: '',
     destinationAddress: '',
     jobDate: '',
@@ -43,14 +50,14 @@ export const ScheduleJobDialog = ({ open, onOpenChange }: ScheduleJobDialogProps
         clientPhone: selectedClient.phone,
         clientEmail: selectedClient.email || '',
       });
-    } else {
-      // "new" client selected
+    } else if (clientId === 'new') {
+      // Reset to empty for new client
       setFormData({
         ...formData,
         selectedClientId: '',
-        clientName: '',
-        clientPhone: '',
-        clientEmail: '',
+        clientName: selectedLead?.name || '',
+        clientPhone: selectedLead?.phone || '',
+        clientEmail: selectedLead?.email || '',
       });
     }
   };
@@ -62,12 +69,33 @@ export const ScheduleJobDialog = ({ open, onOpenChange }: ScheduleJobDialogProps
       const hourlyRate = parseFloat(formData.hourlyRate);
       const moversNeeded = parseInt(formData.moversNeeded);
       
-      // Set estimated duration to 0 since it will be entered after job completion
-      const estimatedDuration = 0;
-      const estimatedTotal = 0; // Will be calculated after actual hours are entered
+      if (!hourlyRate || hourlyRate <= 0) {
+        alert('Please enter a valid hourly rate');
+        return;
+      }
+
+      let clientId = formData.selectedClientId;
+
+      // If no existing client selected, create a new client
+      if (!clientId && formData.clientName) {
+        console.log('Creating new client...');
+        const newClient = await addClient({
+          name: formData.clientName,
+          phone: formData.clientPhone,
+          email: formData.clientEmail || null,
+          primary_address: formData.originAddress,
+          company_name: null,
+          preferred_contact_method: 'phone'
+        });
+        
+        if (newClient && newClient.id) {
+          clientId = newClient.id;
+          console.log('Created new client with ID:', clientId);
+        }
+      }
 
       const jobData = {
-        client_id: formData.selectedClientId || null,
+        client_id: clientId || null,
         client_name: formData.clientName,
         client_phone: formData.clientPhone,
         client_email: formData.clientEmail || null,
@@ -77,8 +105,8 @@ export const ScheduleJobDialog = ({ open, onOpenChange }: ScheduleJobDialogProps
         start_time: formData.startTime,
         hourly_rate: hourlyRate,
         movers_needed: moversNeeded,
-        estimated_duration_hours: estimatedDuration,
-        estimated_total: estimatedTotal,
+        estimated_duration_hours: 0, // Will be set when job is completed
+        estimated_total: 0, // Will be calculated based on actual hours
         truck_size: formData.truckSize || null,
         special_requirements: formData.notes || null,
         is_paid: formData.isPaid,
@@ -89,6 +117,18 @@ export const ScheduleJobDialog = ({ open, onOpenChange }: ScheduleJobDialogProps
       console.log('Submitting job data:', jobData);
       
       await addJob(jobData);
+
+      // If this was scheduled from a lead, convert the lead to "converted" status
+      if (leadId && selectedLead) {
+        console.log('Converting lead to client...');
+        await updateLead({ 
+          id: leadId, 
+          updates: { 
+            status: 'converted',
+            assigned_to: null // Clear assignment since it's now a client
+          } 
+        });
+      }
 
       // Reset form
       setFormData({
@@ -111,6 +151,7 @@ export const ScheduleJobDialog = ({ open, onOpenChange }: ScheduleJobDialogProps
       onOpenChange(false);
     } catch (error) {
       console.error('Error creating job:', error);
+      alert('Error creating job. Please try again.');
     }
   };
 
@@ -122,27 +163,31 @@ export const ScheduleJobDialog = ({ open, onOpenChange }: ScheduleJobDialogProps
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className={`${isMobile ? 'sm:max-w-full h-full max-h-screen' : 'sm:max-w-2xl max-h-[90vh]'} overflow-y-auto`}>
         <DialogHeader>
-          <DialogTitle>Schedule New Job</DialogTitle>
+          <DialogTitle>
+            {leadId ? 'Convert Lead to Job' : 'Schedule New Job'}
+          </DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Select Client
-            </label>
-            <Select value={formData.selectedClientId} onValueChange={handleClientSelect}>
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Select existing client or create new..." />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="new">+ Create New Client</SelectItem>
-                {clients.map((client) => (
-                  <SelectItem key={client.id} value={client.id}>
-                    {client.name} - {client.phone}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          {!leadId && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Select Client
+              </label>
+              <Select value={formData.selectedClientId} onValueChange={handleClientSelect}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select existing client or create new..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="new">+ Create New Client</SelectItem>
+                  {clients.map((client) => (
+                    <SelectItem key={client.id} value={client.id}>
+                      {client.name} - {client.phone}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
@@ -156,7 +201,7 @@ export const ScheduleJobDialog = ({ open, onOpenChange }: ScheduleJobDialogProps
                 onChange={(e) => setFormData({ ...formData, clientName: e.target.value })}
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 placeholder="Enter client name"
-                disabled={!!formData.selectedClientId}
+                disabled={!!formData.selectedClientId && !leadId}
               />
             </div>
             
@@ -171,7 +216,7 @@ export const ScheduleJobDialog = ({ open, onOpenChange }: ScheduleJobDialogProps
                 onChange={(e) => setFormData({ ...formData, clientPhone: e.target.value })}
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 placeholder="(555) 123-4567"
-                disabled={!!formData.selectedClientId}
+                disabled={!!formData.selectedClientId && !leadId}
               />
             </div>
           </div>
@@ -186,7 +231,7 @@ export const ScheduleJobDialog = ({ open, onOpenChange }: ScheduleJobDialogProps
               onChange={(e) => setFormData({ ...formData, clientEmail: e.target.value })}
               className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               placeholder="client@example.com"
-              disabled={!!formData.selectedClientId}
+              disabled={!!formData.selectedClientId && !leadId}
             />
           </div>
 

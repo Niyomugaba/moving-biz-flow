@@ -1,3 +1,4 @@
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -103,7 +104,7 @@ export const useJobs = () => {
 
       const { data, error } = await supabase
         .from('jobs')
-        .insert(insertData)
+        .insert([insertData])
         .select()
         .single();
       
@@ -117,6 +118,7 @@ export const useJobs = () => {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['jobs'] });
+      queryClient.invalidateQueries({ queryKey: ['clients'] }); // Refresh clients list
       toast({
         title: "Job Scheduled Successfully",
         description: `Job ${data.job_number} has been added to your schedule.`,
@@ -169,7 +171,7 @@ export const useJobs = () => {
     jobs,
     isLoading,
     error,
-    addJob: addJobMutation.mutate,
+    addJob: addJobMutation.mutateAsync, // Changed to mutateAsync for better error handling
     updateJob: updateJobMutation.mutate,
     isAddingJob: addJobMutation.isPending,
     isUpdatingJob: updateJobMutation.isPending
