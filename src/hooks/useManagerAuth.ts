@@ -17,6 +17,8 @@ export const useManagerAuth = () => {
     const checkSession = () => {
       try {
         const sessionData = localStorage.getItem('managerSession');
+        console.log('Checking manager session:', sessionData);
+        
         if (sessionData) {
           const session = JSON.parse(sessionData);
           // Check if session is still valid (less than 8 hours old)
@@ -24,12 +26,18 @@ export const useManagerAuth = () => {
           const now = new Date();
           const hoursDiff = (now.getTime() - loginTime.getTime()) / (1000 * 60 * 60);
           
+          console.log('Session age in hours:', hoursDiff);
+          
           if (hoursDiff < 8) {
+            console.log('Valid manager session found');
             setManagerSession(session);
           } else {
             // Session expired, remove it
+            console.log('Manager session expired, removing');
             localStorage.removeItem('managerSession');
           }
+        } else {
+          console.log('No manager session found');
         }
       } catch (error) {
         console.error('Error checking manager session:', error);
@@ -39,10 +47,32 @@ export const useManagerAuth = () => {
       }
     };
 
+    // Listen for storage changes (login/logout from other tabs)
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'managerSession') {
+        if (e.newValue) {
+          try {
+            const session = JSON.parse(e.newValue);
+            setManagerSession(session);
+          } catch (error) {
+            console.error('Error parsing manager session from storage:', error);
+          }
+        } else {
+          setManagerSession(null);
+        }
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
     checkSession();
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
   }, []);
 
   const logout = () => {
+    console.log('Manager logging out');
     localStorage.removeItem('managerSession');
     setManagerSession(null);
   };

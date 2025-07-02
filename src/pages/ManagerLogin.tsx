@@ -21,7 +21,7 @@ export const ManagerLogin = () => {
   // Redirect if already authenticated
   useEffect(() => {
     if (isAuthenticated) {
-      navigate('/');
+      navigate('/dashboard');
     }
   }, [isAuthenticated, navigate]);
 
@@ -36,26 +36,30 @@ export const ManagerLogin = () => {
     }
 
     setIsLoading(true);
-    console.log('Attempting manager login with:', username);
+    console.log('Attempting manager login with:', username, 'PIN:', pin);
 
     try {
       const manager = await authenticateManager(username, pin);
+      console.log('Manager authenticated successfully:', manager);
       
       // Store manager session in localStorage
-      localStorage.setItem('managerSession', JSON.stringify({
+      const sessionData = {
         id: manager.id,
         username: manager.username,
         name: manager.name,
         loginTime: new Date().toISOString()
-      }));
+      };
+      
+      localStorage.setItem('managerSession', JSON.stringify(sessionData));
+      console.log('Manager session stored:', sessionData);
 
       toast({
         title: "Login Successful!",
-        description: `Welcome back, ${manager.name}! Redirecting to dashboard...`,
+        description: `Welcome back, ${manager.name}!`,
       });
       
-      // Force page reload to update auth state
-      window.location.href = '/';
+      // Navigate to dashboard
+      navigate('/dashboard');
     } catch (error) {
       console.error('Manager login error:', error);
       toast({
