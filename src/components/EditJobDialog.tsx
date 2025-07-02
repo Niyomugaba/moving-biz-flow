@@ -1,8 +1,8 @@
-
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import { Button } from './ui/button';
 import { useJobs, Job } from '@/hooks/useJobs';
+import { TruckExpenseDialog } from './TruckExpenseDialog';
 
 interface EditJobDialogProps {
   open: boolean;
@@ -12,6 +12,7 @@ interface EditJobDialogProps {
 
 export const EditJobDialog = ({ open, onOpenChange, job }: EditJobDialogProps) => {
   const { updateJob } = useJobs();
+  const [showTruckExpenses, setShowTruckExpenses] = useState(false);
   const [formData, setFormData] = useState({
     status: job?.status || 'scheduled',
     actualHours: job?.actual_duration_hours?.toString() || '',
@@ -55,162 +56,221 @@ export const EditJobDialog = ({ open, onOpenChange, job }: EditJobDialogProps) =
     onOpenChange(false);
   };
 
+  const handleTruckExpenses = (expenses: { rentalCost: number; gasCost: number }) => {
+    if (!job) return;
+    
+    updateJob({ 
+      id: job.id, 
+      updates: { 
+        truck_rental_cost: expenses.rentalCost,
+        truck_gas_cost: expenses.gasCost
+      } 
+    });
+  };
+
   if (!job) return null;
 
   const totalHourlyRate = job.hourly_rate * job.movers_needed;
   const calculatedTotal = formData.actualHours 
-    ? totalHourlyRate * parseFloat(formData.actualHours)
+    ? totalHourlyRate * parseFloat(formData.actualHours) + (job.truck_service_fee || 0)
     : 0;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>Edit Job - {job.client_name}</DialogTitle>
-        </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Status
-            </label>
-            <select
-              value={formData.status}
-              onChange={(e) => setFormData({ ...formData, status: e.target.value as 'scheduled' | 'in_progress' | 'completed' | 'cancelled' | 'rescheduled' })}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            >
-              <option value="scheduled">Scheduled</option>
-              <option value="in_progress">In Progress</option>
-              <option value="completed">Completed</option>
-              <option value="cancelled">Cancelled</option>
-              <option value="rescheduled">Rescheduled</option>
-            </select>
-          </div>
-
-          {formData.status === 'completed' && (
-            <>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Actual Hours Worked
-                </label>
-                <input
-                  type="number"
-                  step="0.25"
-                  min="0"
-                  value={formData.actualHours}
-                  onChange={(e) => setFormData({ ...formData, actualHours: e.target.value })}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="Enter hours worked"
-                  required
-                />
-              </div>
-
-              {formData.actualHours && (
-                <div className="bg-blue-50 p-3 rounded-lg">
-                  <div className="text-sm text-gray-600">
-                    <div>Rate calculation: ${totalHourlyRate}/hour × {formData.actualHours} hours = ${calculatedTotal.toFixed(2)}</div>
-                    <div className="text-xs text-gray-500 mt-1">
-                      (${job.hourly_rate}/mover × {job.movers_needed} movers × {formData.actualHours} hours)
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Final Total Amount ($)
-                </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={formData.actualTotal}
-                  onChange={(e) => setFormData({ ...formData, actualTotal: e.target.value })}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder={`Calculated: $${calculatedTotal.toFixed(2)}`}
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  Leave empty to use calculated amount based on hours
-                </p>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Customer Satisfaction (1-5)
-                </label>
-                <select
-                  value={formData.customerSatisfaction}
-                  onChange={(e) => setFormData({ ...formData, customerSatisfaction: e.target.value })}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                >
-                  <option value="">Not rated</option>
-                  <option value="1">1 - Very Poor</option>
-                  <option value="2">2 - Poor</option>
-                  <option value="3">3 - Average</option>
-                  <option value="4">4 - Good</option>
-                  <option value="5">5 - Excellent</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Completion Notes
-                </label>
-                <textarea
-                  value={formData.completionNotes}
-                  onChange={(e) => setFormData({ ...formData, completionNotes: e.target.value })}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  rows={3}
-                  placeholder="Any notes about the job completion..."
-                />
-              </div>
-            </>
-          )}
-
-          <div className="space-y-3">
-            <div className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                id="isPaid"
-                checked={formData.isPaid}
-                onChange={(e) => setFormData({ ...formData, isPaid: e.target.checked })}
-                className="rounded border-gray-300"
-              />
-              <label htmlFor="isPaid" className="text-sm font-medium text-gray-700">
-                Mark as paid
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit Job - {job.client_name}</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Status
               </label>
+              <select
+                value={formData.status}
+                onChange={(e) => setFormData({ ...formData, status: e.target.value as 'scheduled' | 'in_progress' | 'completed' | 'cancelled' | 'rescheduled' })}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="scheduled">Scheduled</option>
+                <option value="in_progress">In Progress</option>
+                <option value="completed">Completed</option>
+                <option value="cancelled">Cancelled</option>
+                <option value="rescheduled">Rescheduled</option>
+              </select>
             </div>
 
-            {formData.isPaid && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Payment Method
-                </label>
-                <select
-                  value={formData.paymentMethod}
-                  onChange={(e) => setFormData({ ...formData, paymentMethod: e.target.value })}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                >
-                  <option value="">Select method...</option>
-                  <option value="cash">Cash</option>
-                  <option value="check">Check</option>
-                  <option value="credit_card">Credit Card</option>
-                  <option value="bank_transfer">Bank Transfer</option>
-                  <option value="other">Other</option>
-                </select>
-              </div>
-            )}
-          </div>
+            {formData.status === 'completed' && (
+              <>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Actual Hours Worked
+                  </label>
+                  <input
+                    type="number"
+                    step="0.25"
+                    min="0"
+                    value={formData.actualHours}
+                    onChange={(e) => setFormData({ ...formData, actualHours: e.target.value })}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="Enter hours worked"
+                    required
+                  />
+                </div>
 
-          <div className="flex gap-2 pt-4">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="flex-1">
-              Cancel
-            </Button>
-            <Button type="submit" className="flex-1">
-              Update Job
-            </Button>
-          </div>
-        </form>
-      </DialogContent>
-    </Dialog>
+                {formData.actualHours && (
+                  <div className="bg-blue-50 p-3 rounded-lg">
+                    <div className="text-sm text-gray-600 space-y-1">
+                      <div>Movers: ${totalHourlyRate}/hour × {formData.actualHours} hours = ${(totalHourlyRate * parseFloat(formData.actualHours)).toFixed(2)}</div>
+                      {job.truck_service_fee && (
+                        <div>Truck service fee: +${job.truck_service_fee}.00</div>
+                      )}
+                      <div className="font-medium">Total: ${calculatedTotal.toFixed(2)}</div>
+                    </div>
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Final Total Amount ($)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={formData.actualTotal}
+                    onChange={(e) => setFormData({ ...formData, actualTotal: e.target.value })}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder={`Calculated: $${calculatedTotal.toFixed(2)}`}
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Leave empty to use calculated amount based on hours
+                  </p>
+                </div>
+
+                {/* Truck Expenses Section */}
+                {job.truck_service_fee && (
+                  <div className="border-t pt-4">
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="text-sm font-medium text-gray-700">Truck Expenses</span>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setShowTruckExpenses(true)}
+                      >
+                        {job.truck_rental_cost || job.truck_gas_cost ? 'Update' : 'Add'} Expenses
+                      </Button>
+                    </div>
+                    {(job.truck_rental_cost || job.truck_gas_cost) && (
+                      <div className="bg-gray-50 p-3 rounded-lg text-sm">
+                        <div className="space-y-1">
+                          <div className="flex justify-between">
+                            <span>Rental cost:</span>
+                            <span>${(job.truck_rental_cost || 0).toFixed(2)}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>Gas cost:</span>
+                            <span>${(job.truck_gas_cost || 0).toFixed(2)}</span>
+                          </div>
+                          <div className="flex justify-between border-t pt-1 font-medium">
+                            <span>Truck profit:</span>
+                            <span className={`${((job.truck_service_fee || 0) - (job.truck_rental_cost || 0) - (job.truck_gas_cost || 0)) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                              ${((job.truck_service_fee || 0) - (job.truck_rental_cost || 0) - (job.truck_gas_cost || 0)).toFixed(2)}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Customer Satisfaction (1-5)
+                  </label>
+                  <select
+                    value={formData.customerSatisfaction}
+                    onChange={(e) => setFormData({ ...formData, customerSatisfaction: e.target.value })}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value="">Not rated</option>
+                    <option value="1">1 - Very Poor</option>
+                    <option value="2">2 - Poor</option>
+                    <option value="3">3 - Average</option>
+                    <option value="4">4 - Good</option>
+                    <option value="5">5 - Excellent</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Completion Notes
+                  </label>
+                  <textarea
+                    value={formData.completionNotes}
+                    onChange={(e) => setFormData({ ...formData, completionNotes: e.target.value })}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    rows={3}
+                    placeholder="Any notes about the job completion..."
+                  />
+                </div>
+              </>
+            )}
+
+            <div className="space-y-3">
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="isPaid"
+                  checked={formData.isPaid}
+                  onChange={(e) => setFormData({ ...formData, isPaid: e.target.checked })}
+                  className="rounded border-gray-300"
+                />
+                <label htmlFor="isPaid" className="text-sm font-medium text-gray-700">
+                  Mark as paid
+                </label>
+              </div>
+
+              {formData.isPaid && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Payment Method
+                  </label>
+                  <select
+                    value={formData.paymentMethod}
+                    onChange={(e) => setFormData({ ...formData, paymentMethod: e.target.value })}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value="">Select method...</option>
+                    <option value="cash">Cash</option>
+                    <option value="check">Check</option>
+                    <option value="credit_card">Credit Card</option>
+                    <option value="bank_transfer">Bank Transfer</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
+              )}
+            </div>
+
+            <div className="flex gap-2 pt-4">
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="flex-1">
+                Cancel
+              </Button>
+              <Button type="submit" className="flex-1">
+                Update Job
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <TruckExpenseDialog
+        open={showTruckExpenses}
+        onOpenChange={setShowTruckExpenses}
+        job={job}
+        onSave={handleTruckExpenses}
+      />
+    </>
   );
 };

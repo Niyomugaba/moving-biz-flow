@@ -1,9 +1,8 @@
-
 import React, { useState } from 'react';
 import { StatusBadge } from '../components/StatusBadge';
 import { ScheduleJobDialog } from '../components/ScheduleJobDialog';
 import { EditJobDialog } from '../components/EditJobDialog';
-import { Plus, Calendar, MapPin, Users, Edit, CheckCircle, Phone, Mail } from 'lucide-react';
+import { Plus, Calendar, MapPin, Users, Edit, CheckCircle, Phone, Mail, Truck } from 'lucide-react';
 import { useJobs, Job } from '@/hooks/useJobs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -46,13 +45,34 @@ export const Jobs = () => {
     window.open(`mailto:${email}`, '_self');
   };
 
+  const calculateJobProfit = (job: Job) => {
+    if (job.status !== 'completed' || !job.actual_total) return 0;
+    
+    const laborCost = (job.actual_duration_hours || 0) * job.hourly_rate * job.movers_needed;
+    const truckExpenses = (job.truck_rental_cost || 0) + (job.truck_gas_cost || 0);
+    const totalExpenses = laborCost + truckExpenses;
+    
+    return job.actual_total - totalExpenses;
+  };
+
   // Calculate revenue using actual totals when available
   const totalRevenue = jobs
     .filter(job => job.status === 'completed' && job.is_paid)
-    .reduce((sum, job) => {
-      const jobRevenue = job.actual_total || 0;
-      return sum + jobRevenue;
-    }, 0);
+    .reduce((sum, job) => sum + (job.actual_total || 0), 0);
+
+  const totalProfit = jobs
+    .filter(job => job.status === 'completed' && job.is_paid)
+    .reduce((sum, job) => sum + calculateJobProfit(job), 0);
+
+  const truckRevenue = jobs
+    .filter(job => job.status === 'completed' && job.is_paid && job.truck_service_fee)
+    .reduce((sum, job) => sum + (job.truck_service_fee || 0), 0);
+
+  const truckExpenses = jobs
+    .filter(job => job.status === 'completed' && job.truck_service_fee)
+    .reduce((sum, job) => sum + (job.truck_rental_cost || 0) + (job.truck_gas_cost || 0), 0);
+
+  const truckProfit = truckRevenue - truckExpenses;
 
   const activeJobs = jobs.filter(job => job.status !== 'completed').length;
   const completedJobs = jobs.filter(job => job.status === 'completed').length;
@@ -90,7 +110,7 @@ export const Jobs = () => {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
         <Card className="border-l-4 border-l-blue-500 hover:shadow-lg transition-shadow">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm text-gray-600">Total Jobs</CardTitle>
@@ -136,6 +156,18 @@ export const Jobs = () => {
             <p className="text-2xl font-bold text-red-600">${unpaidRevenue.toLocaleString()}</p>
           </CardContent>
         </Card>
+        
+        <Card className="border-l-4 border-l-purple-500 hover:shadow-lg transition-shadow">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm text-gray-600">Net Profit</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-bold text-purple-600">${totalProfit.toLocaleString()}</p>
+            <p className="text-xs text-gray-500">
+              Truck: ${truckProfit.toFixed(0)}
+            </p>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Jobs Grid */}
@@ -144,6 +176,9 @@ export const Jobs = () => {
           const totalHourlyRate = job.hourly_rate * job.movers_needed;
           const jobTotal = job.actual_total || 0;
           const isCompleted = job.status === 'completed';
+          const jobProfit = calculateJobProfit(job);
+          const truckJobProfit = job.truck_service_fee ? 
+            (job.truck_service_fee - (job.truck_rental_cost || 0) - (job.truck_gas_cost || 0)) : 0;
           
           return (
             <Card key={job.id} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-lg transition-shadow">
@@ -177,6 +212,12 @@ export const Jobs = () => {
                     <Badge className={job.is_paid ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}>
                       {job.is_paid ? 'PAID' : 'UNPAID'}
                     </Badge>
+                    {job.truck_service_fee && (
+                      <Badge className="bg-blue-100 text-blue-800">
+                        <Truck className="h-3 w-3 mr-1" />
+                        TRUCK
+                      </Badge>
+                    )}
                   </div>
                 </div>
                 
@@ -206,6 +247,12 @@ export const Jobs = () => {
                     <span className="text-gray-600">Total hourly rate:</span>
                     <span className="font-medium">${totalHourlyRate}/hr</span>
                   </div>
+                  {job.truck_service_fee && (
+                    <div className="flex justify-between items-center text-sm mt-1">
+                      <span className="text-gray-600">Truck service fee:</span>
+                      <span className="font-medium">+${job.truck_service_fee}</span>
+                    </div>
+                  )}
                   {isCompleted && job.actual_duration_hours && (
                     <div className="flex justify-between items-center text-sm mt-1">
                       <span className="text-gray-600">Hours worked:</span>
@@ -213,14 +260,34 @@ export const Jobs = () => {
                     </div>
                   )}
                   {isCompleted && jobTotal > 0 && (
-                    <div className="flex justify-between items-center text-sm mt-1">
-                      <span className="text-gray-600">Total cost:</span>
-                      <div className="text-right">
-                        <span className={`font-semibold ${job.is_paid ? 'text-green-600' : 'text-orange-600'}`}>
-                          ${jobTotal.toLocaleString()}
-                        </span>
+                    <>
+                      <div className="flex justify-between items-center text-sm mt-1">
+                        <span className="text-gray-600">Total cost:</span>
+                        <div className="text-right">
+                          <span className={`font-semibold ${job.is_paid ? 'text-green-600' : 'text-orange-600'}`}>
+                            ${jobTotal.toLocaleString()}
+                          </span>
+                        </div>
                       </div>
-                    </div>
+                      {job.is_paid && (
+                        <>
+                          <div className="flex justify-between items-center text-sm mt-1">
+                            <span className="text-gray-600">Job profit:</span>
+                            <span className={`font-medium ${jobProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                              ${jobProfit.toFixed(2)}
+                            </span>
+                          </div>
+                          {job.truck_service_fee && (job.truck_rental_cost || job.truck_gas_cost) && (
+                            <div className="flex justify-between items-center text-sm mt-1">
+                              <span className="text-gray-600">Truck profit:</span>
+                              <span className={`font-medium ${truckJobProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                ${truckJobProfit.toFixed(2)}
+                              </span>
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </>
                   )}
                   {!isCompleted && (
                     <div className="text-sm text-orange-600 mt-1 italic">

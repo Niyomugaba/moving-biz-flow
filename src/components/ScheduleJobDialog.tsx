@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import { Button } from './ui/button';
@@ -11,7 +10,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 interface ScheduleJobDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  leadId?: string; // Optional lead ID for converting leads to clients
+  leadId?: string;
 }
 
 export const ScheduleJobDialog = ({ open, onOpenChange, leadId }: ScheduleJobDialogProps) => {
@@ -20,7 +19,6 @@ export const ScheduleJobDialog = ({ open, onOpenChange, leadId }: ScheduleJobDia
   const { leads, updateLead } = useLeads();
   const isMobile = useIsMobile();
   
-  // Find the lead if leadId is provided
   const selectedLead = leadId ? leads.find(lead => lead.id === leadId) : null;
   
   const [formData, setFormData] = useState({
@@ -35,6 +33,7 @@ export const ScheduleJobDialog = ({ open, onOpenChange, leadId }: ScheduleJobDia
     hourlyRate: '',
     moversNeeded: '2',
     truckSize: '',
+    needsTruck: false,
     notes: '',
     isPaid: false,
     paymentMethod: ''
@@ -94,6 +93,8 @@ export const ScheduleJobDialog = ({ open, onOpenChange, leadId }: ScheduleJobDia
         }
       }
 
+      const truckServiceFee = formData.needsTruck ? 90 : null;
+
       const jobData = {
         client_id: clientId || null,
         client_name: formData.clientName,
@@ -108,6 +109,7 @@ export const ScheduleJobDialog = ({ open, onOpenChange, leadId }: ScheduleJobDia
         estimated_duration_hours: 0, // Will be set when job is completed
         estimated_total: 0, // Will be calculated based on actual hours
         truck_size: formData.truckSize || null,
+        truck_service_fee: truckServiceFee,
         special_requirements: formData.notes || null,
         is_paid: formData.isPaid,
         payment_method: formData.isPaid ? formData.paymentMethod : null,
@@ -143,6 +145,7 @@ export const ScheduleJobDialog = ({ open, onOpenChange, leadId }: ScheduleJobDia
         hourlyRate: '',
         moversNeeded: '2',
         truckSize: '',
+        needsTruck: false,
         notes: '',
         isPaid: false,
         paymentMethod: ''
@@ -158,6 +161,9 @@ export const ScheduleJobDialog = ({ open, onOpenChange, leadId }: ScheduleJobDia
   const totalHourlyRate = formData.hourlyRate && formData.moversNeeded
     ? (parseFloat(formData.hourlyRate) * parseInt(formData.moversNeeded)).toFixed(2)
     : '0.00';
+
+  const truckFee = formData.needsTruck ? 90 : 0;
+  const totalWithTruck = parseFloat(totalHourlyRate) + truckFee;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -322,31 +328,62 @@ export const ScheduleJobDialog = ({ open, onOpenChange, leadId }: ScheduleJobDia
             </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Truck Size (Optional)
-            </label>
-            <select
-              value={formData.truckSize}
-              onChange={(e) => setFormData({ ...formData, truckSize: e.target.value })}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            >
-              <option value="">Select truck size...</option>
-              <option value="small">Small (10-14 ft)</option>
-              <option value="medium">Medium (16-20 ft)</option>
-              <option value="large">Large (22-26 ft)</option>
-            </select>
+          {/* Truck Service Section */}
+          <div className="border-t pt-4">
+            <div className="flex items-center space-x-2 mb-3">
+              <input
+                type="checkbox"
+                id="needsTruck"
+                checked={formData.needsTruck}
+                onChange={(e) => setFormData({ ...formData, needsTruck: e.target.checked, truckSize: e.target.checked ? formData.truckSize : '' })}
+                className="rounded border-gray-300"
+              />
+              <label htmlFor="needsTruck" className="text-sm font-medium text-gray-700">
+                Client needs truck service (+$90 flat fee)
+              </label>
+            </div>
+
+            {formData.needsTruck && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Truck Size *
+                </label>
+                <select
+                  required={formData.needsTruck}
+                  value={formData.truckSize}
+                  onChange={(e) => setFormData({ ...formData, truckSize: e.target.value })}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="">Select truck size...</option>
+                  <option value="small">Small (10-14 ft)</option>
+                  <option value="medium">Medium (16-20 ft)</option>
+                  <option value="large">Large (22-26 ft)</option>
+                </select>
+              </div>
+            )}
           </div>
 
           {/* Total Rate Display */}
           <div className="bg-blue-50 p-4 rounded-lg">
-            <div className="flex justify-between items-center">
-              <span className="text-lg font-medium text-gray-900">Total Hourly Rate:</span>
-              <span className="text-2xl font-bold text-blue-600">${totalHourlyRate}/hour</span>
+            <div className="space-y-2">
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-gray-700">Movers hourly rate:</span>
+                <span className="font-medium">${totalHourlyRate}/hour</span>
+              </div>
+              {formData.needsTruck && (
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-700">Truck service fee:</span>
+                  <span className="font-medium">+$90.00 (flat fee)</span>
+                </div>
+              )}
+              <div className="border-t pt-2 flex justify-between items-center">
+                <span className="text-lg font-medium text-gray-900">Total Hourly Rate:</span>
+                <span className="text-2xl font-bold text-blue-600">
+                  ${totalWithTruck.toFixed(2)}/hour
+                  {formData.needsTruck && <span className="text-sm text-gray-600"> + $90</span>}
+                </span>
+              </div>
             </div>
-            <p className="text-sm text-gray-600 mt-1">
-              ${formData.hourlyRate || '0'} × {formData.moversNeeded} movers = ${totalHourlyRate}/hour
-            </p>
             <p className="text-xs text-orange-600 mt-2 font-medium">
               Final total will be calculated after job completion based on actual hours worked
             </p>

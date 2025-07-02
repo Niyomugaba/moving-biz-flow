@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -21,6 +20,9 @@ export interface Job {
   actual_total: number | null;
   movers_needed: number;
   truck_size: string | null;
+  truck_service_fee: number | null;
+  truck_rental_cost: number | null;
+  truck_gas_cost: number | null;
   special_requirements: string | null;
   status: 'scheduled' | 'in_progress' | 'completed' | 'cancelled' | 'rescheduled';
   completion_notes: string | null;
@@ -72,6 +74,7 @@ export const useJobs = () => {
       estimated_total: number;
       movers_needed: number;
       truck_size?: string | null;
+      truck_service_fee?: number | null;
       special_requirements?: string | null;
       is_paid?: boolean;
       payment_method?: string | null;
@@ -93,6 +96,7 @@ export const useJobs = () => {
         estimated_total: jobData.estimated_total,
         movers_needed: jobData.movers_needed,
         truck_size: jobData.truck_size,
+        truck_service_fee: jobData.truck_service_fee,
         special_requirements: jobData.special_requirements,
         is_paid: jobData.is_paid || false,
         payment_method: jobData.payment_method,
