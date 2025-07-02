@@ -13,6 +13,7 @@ export interface Lead {
   assigned_to?: string;
   follow_up_date?: string;
   estimated_value?: number;
+  lead_cost?: number;
   notes?: string;
   created_at: string;
   updated_at: string;
@@ -27,6 +28,7 @@ export interface CreateLeadData {
   assigned_to?: string;
   follow_up_date?: string;
   estimated_value?: number;
+  lead_cost?: number;
   notes?: string;
 }
 

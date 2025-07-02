@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,6 +10,7 @@ import { LeadContactCard } from '@/components/LeadContactCard';
 import { ScheduleJobDialog } from '@/components/ScheduleJobDialog';
 import { FilterBar } from '@/components/FilterBar';
 import { PaginationControls } from '@/components/PaginationControls';
+import { StatusBadge } from '@/components/StatusBadge';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
@@ -31,7 +33,7 @@ export const Leads = () => {
   const [statusFilter, setStatusFilter] = useState('all');
   const [sourceFilter, setSourceFilter] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(10);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
   const filteredLeads = leads.filter(lead => {
     const matchesSearch = lead.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -54,6 +56,14 @@ export const Leads = () => {
 
   const handleStatusChange = (leadId: string, newStatus: 'new' | 'contacted' | 'quoted' | 'converted' | 'lost') => {
     updateLead({ id: leadId, updates: { status: newStatus } });
+  };
+
+  const handleCall = (phone: string) => {
+    window.open(`tel:${phone}`, '_self');
+  };
+
+  const handleEmail = (email: string) => {
+    window.open(`mailto:${email}`, '_self');
   };
 
   const getStatusColor = (status: string) => {
@@ -286,10 +296,7 @@ export const Leads = () => {
           itemsPerPage={itemsPerPage}
           totalItems={filteredLeads.length}
           onPageChange={setCurrentPage}
-          onItemsPerPageChange={(items) => {
-            setItemsPerPage(items);
-            setCurrentPage(1);
-          }}
+          onItemsPerPageChange={setItemsPerPage}
         />
       )}
 

@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import {
   Card,
@@ -150,6 +149,13 @@ export const TimeLogs = () => {
     a.setAttribute('href', url);
     a.setAttribute('download', 'time_entries.csv');
     a.click();
+  };
+
+  const handleReject = (timeEntry: TimeEntry) => {
+    const reason = prompt('Please provide a reason for rejection:');
+    if (reason) {
+      rejectTimeEntry(timeEntry.id); // Pass only the ID as string
+    }
   };
 
   if (isLoading) {
