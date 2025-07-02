@@ -2,23 +2,27 @@
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { useManagerAuth } from '@/hooks/useManagerAuth';
 
 const Index = () => {
   const navigate = useNavigate();
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated: isUserAuthenticated, isLoading: isUserLoading } = useAuth();
+  const { isAuthenticated: isManagerAuthenticated, isLoading: isManagerLoading } = useManagerAuth();
 
   useEffect(() => {
-    if (!isLoading) {
-      if (isAuthenticated) {
+    if (!isUserLoading && !isManagerLoading) {
+      if (isManagerAuthenticated) {
+        navigate('/dashboard', { replace: true });
+      } else if (isUserAuthenticated) {
         navigate('/dashboard', { replace: true });
       } else {
-        navigate('/auth', { replace: true });
+        navigate('/manager-login', { replace: true });
       }
     }
-  }, [isAuthenticated, isLoading, navigate]);
+  }, [isUserAuthenticated, isManagerAuthenticated, isUserLoading, isManagerLoading, navigate]);
 
-  // Show loading only briefly during auth check
-  if (isLoading) {
+  // Show loading while checking authentication
+  if (isUserLoading || isManagerLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">

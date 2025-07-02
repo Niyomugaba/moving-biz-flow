@@ -5,6 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ProtectedLayout } from "./components/ProtectedLayout";
+import { ProtectedRoute } from "./components/ProtectedRoute";
 import { Dashboard } from "./pages/Dashboard";
 import { Leads } from "./pages/Leads";
 import { Jobs } from "./pages/Jobs";
@@ -37,59 +38,59 @@ const App = () => (
           <Route path="/employee-portal" element={<EmployeePortal />} />
           <Route path="/manager-login" element={<ManagerLogin />} />
           
-          {/* Protected routes */}
+          {/* Manager protected routes */}
           <Route path="/dashboard" element={
-            <ProtectedLayout>
+            <ProtectedRoute>
               <Dashboard />
-            </ProtectedLayout>
+            </ProtectedRoute>
           } />
           
           <Route path="/leads" element={
-            <ProtectedLayout requiredRoles={['owner', 'admin', 'manager']}>
+            <ProtectedRoute>
               <Leads />
-            </ProtectedLayout>
+            </ProtectedRoute>
           } />
           
           <Route path="/jobs" element={
-            <ProtectedLayout requiredRoles={['owner', 'admin', 'manager']}>
+            <ProtectedRoute>
               <Jobs />
-            </ProtectedLayout>
+            </ProtectedRoute>
           } />
           
           <Route path="/employees" element={
-            <ProtectedLayout requiredRoles={['owner', 'admin', 'manager']}>
+            <ProtectedRoute>
               <Employees />
-            </ProtectedLayout>
+            </ProtectedRoute>
           } />
           
           <Route path="/employee-requests" element={
-            <ProtectedLayout requiredRoles={['owner', 'admin', 'manager']}>
+            <ProtectedRoute>
               <EmployeeRequests />
-            </ProtectedLayout>
+            </ProtectedRoute>
           } />
           
           <Route path="/clients" element={
-            <ProtectedLayout requiredRoles={['owner', 'admin', 'manager']}>
+            <ProtectedRoute>
               <Clients />
-            </ProtectedLayout>
+            </ProtectedRoute>
           } />
           
           <Route path="/time-logs" element={
-            <ProtectedLayout requiredRoles={['owner', 'admin', 'manager']}>
+            <ProtectedRoute>
               <TimeLogs />
-            </ProtectedLayout>
+            </ProtectedRoute>
           } />
           
           <Route path="/financials" element={
-            <ProtectedLayout requiredRoles={['owner', 'admin']}>
+            <ProtectedRoute>
               <Financials />
-            </ProtectedLayout>
+            </ProtectedRoute>
           } />
           
           <Route path="/user-management" element={
-            <ProtectedLayout requiredRoles={['owner']}>
+            <ProtectedRoute>
               <UserManagement />
-            </ProtectedLayout>
+            </ProtectedRoute>
           } />
           
           <Route path="*" element={<NotFound />} />
