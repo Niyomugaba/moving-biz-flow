@@ -6,11 +6,18 @@ import { WelcomeMessage } from '@/components/WelcomeMessage';
 import { RoleGuard } from '@/components/RoleGuard';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { BarChart3, DollarSign, Users, Calendar, Phone, Clock, TrendingUp, AlertTriangle } from 'lucide-react';
+import { BarChart3, DollarSign, Users, Calendar, Phone, Clock, TrendingUp } from 'lucide-react';
 
 export const Dashboard = () => {
   // Fetch dashboard metrics
-  const { data: metrics = {}, isLoading } = useQuery({
+  const { data: metrics = {
+    totalJobs: 0,
+    activeEmployees: 0,
+    newLeads: 0,
+    pendingTimeEntries: 0,
+    recentJobs: [],
+    totalRevenue: 0
+  }, isLoading } = useQuery({
     queryKey: ['dashboard-metrics'],
     queryFn: async () => {
       const [
@@ -64,7 +71,7 @@ export const Dashboard = () => {
           <MetricCard
             title="Total Jobs"
             value={metrics.totalJobs}
-            icon={<Calendar className="h-4 w-4" />}
+            icon={Calendar}
             description="All time jobs"
           />
         </RoleGuard>
@@ -73,7 +80,7 @@ export const Dashboard = () => {
           <MetricCard
             title="Active Employees"
             value={metrics.activeEmployees}
-            icon={<Users className="h-4 w-4" />}
+            icon={Users}
             description="Currently employed"
           />
         </RoleGuard>
@@ -82,7 +89,7 @@ export const Dashboard = () => {
           <MetricCard
             title="New Leads"
             value={metrics.newLeads}
-            icon={<Phone className="h-4 w-4" />}
+            icon={Phone}
             description="Awaiting contact"
           />
         </RoleGuard>
@@ -91,7 +98,7 @@ export const Dashboard = () => {
           <MetricCard
             title="Pending Approvals"
             value={metrics.pendingTimeEntries}
-            icon={<Clock className="h-4 w-4" />}
+            icon={Clock}
             description="Time entries to review"
           />
         </RoleGuard>
@@ -103,7 +110,7 @@ export const Dashboard = () => {
           <MetricCard
             title="Total Revenue"
             value={`$${metrics.totalRevenue.toLocaleString()}`}
-            icon={<DollarSign className="h-4 w-4" />}
+            icon={DollarSign}
             description="From completed jobs"
             className="bg-green-50 border-green-200"
           />
@@ -111,7 +118,7 @@ export const Dashboard = () => {
           <MetricCard
             title="Average Job Value"
             value={`$${metrics.totalJobs > 0 ? (metrics.totalRevenue / metrics.totalJobs).toFixed(0) : '0'}`}
-            icon={<TrendingUp className="h-4 w-4" />}
+            icon={TrendingUp}
             description="Per completed job"
             className="bg-blue-50 border-blue-200"
           />
