@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -11,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Clock, User, Calendar, DollarSign, Edit, CheckCircle, XCircle, CreditCard } from 'lucide-react';
 import { TimeEntry } from '@/hooks/useTimeEntries';
 import { useJobs } from '@/hooks/useJobs';
+import { useEmployees } from '@/hooks/useEmployees';
 import { format } from 'date-fns';
 
 interface TimeEntryCardProps {
@@ -37,10 +37,14 @@ export const TimeEntryCard = ({
   isMarkingAsPaid = false
 }: TimeEntryCardProps) => {
   const { jobs } = useJobs();
+  const { employees } = useEmployees();
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
   const [editedEntry, setEditedEntry] = useState(entry);
   const [rejectReason, setRejectReason] = useState('');
+
+  // Find the employee for this entry
+  const employee = employees.find(emp => emp.id === entry.employee_id);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -93,7 +97,9 @@ export const TimeEntryCard = ({
         <div className="flex justify-between items-start mb-3">
           <div className="flex items-center gap-2">
             <User className="h-4 w-4 text-gray-500" />
-            <span className="font-medium">Employee ID: {entry.employee_id.slice(0, 8)}</span>
+            <span className="font-medium">
+              {employee ? `${employee.name} (${employee.employee_number})` : `Employee ID: ${entry.employee_id.slice(0, 8)}`}
+            </span>
           </div>
           <Badge className={getStatusColor(entry.status)}>
             {getStatusText(entry.status, entry.is_paid)}

@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -172,7 +171,7 @@ export const useTimeEntries = () => {
         .update({ 
           status: 'approved',
           approved_at: new Date().toISOString(),
-          approved_by: 'manager'
+          approved_by: null // Set to null instead of 'manager' string
         })
         .eq('id', id)
         .select()
