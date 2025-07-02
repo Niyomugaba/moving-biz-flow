@@ -22,6 +22,7 @@ export interface TimeEntry {
   approved_at: string | null;
   is_paid: boolean;
   paid_at: string | null;
+  break_duration_minutes: number | null;
   created_at: string;
   updated_at: string;
 }
@@ -59,6 +60,7 @@ export const useTimeEntries = () => {
       overtime_hours?: number;
       hourly_rate: number;
       overtime_rate?: number;
+      break_duration_minutes?: number;
       notes?: string;
     }) => {
       console.log('Creating time entry with data:', timeEntryData);
@@ -150,13 +152,87 @@ export const useTimeEntries = () => {
     }
   });
 
+  const approveTimeEntryMutation = useMutation({
+    mutationFn: async (id: string) => {
+      console.log('Approving time entry:', id);
+      const { data, error } = await supabase
+        .from('time_entries')
+        .update({ 
+          status: 'approved',
+          approved_at: new Date().toISOString(),
+          approved_by: 'manager' // In a real app, this would be the current user ID
+        })
+        .eq('id', id)
+        .select()
+        .single();
+      
+      if (error) {
+        console.error('Error approving time entry:', error);
+        throw error;
+      }
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['timeEntries'] });
+      toast({
+        title: "Time Entry Approved",
+        description: "The time entry has been approved.",
+      });
+    },
+    onError: (error) => {
+      console.error('Error approving time entry:', error);
+      toast({
+        title: "Error Approving Time Entry",
+        description: "There was an error approving the time entry. Please try again.",
+        variant: "destructive",
+      });
+    }
+  });
+
+  const rejectTimeEntryMutation = useMutation({
+    mutationFn: async (id: string) => {
+      console.log('Rejecting time entry:', id);
+      const { data, error } = await supabase
+        .from('time_entries')
+        .update({ status: 'rejected' })
+        .eq('id', id)
+        .select()
+        .single();
+      
+      if (error) {
+        console.error('Error rejecting time entry:', error);
+        throw error;
+      }
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['timeEntries'] });
+      toast({
+        title: "Time Entry Rejected",
+        description: "The time entry has been rejected.",
+      });
+    },
+    onError: (error) => {
+      console.error('Error rejecting time entry:', error);
+      toast({
+        title: "Error Rejecting Time Entry",
+        description: "There was an error rejecting the time entry. Please try again.",
+        variant: "destructive",
+      });
+    }
+  });
+
   return {
     timeEntries,
     isLoading,
     error,
     addTimeEntry: addTimeEntryMutation.mutateAsync,
     updateTimeEntry: updateTimeEntryMutation.mutate,
+    approveTimeEntry: approveTimeEntryMutation.mutate,
+    rejectTimeEntry: rejectTimeEntryMutation.mutate,
     isAddingTimeEntry: addTimeEntryMutation.isPending,
-    isUpdatingTimeEntry: updateTimeEntryMutation.isPending
+    isUpdatingTimeEntry: updateTimeEntryMutation.isPending,
+    isApprovingTimeEntry: approveTimeEntryMutation.isPending,
+    isRejectingTimeEntry: rejectTimeEntryMutation.isPending
   };
 };
