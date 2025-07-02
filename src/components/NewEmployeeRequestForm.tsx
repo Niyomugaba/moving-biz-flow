@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useEmployeeRequests } from '@/hooks/useEmployeeRequests';
-import { UserPlus, ArrowLeft, Hash, Phone, User, Eye } from 'lucide-react';
+import { UserPlus, ArrowLeft, Phone, User, Eye } from 'lucide-react';
 
 interface NewEmployeeRequestFormProps {
   onBack: () => void;
@@ -15,7 +15,7 @@ export const NewEmployeeRequestForm = ({ onBack, onSuccess }: NewEmployeeRequest
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
-    accessCode: '',
+    email: '',
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -24,8 +24,9 @@ export const NewEmployeeRequestForm = ({ onBack, onSuccess }: NewEmployeeRequest
     addEmployeeRequest({
       name: formData.name,
       phone: formData.phone,
+      email: formData.email,
       position_applied: 'mover',
-      notes: `Access Code: ${formData.accessCode}`
+      notes: 'Manual request submission'
     });
 
     // Show success message and reset form
@@ -91,29 +92,21 @@ export const NewEmployeeRequestForm = ({ onBack, onSuccess }: NewEmployeeRequest
               placeholder="Enter your phone number"
               className="border-2 border-gray-200 focus:border-purple-500 focus:ring-purple-500 rounded-lg py-3 text-gray-800 placeholder-gray-400"
             />
-            <p className="text-xs text-gray-500 mt-2 flex items-center">
-              <Eye className="w-3 h-3 mr-1" />
-              We'll use this to contact you about opportunities
-            </p>
           </div>
 
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-3">
-              <Hash className="inline w-4 h-4 mr-2 text-purple-600" />
-              Create Your Access Code
+              <Eye className="inline w-4 h-4 mr-2 text-purple-600" />
+              Email Address
             </label>
             <Input
-              type="text"
+              type="email"
               required
-              value={formData.accessCode}
-              onChange={(e) => setFormData({ ...formData, accessCode: e.target.value })}
-              placeholder="Create a memorable word or phrase"
+              value={formData.email}
+              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              placeholder="Enter your email address"
               className="border-2 border-gray-200 focus:border-purple-500 focus:ring-purple-500 rounded-lg py-3 text-center text-gray-800 placeholder-gray-400"
             />
-            <p className="text-xs text-amber-600 mt-2 flex items-center">
-              <Eye className="w-3 h-3 mr-1" />
-              This access code will be your login credential
-            </p>
           </div>
 
           {/* Professional info box */}
@@ -127,7 +120,7 @@ export const NewEmployeeRequestForm = ({ onBack, onSuccess }: NewEmployeeRequest
                 <ul className="text-sm text-gray-600 space-y-1">
                   <li>• Your application will be reviewed by our team</li>
                   <li>• Once approved, you can access the mover portal</li>
-                  <li>• Use your access code to login and start working</li>
+                  <li>• Create an account with email/password to get started</li>
                 </ul>
               </div>
             </div>
@@ -146,7 +139,7 @@ export const NewEmployeeRequestForm = ({ onBack, onSuccess }: NewEmployeeRequest
             </Button>
             <Button 
               type="submit" 
-              disabled={isAddingRequest || !formData.name || !formData.phone || !formData.accessCode}
+              disabled={isAddingRequest || !formData.name || !formData.phone || !formData.email}
               className="flex-1 bg-gradient-to-r from-purple-600 to-amber-500 hover:from-purple-700 hover:to-amber-600 text-white font-semibold py-3 shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
             >
               {isAddingRequest ? (
@@ -157,7 +150,7 @@ export const NewEmployeeRequestForm = ({ onBack, onSuccess }: NewEmployeeRequest
               ) : (
                 <>
                   <UserPlus className="h-4 w-4 mr-2" />
-                  Join Team
+                  Submit Request
                 </>
               )}
             </Button>

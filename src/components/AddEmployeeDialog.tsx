@@ -2,7 +2,6 @@
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import { Button } from './ui/button';
-import { Switch } from './ui/switch';
 
 interface AddEmployeeDialogProps {
   open: boolean;
@@ -20,20 +19,20 @@ export const AddEmployeeDialog = ({ open, onOpenChange, onAddEmployee }: AddEmpl
     position: 'mover',
     department: 'operations'
   });
-  
-  const [enablePortalAccess, setEnablePortalAccess] = useState(false);
-  const [accessCode, setAccessCode] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Prepare employee data
-    const employeeData = {
-      ...formData,
-      accessCode: enablePortalAccess ? accessCode : null
-    };
-    
-    onAddEmployee(employeeData);
+    onAddEmployee({
+      name: formData.name,
+      phone: formData.phone,
+      email: formData.email,
+      hourly_wage: parseFloat(formData.hourlyWage),
+      hire_date: formData.hireDate,
+      position: formData.position,
+      department: formData.department,
+      status: 'active'
+    });
     
     // Reset form
     setFormData({
@@ -45,16 +44,7 @@ export const AddEmployeeDialog = ({ open, onOpenChange, onAddEmployee }: AddEmpl
       position: 'mover',
       department: 'operations'
     });
-    setEnablePortalAccess(false);
-    setAccessCode('');
     onOpenChange(false);
-  };
-
-  const generateRandomCode = () => {
-    const words = ['Tiger', 'Eagle', 'Lion', 'Shark', 'Wolf', 'Bear', 'Hawk', 'Fox'];
-    const numbers = Math.floor(100 + Math.random() * 900).toString();
-    const randomCode = words[Math.floor(Math.random() * words.length)] + numbers;
-    setAccessCode(randomCode);
   };
 
   return (
@@ -92,10 +82,11 @@ export const AddEmployeeDialog = ({ open, onOpenChange, onAddEmployee }: AddEmpl
           
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Email (Optional)
+              Email Address
             </label>
             <input
               type="email"
+              required
               value={formData.email}
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
               className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -160,53 +151,6 @@ export const AddEmployeeDialog = ({ open, onOpenChange, onAddEmployee }: AddEmpl
               onChange={(e) => setFormData({ ...formData, hireDate: e.target.value })}
               className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
-          </div>
-
-          {/* Portal Access Section */}
-          <div className="border-t pt-4">
-            <div className="flex items-center justify-between mb-3">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Enable Portal Access
-                </label>
-                <p className="text-xs text-gray-500">
-                  Allow employee to access the employee portal with an access code
-                </p>
-              </div>
-              <Switch
-                checked={enablePortalAccess}
-                onCheckedChange={setEnablePortalAccess}
-              />
-            </div>
-            
-            {enablePortalAccess && (
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700">
-                  Portal Access Code
-                </label>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    placeholder="Enter access code (word or phrase)"
-                    value={accessCode}
-                    onChange={(e) => setAccessCode(e.target.value)}
-                    className="flex-1 border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-center"
-                    required={enablePortalAccess}
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={generateRandomCode}
-                    className="px-3"
-                  >
-                    Generate
-                  </Button>
-                </div>
-                <p className="text-xs text-gray-500">
-                  This access code will be used by the employee to access their dashboard
-                </p>
-              </div>
-            )}
           </div>
           
           <div className="flex gap-2 pt-4">
