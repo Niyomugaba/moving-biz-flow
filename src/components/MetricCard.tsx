@@ -1,13 +1,19 @@
 
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { LucideIcon } from 'lucide-react';
+import { LucideIcon, TrendingUp, TrendingDown } from 'lucide-react';
+
+interface TrendData {
+  value: number;
+  isPositive: boolean;
+}
 
 interface MetricCardProps {
   title: string;
   value: string | number;
   icon: LucideIcon;
   description?: string;
+  trend?: TrendData;
   className?: string;
 }
 
@@ -16,6 +22,7 @@ export const MetricCard: React.FC<MetricCardProps> = ({
   value,
   icon: Icon,
   description,
+  trend,
   className = ""
 }) => {
   return (
@@ -26,6 +33,16 @@ export const MetricCard: React.FC<MetricCardProps> = ({
       </CardHeader>
       <CardContent>
         <div className="text-2xl font-bold">{value}</div>
+        {trend && (
+          <div className={`flex items-center text-xs ${trend.isPositive ? 'text-green-600' : 'text-red-600'}`}>
+            {trend.isPositive ? (
+              <TrendingUp className="h-3 w-3 mr-1" />
+            ) : (
+              <TrendingDown className="h-3 w-3 mr-1" />
+            )}
+            {trend.isPositive ? '+' : ''}{trend.value}%
+          </div>
+        )}
         {description && (
           <p className="text-xs text-muted-foreground">{description}</p>
         )}
