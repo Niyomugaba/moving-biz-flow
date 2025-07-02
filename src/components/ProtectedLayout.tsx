@@ -3,6 +3,7 @@ import React from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { Auth } from '@/pages/Auth';
 import { Sidebar } from '@/components/Sidebar';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface ProtectedLayoutProps {
   children: React.ReactNode;
@@ -14,6 +15,7 @@ export const ProtectedLayout: React.FC<ProtectedLayoutProps> = ({
   requiredRoles = ['owner', 'admin', 'manager', 'employee'] 
 }) => {
   const { isAuthenticated, isLoading, canAccess } = useAuth();
+  const isMobile = useIsMobile();
 
   if (isLoading) {
     return (
@@ -32,10 +34,10 @@ export const ProtectedLayout: React.FC<ProtectedLayoutProps> = ({
 
   if (!canAccess(requiredRoles)) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center p-4">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-red-600 mb-4">Access Denied</h1>
-          <p className="text-gray-600">You don't have permission to access this page.</p>
+          <h1 className="text-xl sm:text-2xl font-bold text-red-600 mb-4">Access Denied</h1>
+          <p className="text-gray-600 text-sm sm:text-base">You don't have permission to access this page.</p>
         </div>
       </div>
     );
@@ -44,8 +46,10 @@ export const ProtectedLayout: React.FC<ProtectedLayoutProps> = ({
   return (
     <div className="flex h-screen bg-gray-100">
       <Sidebar />
-      <main className="flex-1 overflow-y-auto">
-        {children}
+      <main className={`flex-1 overflow-y-auto ${isMobile ? 'w-full' : ''}`}>
+        <div className={isMobile ? 'pt-16' : ''}>
+          {children}
+        </div>
       </main>
     </div>
   );
