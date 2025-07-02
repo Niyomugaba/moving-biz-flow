@@ -1,11 +1,10 @@
-
 import React, { useState, useMemo } from 'react';
 import { StatusBadge } from '../components/StatusBadge';
 import { ScheduleJobDialog } from '../components/ScheduleJobDialog';
 import { EditJobDialog } from '../components/EditJobDialog';
 import { FilterBar } from '../components/FilterBar';
 import { PaginationControls } from '../components/PaginationControls';
-import { Plus, Calendar, MapPin, Users, Edit, CheckCircle, Phone, Mail, Truck, Archive, Eye } from 'lucide-react';
+import { Plus, Calendar, MapPin, Users, Edit, CheckCircle, Phone, Mail, Truck, Archive, Eye, Undo, Trash2 } from 'lucide-react';
 import { useJobs, Job } from '@/hooks/useJobs';
 import { useJobArchive } from '@/hooks/useJobArchive';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,7 +14,7 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 
 export const Jobs = () => {
-  const { jobs, isLoading, updateJob } = useJobs();
+  const { jobs, isLoading, updateJob, deleteJob } = useJobs();
   const { 
     displayedJobs, 
     showArchived, 
@@ -72,6 +71,27 @@ export const Jobs = () => {
           actual_total: calculatedTotal
         } 
       });
+    }
+  };
+
+  const handleRecallJob = (job: Job) => {
+    if (confirm(`Recall job ${job.job_number} back to active status?`)) {
+      // Set status back to scheduled if it was cancelled, or back to completed if it was paid
+      const newStatus = job.status === 'cancelled' ? 'scheduled' : 'completed';
+      const updates: Partial<Job> = { status: newStatus };
+      
+      // If recalling a paid job, unmark as paid to make it active again
+      if (job.status === 'completed' && job.is_paid) {
+        updates.is_paid = false;
+      }
+      
+      updateJob({ id: job.id, updates });
+    }
+  };
+
+  const handleDeleteJob = (job: Job) => {
+    if (confirm(`Permanently delete job ${job.job_number}? This action cannot be undone.`)) {
+      deleteJob(job.id);
     }
   };
 
@@ -178,6 +198,11 @@ export const Jobs = () => {
                   {showArchived ? 'Viewing Archives' : 'Viewing Active Jobs'}
                 </Label>
               </div>
+              {showArchived && (
+                <div className="text-sm text-gray-600">
+                  Archives include completed & paid jobs, and cancelled jobs
+                </div>
+              )}
             </div>
             <div className="flex gap-4 text-sm text-gray-600">
               <span>Active Jobs: <strong>{activeCount}</strong></span>
@@ -271,6 +296,8 @@ export const Jobs = () => {
           const totalHourlyRate = job.hourly_rate * job.movers_needed;
           const jobTotal = job.actual_total || 0;
           const isCompleted = job.status === 'completed';
+          const isCancelled = job.status === 'cancelled';
+          const isArchived = (job.status === 'completed' && job.is_paid) || job.status === 'cancelled';
           const jobProfit = calculateJobProfit(job);
           const truckJobProfit = job.truck_service_fee ? 
             (job.truck_service_fee - (job.truck_rental_cost || 0) - (job.truck_gas_cost || 0)) : 0;
@@ -435,15 +462,32 @@ export const Jobs = () => {
                 )}
 
                 {showArchived && (
-                  <div className="mt-4">
+                  <div className="mt-4 flex gap-2">
+                    <Button 
+                      onClick={() => handleRecallJob(job)}
+                      variant="outline"
+                      className="flex-1 hover:bg-blue-50 hover:border-blue-300 text-blue-600"
+                    >
+                      <Undo className="h-3 w-3 mr-2" />
+                      Recall Job
+                    </Button>
                     <Button 
                       onClick={() => handleEditJob(job)}
                       variant="outline"
-                      className="w-full hover:bg-purple-50 hover:border-purple-300 text-purple-600"
+                      className="flex-1 hover:bg-purple-50 hover:border-purple-300 text-purple-600"
                     >
                       <Eye className="h-3 w-3 mr-2" />
-                      Review Archived Job
+                      Review
                     </Button>
+                    {isCancelled && (
+                      <Button 
+                        onClick={() => handleDeleteJob(job)}
+                        variant="outline"
+                        className="hover:bg-red-50 hover:border-red-300 text-red-600"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    )}
                   </div>
                 )}
               </CardContent>
