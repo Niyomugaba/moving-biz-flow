@@ -5,7 +5,6 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ProtectedLayout } from "./components/ProtectedLayout";
-import { ProtectedRoute } from "./components/ProtectedRoute";
 import { Dashboard } from "./pages/Dashboard";
 import { Leads } from "./pages/Leads";
 import { Jobs } from "./pages/Jobs";
@@ -38,59 +37,59 @@ const App = () => (
           <Route path="/employee-portal" element={<EmployeePortal />} />
           <Route path="/manager-login" element={<ManagerLogin />} />
           
-          {/* Manager protected routes */}
+          {/* User protected routes */}
           <Route path="/dashboard" element={
-            <ProtectedRoute>
+            <ProtectedLayout>
               <Dashboard />
-            </ProtectedRoute>
+            </ProtectedLayout>
           } />
           
           <Route path="/leads" element={
-            <ProtectedRoute>
+            <ProtectedLayout>
               <Leads />
-            </ProtectedRoute>
+            </ProtectedLayout>
           } />
           
           <Route path="/jobs" element={
-            <ProtectedRoute>
+            <ProtectedLayout>
               <Jobs />
-            </ProtectedRoute>
+            </ProtectedLayout>
           } />
           
           <Route path="/employees" element={
-            <ProtectedRoute>
+            <ProtectedLayout>
               <Employees />
-            </ProtectedRoute>
+            </ProtectedLayout>
           } />
           
           <Route path="/employee-requests" element={
-            <ProtectedRoute>
+            <ProtectedLayout>
               <EmployeeRequests />
-            </ProtectedRoute>
+            </ProtectedLayout>
           } />
           
           <Route path="/clients" element={
-            <ProtectedRoute>
+            <ProtectedLayout>
               <Clients />
-            </ProtectedRoute>
+            </ProtectedLayout>
           } />
           
           <Route path="/time-logs" element={
-            <ProtectedRoute>
+            <ProtectedLayout>
               <TimeLogs />
-            </ProtectedRoute>
+            </ProtectedLayout>
           } />
           
           <Route path="/financials" element={
-            <ProtectedRoute>
+            <ProtectedLayout>
               <Financials />
-            </ProtectedRoute>
+            </ProtectedLayout>
           } />
           
           <Route path="/user-management" element={
-            <ProtectedRoute>
+            <ProtectedLayout>
               <UserManagement />
-            </ProtectedRoute>
+            </ProtectedLayout>
           } />
           
           <Route path="*" element={<NotFound />} />
