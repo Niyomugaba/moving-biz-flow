@@ -1,6 +1,11 @@
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import { Button } from './ui/button';
+import { Calendar } from './ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
+import { CalendarIcon } from 'lucide-react';
+import { format } from 'date-fns';
+import { cn } from '@/lib/utils';
 import { useJobs, Job } from '@/hooks/useJobs';
 import { TruckExpenseDialog } from './TruckExpenseDialog';
 
@@ -13,6 +18,7 @@ interface EditJobDialogProps {
 export const EditJobDialog = ({ open, onOpenChange, job }: EditJobDialogProps) => {
   const { updateJob } = useJobs();
   const [showTruckExpenses, setShowTruckExpenses] = useState(false);
+  const [rescheduleDate, setRescheduleDate] = useState<Date | undefined>(undefined);
   const [formData, setFormData] = useState({
     status: job?.status || 'scheduled',
     actualHours: job?.actual_duration_hours?.toString() || '',
@@ -34,6 +40,7 @@ export const EditJobDialog = ({ open, onOpenChange, job }: EditJobDialogProps) =
         isPaid: job.is_paid,
         paymentMethod: job.payment_method || ''
       });
+      setRescheduleDate(undefined);
     }
   }, [job]);
 
@@ -51,6 +58,11 @@ export const EditJobDialog = ({ open, onOpenChange, job }: EditJobDialogProps) =
       payment_method: formData.paymentMethod || null,
       paid_at: formData.isPaid && !job.paid_at ? new Date().toISOString() : job.paid_at
     };
+
+    // If rescheduled, update the job date
+    if (formData.status === 'rescheduled' && rescheduleDate) {
+      updates.job_date = rescheduleDate.toISOString().split('T')[0];
+    }
 
     updateJob({ id: job.id, updates });
     onOpenChange(false);
@@ -90,7 +102,7 @@ export const EditJobDialog = ({ open, onOpenChange, job }: EditJobDialogProps) =
               <select
                 value={formData.status}
                 onChange={(e) => setFormData({ ...formData, status: e.target.value as 'scheduled' | 'in_progress' | 'completed' | 'cancelled' | 'rescheduled' })}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
               >
                 <option value="scheduled">Scheduled</option>
                 <option value="in_progress">In Progress</option>
@@ -99,6 +111,37 @@ export const EditJobDialog = ({ open, onOpenChange, job }: EditJobDialogProps) =
                 <option value="rescheduled">Rescheduled</option>
               </select>
             </div>
+
+            {formData.status === 'rescheduled' && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  New Date
+                </label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !rescheduleDate && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {rescheduleDate ? format(rescheduleDate, "PPP") : <span>Pick a date</span>}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0">
+                    <Calendar
+                      mode="single"
+                      selected={rescheduleDate}
+                      onSelect={setRescheduleDate}
+                      initialFocus
+                      className="pointer-events-auto"
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+            )}
 
             {formData.status === 'completed' && (
               <>
@@ -112,15 +155,15 @@ export const EditJobDialog = ({ open, onOpenChange, job }: EditJobDialogProps) =
                     min="0"
                     value={formData.actualHours}
                     onChange={(e) => setFormData({ ...formData, actualHours: e.target.value })}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                     placeholder="Enter hours worked"
                     required
                   />
                 </div>
 
                 {formData.actualHours && (
-                  <div className="bg-blue-50 p-3 rounded-lg">
-                    <div className="text-sm text-gray-600 space-y-1">
+                  <div className="bg-purple-50 p-3 rounded-lg border border-purple-200">
+                    <div className="text-sm text-purple-700 space-y-1">
                       <div>Movers: ${totalHourlyRate}/hour × {formData.actualHours} hours = ${(totalHourlyRate * parseFloat(formData.actualHours)).toFixed(2)}</div>
                       {job.truck_service_fee && (
                         <div>Truck service fee: +${job.truck_service_fee}.00</div>
@@ -140,7 +183,7 @@ export const EditJobDialog = ({ open, onOpenChange, job }: EditJobDialogProps) =
                     min="0"
                     value={formData.actualTotal}
                     onChange={(e) => setFormData({ ...formData, actualTotal: e.target.value })}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                     placeholder={`Calculated: $${calculatedTotal.toFixed(2)}`}
                   />
                   <p className="text-xs text-gray-500 mt-1">
@@ -158,6 +201,7 @@ export const EditJobDialog = ({ open, onOpenChange, job }: EditJobDialogProps) =
                         variant="outline"
                         size="sm"
                         onClick={() => setShowTruckExpenses(true)}
+                        className="border-purple-300 text-purple-700 hover:bg-purple-50"
                       >
                         {job.truck_rental_cost || job.truck_gas_cost ? 'Update' : 'Add'} Expenses
                       </Button>
@@ -192,7 +236,7 @@ export const EditJobDialog = ({ open, onOpenChange, job }: EditJobDialogProps) =
                   <select
                     value={formData.customerSatisfaction}
                     onChange={(e) => setFormData({ ...formData, customerSatisfaction: e.target.value })}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                   >
                     <option value="">Not rated</option>
                     <option value="1">1 - Very Poor</option>
@@ -210,7 +254,7 @@ export const EditJobDialog = ({ open, onOpenChange, job }: EditJobDialogProps) =
                   <textarea
                     value={formData.completionNotes}
                     onChange={(e) => setFormData({ ...formData, completionNotes: e.target.value })}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                     rows={3}
                     placeholder="Any notes about the job completion..."
                   />
@@ -225,7 +269,7 @@ export const EditJobDialog = ({ open, onOpenChange, job }: EditJobDialogProps) =
                   id="isPaid"
                   checked={formData.isPaid}
                   onChange={(e) => setFormData({ ...formData, isPaid: e.target.checked })}
-                  className="rounded border-gray-300"
+                  className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
                 />
                 <label htmlFor="isPaid" className="text-sm font-medium text-gray-700">
                   Mark as paid
@@ -240,7 +284,7 @@ export const EditJobDialog = ({ open, onOpenChange, job }: EditJobDialogProps) =
                   <select
                     value={formData.paymentMethod}
                     onChange={(e) => setFormData({ ...formData, paymentMethod: e.target.value })}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                   >
                     <option value="">Select method...</option>
                     <option value="cash">Cash</option>
@@ -257,7 +301,7 @@ export const EditJobDialog = ({ open, onOpenChange, job }: EditJobDialogProps) =
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="flex-1">
                 Cancel
               </Button>
-              <Button type="submit" className="flex-1">
+              <Button type="submit" className="flex-1 bg-purple-600 hover:bg-purple-700">
                 Update Job
               </Button>
             </div>

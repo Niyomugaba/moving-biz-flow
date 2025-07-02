@@ -7,7 +7,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { NewEmployeeRequestForm } from '@/components/NewEmployeeRequestForm';
 import { EmployeeDashboard } from './EmployeeDashboard';
-import { Shield, Users, Hash, LogIn } from 'lucide-react';
+import { Shield, Users, Hash, LogIn, Truck } from 'lucide-react';
 
 export const EmployeePortal = () => {
   const [pin, setPin] = useState('');
@@ -125,7 +125,7 @@ export const EmployeePortal = () => {
 
   if (step === 'request') {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center p-6">
+      <div className="min-h-screen bg-purple-600 flex items-center justify-center p-6">
         <div className="max-w-lg w-full">
           {/* Header */}
           <div className="text-center mb-8">
@@ -133,14 +133,14 @@ export const EmployeePortal = () => {
               <img 
                 src="/lovable-uploads/6319d82c-0bdd-465a-9925-c9401c11e50a.png" 
                 alt="Bantu Movers Logo" 
-                className="h-20 w-auto"
+                className="h-20 w-auto filter brightness-0 invert"
               />
             </div>
-            <h1 className="text-4xl font-bold text-purple-700 mb-3">Join Bantu Movers</h1>
-            <p className="text-purple-600 text-lg">Complete the form below to request mover access</p>
+            <h1 className="text-4xl font-bold text-white mb-3">Join Bantu Movers</h1>
+            <p className="text-purple-100 text-lg">Complete the form below to request mover access</p>
           </div>
           
-          <div className="bg-purple-50 rounded-2xl p-8 border-2 border-purple-200">
+          <div className="bg-white rounded-2xl p-8 shadow-2xl">
             <NewEmployeeRequestForm 
               onBack={() => setStep('pin')}
               onSuccess={handleRequestSubmitted}
@@ -152,7 +152,7 @@ export const EmployeePortal = () => {
   }
 
   return (
-    <div className="min-h-screen bg-white flex items-center justify-center p-6">
+    <div className="min-h-screen bg-purple-600 flex items-center justify-center p-6">
       <div className="max-w-md w-full">
         {/* Header Section */}
         <div className="text-center mb-10">
@@ -160,46 +160,47 @@ export const EmployeePortal = () => {
             <img 
               src="/lovable-uploads/6319d82c-0bdd-465a-9925-c9401c11e50a.png" 
               alt="Bantu Movers Logo" 
-              className="h-24 w-auto"
+              className="h-24 w-auto filter brightness-0 invert"
             />
           </div>
-          <p className="text-purple-600 text-xl font-medium">Mover Portal</p>
+          <h1 className="text-3xl font-bold text-white mb-2">Bantu Movers</h1>
+          <p className="text-purple-100 text-xl font-medium">Mover Portal</p>
         </div>
 
         {/* Features Section */}
         <div className="grid grid-cols-3 gap-4 mb-10">
-          <div className="text-center p-4 bg-purple-50 rounded-xl border border-purple-200">
-            <div className="w-12 h-12 bg-purple-600 rounded-lg flex items-center justify-center mx-auto mb-3">
-              <Shield className="w-6 h-6 text-white" />
-            </div>
-            <p className="text-purple-700 text-sm font-medium">Secure</p>
-          </div>
-          <div className="text-center p-4 bg-yellow-50 rounded-xl border border-yellow-300">
+          <div className="text-center p-4 bg-white/10 backdrop-blur-sm rounded-xl border border-white/20">
             <div className="w-12 h-12 bg-yellow-500 rounded-lg flex items-center justify-center mx-auto mb-3">
-              <Hash className="w-6 h-6 text-white" />
+              <Shield className="w-6 h-6 text-purple-800" />
             </div>
-            <p className="text-yellow-700 text-sm font-medium">PIN Access</p>
+            <p className="text-white text-sm font-medium">Secure</p>
           </div>
-          <div className="text-center p-4 bg-purple-50 rounded-xl border border-purple-200">
-            <div className="w-12 h-12 bg-purple-600 rounded-lg flex items-center justify-center mx-auto mb-3">
-              <Users className="w-6 h-6 text-white" />
+          <div className="text-center p-4 bg-white/10 backdrop-blur-sm rounded-xl border border-white/20">
+            <div className="w-12 h-12 bg-yellow-500 rounded-lg flex items-center justify-center mx-auto mb-3">
+              <Hash className="w-6 h-6 text-purple-800" />
             </div>
-            <p className="text-purple-700 text-sm font-medium">Team Hub</p>
+            <p className="text-white text-sm font-medium">PIN Access</p>
+          </div>
+          <div className="text-center p-4 bg-white/10 backdrop-blur-sm rounded-xl border border-white/20">
+            <div className="w-12 h-12 bg-yellow-500 rounded-lg flex items-center justify-center mx-auto mb-3">
+              <Users className="w-6 h-6 text-purple-800" />
+            </div>
+            <p className="text-white text-sm font-medium">Team Hub</p>
           </div>
         </div>
 
         {/* Login Card */}
-        <Card className="border-2 border-purple-200 shadow-xl bg-white">
-          <CardHeader className="text-center pb-6 bg-purple-600 rounded-t-lg">
+        <Card className="border-2 border-white/20 shadow-2xl bg-white backdrop-blur-sm">
+          <CardHeader className="text-center pb-6 bg-yellow-500 rounded-t-lg">
             <div className="flex justify-center mb-4">
-              <div className="w-16 h-16 bg-yellow-400 rounded-full flex items-center justify-center">
-                <LogIn className="w-8 h-8 text-purple-700" />
+              <div className="w-16 h-16 bg-purple-600 rounded-full flex items-center justify-center">
+                <LogIn className="w-8 h-8 text-white" />
               </div>
             </div>
-            <CardTitle className="text-2xl font-bold text-white">
+            <CardTitle className="text-2xl font-bold text-purple-800">
               Mover Login
             </CardTitle>
-            <CardDescription className="text-purple-100 text-base">
+            <CardDescription className="text-purple-600 text-base">
               Enter your PIN to access your dashboard
             </CardDescription>
           </CardHeader>
@@ -222,7 +223,7 @@ export const EmployeePortal = () => {
               <Button 
                 onClick={handlePinVerification}
                 disabled={isLoading || !pin.trim()}
-                className="w-full h-12 bg-yellow-500 hover:bg-yellow-600 text-purple-800 font-bold text-lg border-2 border-yellow-600"
+                className="w-full h-12 bg-purple-600 hover:bg-purple-700 text-white font-bold text-lg"
               >
                 {isLoading ? 'Verifying...' : 'Access Dashboard'}
               </Button>
@@ -232,11 +233,11 @@ export const EmployeePortal = () => {
 
         {/* Info Section */}
         <div className="mt-8 text-center">
-          <div className="bg-purple-50 rounded-xl p-6 border border-purple-200">
-            <p className="text-purple-700 font-medium mb-2">
+          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20">
+            <p className="text-white font-medium mb-2">
               New to Bantu Movers?
             </p>
-            <p className="text-purple-600 text-sm">
+            <p className="text-purple-100 text-sm">
               Enter any PIN above to request mover access and join our team
             </p>
           </div>
@@ -244,7 +245,7 @@ export const EmployeePortal = () => {
 
         {/* Footer */}
         <div className="text-center mt-8">
-          <p className="text-purple-500 text-sm">
+          <p className="text-purple-200 text-sm">
             © 2024 Bantu Movers • Professional Moving Services
           </p>
         </div>

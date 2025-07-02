@@ -2,143 +2,161 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import type { Database } from '@/integrations/supabase/types';
 
-type TimeEntry = Database['public']['Tables']['time_entries']['Row'];
-type TimeEntryInsert = Database['public']['Tables']['time_entries']['Insert'];
+export interface TimeEntry {
+  id: string;
+  employee_id: string;
+  job_id: string | null;
+  entry_date: string;
+  clock_in_time: string;
+  clock_out_time: string | null;
+  regular_hours: number | null;
+  overtime_hours: number | null;
+  hourly_rate: number;
+  overtime_rate: number | null;
+  total_pay: number | null;
+  notes: string | null;
+  status: 'pending' | 'approved' | 'rejected';
+  manager_notes: string | null;
+  approved_by: string | null;
+  approved_at: string | null;
+  is_paid: boolean;
+  paid_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
 
 export const useTimeEntries = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: timeEntries = [], isLoading } = useQuery({
-    queryKey: ['time-entries'],
+  const { data: timeEntries = [], isLoading, error } = useQuery({
+    queryKey: ['timeEntries'],
     queryFn: async () => {
+      console.log('Fetching time entries...');
       const { data, error } = await supabase
         .from('time_entries')
         .select('*')
         .order('entry_date', { ascending: false });
-
+      
       if (error) {
         console.error('Error fetching time entries:', error);
         throw error;
       }
-
-      return data;
-    },
+      console.log('Time entries fetched successfully:', data?.length);
+      return data as TimeEntry[];
+    }
   });
-
-  const totalHours = timeEntries.reduce((acc, entry) => {
-    const clockIn = new Date(entry.clock_in_time);
-    const clockOut = new Date(entry.clock_out_time);
-    const duration = (clockOut.getTime() - clockIn.getTime()) / (1000 * 60 * 60);
-    return acc + duration;
-  }, 0);
 
   const addTimeEntryMutation = useMutation({
-    mutationFn: async (newEntry: TimeEntryInsert) => {
-      console.log('Adding time entry:', newEntry);
+    mutationFn: async (timeEntryData: {
+      employee_id: string;
+      job_id?: string;
+      entry_date: string;
+      clock_in_time: string;
+      clock_out_time: string;
+      regular_hours: number;
+      overtime_hours?: number;
+      hourly_rate: number;
+      overtime_rate?: number;
+      notes?: string;
+    }) => {
+      console.log('Creating time entry with data:', timeEntryData);
+      
+      const regularPay = timeEntryData.regular_hours * timeEntryData.hourly_rate;
+      const overtimePay = timeEntryData.overtime_hours && timeEntryData.overtime_rate 
+        ? timeEntryData.overtime_hours * timeEntryData.overtime_rate 
+        : 0;
+      const totalPay = regularPay + overtimePay;
+
+      const insertData = {
+        ...timeEntryData,
+        total_pay: totalPay,
+        status: 'pending' as const
+      };
+
       const { data, error } = await supabase
         .from('time_entries')
-        .insert(newEntry);
-
+        .insert([insertData])
+        .select()
+        .single();
+      
       if (error) {
-        console.error('Error adding time entry:', error);
+        console.error('Supabase error creating time entry:', error);
         throw error;
       }
-
+      
+      console.log('Time entry created successfully:', data);
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['time-entries'] });
+      queryClient.invalidateQueries({ queryKey: ['timeEntries'] });
       toast({
-        title: "Time Entry Added",
-        description: "New time entry has been added successfully.",
+        title: "Hours Submitted",
+        description: "Your work hours have been submitted for approval.",
       });
     },
     onError: (error) => {
-      console.error('Error adding time entry:', error);
+      console.error('Error in addTimeEntryMutation:', error);
       toast({
-        title: "Error",
-        description: "Failed to add time entry. Please try again.",
+        title: "Error Submitting Hours",
+        description: "There was an error submitting your hours. Please try again.",
         variant: "destructive",
       });
-    },
+    }
   });
 
-  const approveTimeEntry = useMutation({
-    mutationFn: async (id: string) => {
-      console.log('Approving time entry:', id);
-      const { error } = await supabase
+  const updateTimeEntryMutation = useMutation({
+    mutationFn: async ({ id, updates }: { id: string; updates: Partial<TimeEntry> }) => {
+      console.log('Updating time entry:', id, updates);
+      const { data, error } = await supabase
         .from('time_entries')
-        .update({ status: 'approved' })
-        .eq('id', id);
-
-      if (error) {
-        console.error('Error approving time entry:', error);
-        throw error;
-      }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['time-entries'] });
-      toast({
-        title: "Time Entry Approved",
-        description: "The time entry has been approved successfully.",
-      });
-    },
-    onError: (error) => {
-      console.error('Error approving time entry:', error);
-      toast({
-        title: "Error",
-        description: "Failed to approve time entry. Please try again.",
-        variant: "destructive",
-      });
-    },
-  });
-
-  const rejectTimeEntry = useMutation({
-    mutationFn: async (id: string) => {
-      console.log('Rejecting time entry:', id);
-      const { error } = await supabase
-        .from('time_entries')
-        .update({ 
-          status: 'rejected',
-          approved_at: null,
-          approved_by: null
-        })
-        .eq('id', id);
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
       
       if (error) {
-        console.error('Error rejecting time entry:', error);
+        console.error('Error updating time entry:', error);
         throw error;
       }
+      return data;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['time-entries'] });
-      toast({
-        title: "Time Entry Rejected",
-        description: "The time entry has been rejected successfully.",
-      });
+    onSuccess: (data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['timeEntries'] });
+      
+      const statusText = variables.updates.status === 'approved' ? 'approved' : 
+                        variables.updates.status === 'rejected' ? 'rejected' : 'updated';
+      
+      if (variables.updates.status === 'pending') {
+        toast({
+          title: "Status Reset",
+          description: "Time entry status has been reset to pending.",
+        });
+      } else {
+        toast({
+          title: "Time Entry Updated",
+          description: `Time entry has been ${statusText}.`,
+        });
+      }
     },
     onError: (error) => {
-      console.error('Error rejecting time entry:', error);
+      console.error('Error updating time entry:', error);
       toast({
-        title: "Error",
-        description: "Failed to reject time entry. Please try again.",
+        title: "Error Updating Time Entry",
+        description: "There was an error updating the time entry. Please try again.",
         variant: "destructive",
       });
-    },
+    }
   });
 
   return {
     timeEntries,
-    totalHours,
     isLoading,
-    addTimeEntry: addTimeEntryMutation.mutate,
+    error,
+    addTimeEntry: addTimeEntryMutation.mutateAsync,
+    updateTimeEntry: updateTimeEntryMutation.mutate,
     isAddingTimeEntry: addTimeEntryMutation.isPending,
-    approveTimeEntry: approveTimeEntry.mutate,
-    isApprovingTimeEntry: approveTimeEntry.isPending,
-    rejectTimeEntry: rejectTimeEntry.mutate,
-    isRejectingTimeEntry: rejectTimeEntry.isPending,
+    isUpdatingTimeEntry: updateTimeEntryMutation.isPending
   };
 };

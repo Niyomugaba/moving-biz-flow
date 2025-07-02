@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { StatusBadge } from '../components/StatusBadge';
 import { ScheduleJobDialog } from '../components/ScheduleJobDialog';
@@ -94,15 +95,15 @@ export const Jobs = () => {
   }
 
   return (
-    <div className="space-y-6 p-6 bg-gradient-to-br from-purple-25 to-gold-25 min-h-screen">
+    <div className="space-y-6 p-6 bg-purple-50 min-h-screen">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-purple-800 bg-clip-text text-transparent">Jobs Management</h1>
-          <p className="text-gray-600 mt-2">Schedule and track all moving jobs with financial insights</p>
+          <h1 className="text-4xl font-bold text-purple-800">Jobs Management</h1>
+          <p className="text-purple-600 mt-2">Schedule and track all moving jobs with financial insights</p>
         </div>
         <button 
           onClick={() => setIsScheduleDialogOpen(true)}
-          className="bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white px-6 py-3 rounded-lg transition-colors flex items-center gap-2 shadow-lg"
+          className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-lg transition-colors flex items-center gap-2 shadow-lg"
         >
           <Plus className="h-4 w-4" />
           Schedule New Job
@@ -111,21 +112,21 @@ export const Jobs = () => {
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
-        <Card className="border-l-4 border-l-blue-500 hover:shadow-lg transition-shadow">
+        <Card className="border-l-4 border-l-purple-500 hover:shadow-lg transition-shadow">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm text-gray-600">Total Jobs</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold text-blue-700">{jobs.length}</p>
+            <p className="text-2xl font-bold text-purple-700">{jobs.length}</p>
           </CardContent>
         </Card>
         
-        <Card className="border-l-4 border-l-orange-500 hover:shadow-lg transition-shadow">
+        <Card className="border-l-4 border-l-yellow-500 hover:shadow-lg transition-shadow">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm text-gray-600">Active Jobs</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold text-orange-600">{activeJobs}</p>
+            <p className="text-2xl font-bold text-yellow-600">{activeJobs}</p>
           </CardContent>
         </Card>
         
@@ -157,12 +158,12 @@ export const Jobs = () => {
           </CardContent>
         </Card>
         
-        <Card className="border-l-4 border-l-purple-500 hover:shadow-lg transition-shadow">
+        <Card className="border-l-4 border-l-yellow-500 hover:shadow-lg transition-shadow">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm text-gray-600">Net Profit</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold text-purple-600">${totalProfit.toLocaleString()}</p>
+            <p className="text-2xl font-bold text-yellow-600">${totalProfit.toLocaleString()}</p>
             <p className="text-xs text-gray-500">
               Truck: ${truckProfit.toFixed(0)}
             </p>
@@ -181,7 +182,7 @@ export const Jobs = () => {
             (job.truck_service_fee - (job.truck_rental_cost || 0) - (job.truck_gas_cost || 0)) : 0;
           
           return (
-            <Card key={job.id} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-lg transition-shadow">
+            <Card key={job.id} className="bg-white rounded-lg shadow-sm border border-purple-200 overflow-hidden hover:shadow-lg transition-shadow">
               <CardContent className="p-6">
                 <div className="flex justify-between items-start mb-4">
                   <div className="cursor-pointer hover:text-purple-700">
@@ -190,7 +191,7 @@ export const Jobs = () => {
                       <Phone className="h-3 w-3" />
                       <button 
                         onClick={() => handleCall(job.client_phone)}
-                        className="hover:text-blue-600 underline"
+                        className="hover:text-purple-600 underline"
                       >
                         {job.client_phone}
                       </button>
@@ -200,7 +201,7 @@ export const Jobs = () => {
                         <Mail className="h-3 w-3" />
                         <button 
                           onClick={() => handleEmail(job.client_email!)}
-                          className="hover:text-blue-600 underline"
+                          className="hover:text-purple-600 underline"
                         >
                           {job.client_email}
                         </button>
@@ -213,7 +214,7 @@ export const Jobs = () => {
                       {job.is_paid ? 'PAID' : 'UNPAID'}
                     </Badge>
                     {job.truck_service_fee && (
-                      <Badge className="bg-blue-100 text-blue-800">
+                      <Badge className="bg-yellow-100 text-yellow-800">
                         <Truck className="h-3 w-3 mr-1" />
                         TRUCK
                       </Badge>
@@ -305,8 +306,8 @@ export const Jobs = () => {
                 </div>
 
                 {job.completion_notes && (
-                  <div className="mt-4 p-3 bg-gray-50 rounded-lg">
-                    <p className="text-sm text-gray-700">{job.completion_notes}</p>
+                  <div className="mt-4 p-3 bg-purple-50 rounded-lg border border-purple-200">
+                    <p className="text-sm text-purple-700">{job.completion_notes}</p>
                   </div>
                 )}
 
@@ -324,7 +325,7 @@ export const Jobs = () => {
                   <Button 
                     onClick={() => handleEditJob(job)}
                     variant="outline"
-                    className="flex-1 hover:bg-purple-50 hover:border-purple-300"
+                    className="flex-1 hover:bg-purple-50 hover:border-purple-300 text-purple-600"
                   >
                     <Edit className="h-3 w-3 mr-2" />
                     Edit Job
@@ -338,8 +339,8 @@ export const Jobs = () => {
 
       {jobs.length === 0 && (
         <div className="text-center py-12">
-          <div className="text-gray-500 text-lg">No jobs scheduled yet</div>
-          <p className="text-gray-400 mt-2">Start by scheduling your first moving job</p>
+          <div className="text-purple-600 text-lg">No jobs scheduled yet</div>
+          <p className="text-purple-400 mt-2">Start by scheduling your first moving job</p>
         </div>
       )}
 
