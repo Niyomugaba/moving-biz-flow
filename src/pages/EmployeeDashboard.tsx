@@ -57,7 +57,7 @@ export const EmployeeDashboard = ({ employee, onLogout }: EmployeeDashboardProps
     return diffMs / (1000 * 60 * 60);
   };
 
-  const handleSubmitHours = () => {
+  const handleSubmitHours = async () => {
     if (!startTime || !endTime) {
       toast({
         title: "Missing Information",
@@ -80,24 +80,39 @@ export const EmployeeDashboard = ({ employee, onLogout }: EmployeeDashboardProps
     const regularHours = Math.min(totalHours, 8);
     const overtimeHours = Math.max(0, totalHours - 8);
 
-    const today = new Date().toISOString().split('T')[0];
-    addTimeEntry({
-      employee_id: employee.id,
-      job_id: selectedJob || undefined,
-      entry_date: today,
-      clock_in_time: `${today}T${startTime}:00`,
-      clock_out_time: `${today}T${endTime}:00`,
-      regular_hours: regularHours,
-      overtime_hours: overtimeHours > 0 ? overtimeHours : undefined,
-      hourly_rate: employee.hourly_wage,
-      overtime_rate: overtimeHours > 0 ? employee.hourly_wage * 1.5 : undefined,
-      notes: notes || undefined
-    });
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      await addTimeEntry({
+        employee_id: employee.id,
+        job_id: selectedJob || undefined,
+        entry_date: today,
+        clock_in_time: `${today}T${startTime}:00`,
+        clock_out_time: `${today}T${endTime}:00`,
+        regular_hours: regularHours,
+        overtime_hours: overtimeHours > 0 ? overtimeHours : undefined,
+        hourly_rate: employee.hourly_wage,
+        overtime_rate: overtimeHours > 0 ? employee.hourly_wage * 1.5 : undefined,
+        notes: notes || undefined
+      });
 
-    setStartTime('');
-    setEndTime('');
-    setSelectedJob('');
-    setNotes('');
+      // Reset form after successful submission
+      setStartTime('');
+      setEndTime('');
+      setSelectedJob('');
+      setNotes('');
+      
+      toast({
+        title: "Hours Submitted Successfully",
+        description: "Your work hours have been submitted for approval.",
+      });
+    } catch (error) {
+      console.error('Error submitting hours:', error);
+      toast({
+        title: "Error Submitting Hours",
+        description: "There was an error submitting your hours. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   // Filter time entries for this employee
