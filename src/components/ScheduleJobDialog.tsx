@@ -1,102 +1,107 @@
+
 import React, { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
-import { Button } from './ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { Switch } from '@/components/ui/switch';
 import { useJobs } from '@/hooks/useJobs';
 import { useClients } from '@/hooks/useClients';
-import { useLeads } from '@/hooks/useLeads';
-import { useIsMobile } from '@/hooks/use-mobile';
+import { toast } from 'sonner';
 
 interface ScheduleJobDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  leadId?: string;
 }
 
-export const ScheduleJobDialog = ({ open, onOpenChange, leadId }: ScheduleJobDialogProps) => {
-  const { addJob, isAddingJob } = useJobs();
+export const ScheduleJobDialog = ({ open, onOpenChange }: ScheduleJobDialogProps) => {
+  const { addJob } = useJobs();
   const { clients, addClient } = useClients();
-  const { leads, updateLead } = useLeads();
-  const isMobile = useIsMobile();
-  
-  const selectedLead = leadId ? leads.find(lead => lead.id === leadId) : null;
   
   const [formData, setFormData] = useState({
-    selectedClientId: '',
-    clientName: selectedLead?.name || '',
-    clientPhone: selectedLead?.phone || '',
-    clientEmail: selectedLead?.email || '',
+    clientName: '',
+    clientPhone: '',
+    clientEmail: '',
     originAddress: '',
     destinationAddress: '',
     jobDate: '',
     startTime: '',
-    hourlyRate: '',
+    hourlyRate: '50',
     moversNeeded: '2',
+    estimatedHours: '4',
     truckSize: '',
-    needsTruck: false,
-    notes: '',
+    truckServiceFee: '',
+    specialRequirements: '',
     isPaid: false,
-    paymentMethod: ''
+    paymentMethod: '',
   });
 
-  const handleClientSelect = (clientId: string) => {
-    const selectedClient = clients.find(c => c.id === clientId);
-    if (selectedClient) {
-      setFormData({
-        ...formData,
-        selectedClientId: clientId,
-        clientName: selectedClient.name,
-        clientPhone: selectedClient.phone,
-        clientEmail: selectedClient.email || '',
-      });
-    } else if (clientId === 'new') {
-      // Reset to empty for new client
-      setFormData({
-        ...formData,
-        selectedClientId: '',
-        clientName: selectedLead?.name || '',
-        clientPhone: selectedLead?.phone || '',
-        clientEmail: selectedLead?.email || '',
-      });
-    }
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const resetForm = () => {
+    setFormData({
+      clientName: '',
+      clientPhone: '',
+      clientEmail: '',
+      originAddress: '',
+      destinationAddress: '',
+      jobDate: '',
+      startTime: '',
+      hourlyRate: '50',
+      moversNeeded: '2',
+      estimatedHours: '4',
+      truckSize: '',
+      truckServiceFee: '',
+      specialRequirements: '',
+      isPaid: false,
+      paymentMethod: '',
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+    setIsSubmitting(true);
+
     try {
       const hourlyRate = parseFloat(formData.hourlyRate);
       const moversNeeded = parseInt(formData.moversNeeded);
-      
-      if (!hourlyRate || hourlyRate <= 0) {
-        alert('Please enter a valid hourly rate');
-        return;
-      }
+      const estimatedHours = parseFloat(formData.estimatedHours);
+      const truckServiceFee = formData.truckServiceFee ? parseFloat(formData.truckServiceFee) : undefined;
 
-      let clientId = formData.selectedClientId;
+      // Check if client exists
+      let existingClient = clients.find(
+        client => client.phone === formData.clientPhone || 
+        (formData.clientEmail && client.email === formData.clientEmail)
+      );
 
-      // If no existing client selected, create a new client
-      if (!clientId && formData.clientName) {
+      let clientId = existingClient?.id;
+
+      // Create new client if doesn't exist
+      if (!existingClient && formData.clientName && formData.clientPhone) {
         console.log('Creating new client...');
-        const newClient = await addClient({
-          name: formData.clientName,
-          phone: formData.clientPhone,
-          email: formData.clientEmail || null,
-          primary_address: formData.originAddress,
-          company_name: null,
-          preferred_contact_method: 'phone'
-        });
-        
-        if (newClient && newClient.id) {
+        try {
+          const newClient = await addClient({
+            name: formData.clientName,
+            phone: formData.clientPhone,
+            email: formData.clientEmail || null,
+            primary_address: formData.originAddress,
+            company_name: null,
+            preferred_contact_method: 'phone'
+          });
           clientId = newClient.id;
           console.log('Created new client with ID:', clientId);
+        } catch (clientError) {
+          console.error('Error creating client:', clientError);
+          throw new Error('Failed to create client');
         }
       }
 
-      const truckServiceFee = formData.needsTruck ? 90 : null;
+      const estimatedTotal = (hourlyRate * moversNeeded * estimatedHours) + (truckServiceFee || 0);
 
       const jobData = {
-        client_id: clientId || null,
+        client_id: clientId,
         client_name: formData.clientName,
         client_phone: formData.clientPhone,
         client_email: formData.clientEmail || null,
@@ -106,357 +111,231 @@ export const ScheduleJobDialog = ({ open, onOpenChange, leadId }: ScheduleJobDia
         start_time: formData.startTime,
         hourly_rate: hourlyRate,
         movers_needed: moversNeeded,
-        estimated_duration_hours: 0, // Will be set when job is completed
-        estimated_total: 0, // Will be calculated based on actual hours
+        estimated_duration_hours: estimatedHours,
+        estimated_total: estimatedTotal,
         truck_size: formData.truckSize || null,
         truck_service_fee: truckServiceFee,
-        special_requirements: formData.notes || null,
+        special_requirements: formData.specialRequirements || null,
         is_paid: formData.isPaid,
-        payment_method: formData.isPaid ? formData.paymentMethod : null,
-        paid_at: formData.isPaid ? new Date().toISOString() : null
+        payment_method: formData.paymentMethod || null,
+        paid_at: formData.isPaid ? new Date().toISOString() : null,
       };
 
       console.log('Submitting job data:', jobData);
-      
       await addJob(jobData);
-
-      // If this was scheduled from a lead, convert the lead to "converted" status
-      if (leadId && selectedLead) {
-        console.log('Converting lead to client...');
-        await updateLead({ 
-          id: leadId, 
-          updates: { 
-            status: 'converted',
-            assigned_to: null // Clear assignment since it's now a client
-          } 
-        });
-      }
-
-      // Reset form
-      setFormData({
-        selectedClientId: '',
-        clientName: '',
-        clientPhone: '',
-        clientEmail: '',
-        originAddress: '',
-        destinationAddress: '',
-        jobDate: '',
-        startTime: '',
-        hourlyRate: '',
-        moversNeeded: '2',
-        truckSize: '',
-        needsTruck: false,
-        notes: '',
-        isPaid: false,
-        paymentMethod: ''
-      });
       
+      resetForm();
       onOpenChange(false);
     } catch (error) {
       console.error('Error creating job:', error);
-      alert('Error creating job. Please try again.');
+      toast.error('Failed to schedule job. Please try again.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  const totalHourlyRate = formData.hourlyRate && formData.moversNeeded
-    ? (parseFloat(formData.hourlyRate) * parseInt(formData.moversNeeded)).toFixed(2)
-    : '0.00';
-
-  const truckFee = formData.needsTruck ? 90 : 0;
-  const totalWithTruck = parseFloat(totalHourlyRate) + truckFee;
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className={`${isMobile ? 'sm:max-w-full h-full max-h-screen' : 'sm:max-w-2xl max-h-[90vh]'} overflow-y-auto`}>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>
-            {leadId ? 'Convert Lead to Job' : 'Schedule New Job'}
-          </DialogTitle>
+          <DialogTitle className="text-purple-800">Schedule New Job</DialogTitle>
+          <DialogDescription>
+            Enter the job details to schedule a new moving job.
+          </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {!leadId && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Select Client
-              </label>
-              <Select value={formData.selectedClientId} onValueChange={handleClientSelect}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select existing client or create new..." />
+        
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="clientName">Client Name *</Label>
+              <Input
+                id="clientName"
+                value={formData.clientName}
+                onChange={(e) => setFormData({...formData, clientName: e.target.value})}
+                required
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="clientPhone">Client Phone *</Label>
+              <Input
+                id="clientPhone"
+                value={formData.clientPhone}
+                onChange={(e) => setFormData({...formData, clientPhone: e.target.value})}
+                required
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="clientEmail">Client Email</Label>
+            <Input
+              id="clientEmail"
+              type="email"
+              value={formData.clientEmail}
+              onChange={(e) => setFormData({...formData, clientEmail: e.target.value})}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="originAddress">Origin Address *</Label>
+            <Input
+              id="originAddress"
+              value={formData.originAddress}
+              onChange={(e) => setFormData({...formData, originAddress: e.target.value})}
+              required
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="destinationAddress">Destination Address *</Label>
+            <Input
+              id="destinationAddress"
+              value={formData.destinationAddress}
+              onChange={(e) => setFormData({...formData, destinationAddress: e.target.value})}
+              required
+            />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="jobDate">Job Date *</Label>
+              <Input
+                id="jobDate"
+                type="date"
+                value={formData.jobDate}
+                onChange={(e) => setFormData({...formData, jobDate: e.target.value})}
+                required
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="startTime">Start Time *</Label>
+              <Input
+                id="startTime"
+                type="time"
+                value={formData.startTime}
+                onChange={(e) => setFormData({...formData, startTime: e.target.value})}
+                required
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="hourlyRate">Hourly Rate ($) *</Label>
+              <Input
+                id="hourlyRate"
+                type="number"
+                min="0"
+                step="0.01"
+                value={formData.hourlyRate}
+                onChange={(e) => setFormData({...formData, hourlyRate: e.target.value})}
+                required
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="moversNeeded">Movers Needed *</Label>
+              <Input
+                id="moversNeeded"
+                type="number"
+                min="1"
+                value={formData.moversNeeded}
+                onChange={(e) => setFormData({...formData, moversNeeded: e.target.value})}
+                required
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="estimatedHours">Estimated Hours *</Label>
+              <Input
+                id="estimatedHours"
+                type="number"
+                min="0"
+                step="0.5"
+                value={formData.estimatedHours}
+                onChange={(e) => setFormData({...formData, estimatedHours: e.target.value})}
+                required
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="truckSize">Truck Size</Label>
+              <Select value={formData.truckSize} onValueChange={(value) => setFormData({...formData, truckSize: value})}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select truck size (optional)" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="new">+ Create New Client</SelectItem>
-                  {clients.map((client) => (
-                    <SelectItem key={client.id} value={client.id}>
-                      {client.name} - {client.phone}
-                    </SelectItem>
-                  ))}
+                  <SelectItem value="small">Small</SelectItem>
+                  <SelectItem value="medium">Medium</SelectItem>
+                  <SelectItem value="large">Large</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="truckServiceFee">Truck Service Fee ($)</Label>
+              <Input
+                id="truckServiceFee"
+                type="number"
+                min="0"
+                step="0.01"
+                value={formData.truckServiceFee}
+                onChange={(e) => setFormData({...formData, truckServiceFee: e.target.value})}
+                placeholder="90"
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="specialRequirements">Special Requirements</Label>
+            <Textarea
+              id="specialRequirements"
+              value={formData.specialRequirements}
+              onChange={(e) => setFormData({...formData, specialRequirements: e.target.value})}
+              placeholder="Any special requirements or notes..."
+            />
+          </div>
+
+          <div className="flex items-center space-x-2">
+            <Switch
+              id="isPaid"
+              checked={formData.isPaid}
+              onCheckedChange={(checked) => setFormData({...formData, isPaid: checked})}
+            />
+            <Label htmlFor="isPaid">Mark as Paid</Label>
+          </div>
+
+          {formData.isPaid && (
+            <div className="space-y-2">
+              <Label htmlFor="paymentMethod">Payment Method</Label>
+              <Select value={formData.paymentMethod} onValueChange={(value) => setFormData({...formData, paymentMethod: value})}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select payment method" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="cash">Cash</SelectItem>
+                  <SelectItem value="check">Check</SelectItem>
+                  <SelectItem value="credit_card">Credit Card</SelectItem>
+                  <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
+                  <SelectItem value="zelle">Zelle</SelectItem>
+                  <SelectItem value="venmo">Venmo</SelectItem>
                 </SelectContent>
               </Select>
             </div>
           )}
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Client Name *
-              </label>
-              <input
-                type="text"
-                required
-                value={formData.clientName}
-                onChange={(e) => setFormData({ ...formData, clientName: e.target.value })}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                placeholder="Enter client name"
-                disabled={!!formData.selectedClientId && !leadId}
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Client Phone *
-              </label>
-              <input
-                type="tel"
-                required
-                value={formData.clientPhone}
-                onChange={(e) => setFormData({ ...formData, clientPhone: e.target.value })}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                placeholder="(555) 123-4567"
-                disabled={!!formData.selectedClientId && !leadId}
-              />
-            </div>
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Client Email (Optional)
-            </label>
-            <input
-              type="email"
-              value={formData.clientEmail}
-              onChange={(e) => setFormData({ ...formData, clientEmail: e.target.value })}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="client@example.com"
-              disabled={!!formData.selectedClientId && !leadId}
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Origin Address *
-            </label>
-            <textarea
-              required
-              value={formData.originAddress}
-              onChange={(e) => setFormData({ ...formData, originAddress: e.target.value })}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              rows={2}
-              placeholder="123 Main St, City, State 12345"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Destination Address *
-            </label>
-            <textarea
-              required
-              value={formData.destinationAddress}
-              onChange={(e) => setFormData({ ...formData, destinationAddress: e.target.value })}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              rows={2}
-              placeholder="456 Oak Ave, City, State 67890"
-            />
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Job Date *
-              </label>
-              <input
-                type="date"
-                required
-                value={formData.jobDate}
-                onChange={(e) => setFormData({ ...formData, jobDate: e.target.value })}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Start Time *
-              </label>
-              <input
-                type="time"
-                required
-                value={formData.startTime}
-                onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Hourly Rate ($ per mover) *
-              </label>
-              <input
-                type="number"
-                step="0.01"
-                required
-                value={formData.hourlyRate}
-                onChange={(e) => setFormData({ ...formData, hourlyRate: e.target.value })}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                placeholder="90.00"
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Number of Movers *
-              </label>
-              <input
-                type="number"
-                min="1"
-                required
-                value={formData.moversNeeded}
-                onChange={(e) => setFormData({ ...formData, moversNeeded: e.target.value })}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
-            </div>
-          </div>
-
-          {/* Truck Service Section */}
-          <div className="border-t pt-4">
-            <div className="flex items-center space-x-2 mb-3">
-              <input
-                type="checkbox"
-                id="needsTruck"
-                checked={formData.needsTruck}
-                onChange={(e) => setFormData({ ...formData, needsTruck: e.target.checked, truckSize: e.target.checked ? formData.truckSize : '' })}
-                className="rounded border-gray-300"
-              />
-              <label htmlFor="needsTruck" className="text-sm font-medium text-gray-700">
-                Client needs truck service (+$90 flat fee)
-              </label>
-            </div>
-
-            {formData.needsTruck && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Truck Size *
-                </label>
-                <select
-                  required={formData.needsTruck}
-                  value={formData.truckSize}
-                  onChange={(e) => setFormData({ ...formData, truckSize: e.target.value })}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                >
-                  <option value="">Select truck size...</option>
-                  <option value="small">Small (10-14 ft)</option>
-                  <option value="medium">Medium (16-20 ft)</option>
-                  <option value="large">Large (22-26 ft)</option>
-                </select>
-              </div>
-            )}
-          </div>
-
-          {/* Total Rate Display */}
-          <div className="bg-blue-50 p-4 rounded-lg">
-            <div className="space-y-2">
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-700">Movers hourly rate:</span>
-                <span className="font-medium">${totalHourlyRate}/hour</span>
-              </div>
-              {formData.needsTruck && (
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-700">Truck service fee:</span>
-                  <span className="font-medium">+$90.00 (flat fee)</span>
-                </div>
-              )}
-              <div className="border-t pt-2 flex justify-between items-center">
-                <span className="text-lg font-medium text-gray-900">Total Hourly Rate:</span>
-                <span className="text-2xl font-bold text-blue-600">
-                  ${totalWithTruck.toFixed(2)}/hour
-                  {formData.needsTruck && <span className="text-sm text-gray-600"> + $90</span>}
-                </span>
-              </div>
-            </div>
-            <p className="text-xs text-orange-600 mt-2 font-medium">
-              Final total will be calculated after job completion based on actual hours worked
-            </p>
-          </div>
-
-          {/* Payment Section */}
-          <div className="border-t pt-4">
-            <div className="flex items-center space-x-2 mb-3">
-              <input
-                type="checkbox"
-                id="isPaid"
-                checked={formData.isPaid}
-                onChange={(e) => setFormData({ ...formData, isPaid: e.target.checked, paymentMethod: e.target.checked ? formData.paymentMethod : '' })}
-                className="rounded border-gray-300"
-              />
-              <label htmlFor="isPaid" className="text-sm font-medium text-gray-700">
-                Mark as paid upfront
-              </label>
-            </div>
-
-            {formData.isPaid && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Payment Method *
-                </label>
-                <select
-                  required={formData.isPaid}
-                  value={formData.paymentMethod}
-                  onChange={(e) => setFormData({ ...formData, paymentMethod: e.target.value })}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                >
-                  <option value="">Select payment method...</option>
-                  <option value="cash">Cash</option>
-                  <option value="check">Check</option>
-                  <option value="credit_card">Credit Card</option>
-                  <option value="bank_transfer">Bank Transfer</option>
-                  <option value="other">Other</option>
-                </select>
-              </div>
-            )}
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Special Requirements (Optional)
-            </label>
-            <textarea
-              value={formData.notes}
-              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              rows={3}
-              placeholder="Any special instructions or requirements..."
-            />
-          </div>
-
-          <div className="flex gap-2 pt-4">
-            <Button 
-              type="button" 
-              variant="outline" 
-              onClick={() => onOpenChange(false)} 
-              className="flex-1"
-              disabled={isAddingJob}
-            >
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button 
-              type="submit" 
-              className="flex-1"
-              disabled={isAddingJob}
-            >
-              {isAddingJob ? 'Scheduling...' : 'Schedule Job'}
+            <Button type="submit" disabled={isSubmitting} className="bg-purple-600 hover:bg-purple-700">
+              {isSubmitting ? 'Scheduling...' : 'Schedule Job'}
             </Button>
-          </div>
+          </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>

@@ -1,19 +1,56 @@
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { StatusBadge } from '../components/StatusBadge';
 import { ScheduleJobDialog } from '../components/ScheduleJobDialog';
 import { EditJobDialog } from '../components/EditJobDialog';
-import { Plus, Calendar, MapPin, Users, Edit, CheckCircle, Phone, Mail, Truck } from 'lucide-react';
+import { FilterBar } from '../components/FilterBar';
+import { PaginationControls } from '../components/PaginationControls';
+import { Plus, Calendar, MapPin, Users, Edit, CheckCircle, Phone, Mail, Truck, Archive, Eye } from 'lucide-react';
 import { useJobs, Job } from '@/hooks/useJobs';
+import { useJobArchive } from '@/hooks/useJobArchive';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 
 export const Jobs = () => {
   const { jobs, isLoading, updateJob } = useJobs();
+  const { 
+    displayedJobs, 
+    showArchived, 
+    toggleArchiveView, 
+    archivedCount, 
+    activeCount 
+  } = useJobArchive(jobs);
+  
   const [isScheduleDialogOpen, setIsScheduleDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
+  
+  // Filtering and pagination state
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(12);
+
+  // Filter jobs based on current view and search/status filters
+  const filteredJobs = useMemo(() => {
+    return displayedJobs.filter(job => {
+      const matchesSearch = job.client_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           job.job_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           job.origin_address.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesStatus = statusFilter === 'all' || job.status === statusFilter;
+      return matchesSearch && matchesStatus;
+    });
+  }, [displayedJobs, searchTerm, statusFilter]);
+
+  // Paginate filtered jobs
+  const totalPages = Math.ceil(filteredJobs.length / itemsPerPage);
+  const paginatedJobs = filteredJobs.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
 
   const handleEditJob = (job: Job) => {
     setSelectedJob(job);
@@ -46,6 +83,12 @@ export const Jobs = () => {
     window.open(`mailto:${email}`, '_self');
   };
 
+  const handleClearFilters = () => {
+    setSearchTerm('');
+    setStatusFilter('all');
+    setCurrentPage(1);
+  };
+
   const calculateJobProfit = (job: Job) => {
     if (job.status !== 'completed' || !job.actual_total) return 0;
     
@@ -57,34 +100,41 @@ export const Jobs = () => {
   };
 
   // Calculate revenue using actual totals when available
-  const totalRevenue = jobs
+  const totalRevenue = displayedJobs
     .filter(job => job.status === 'completed' && job.is_paid)
     .reduce((sum, job) => sum + (job.actual_total || 0), 0);
 
-  const totalProfit = jobs
+  const totalProfit = displayedJobs
     .filter(job => job.status === 'completed' && job.is_paid)
     .reduce((sum, job) => sum + calculateJobProfit(job), 0);
 
-  const truckRevenue = jobs
+  const truckRevenue = displayedJobs
     .filter(job => job.status === 'completed' && job.is_paid && job.truck_service_fee)
     .reduce((sum, job) => sum + (job.truck_service_fee || 0), 0);
 
-  const truckExpenses = jobs
+  const truckExpenses = displayedJobs
     .filter(job => job.status === 'completed' && job.truck_service_fee)
     .reduce((sum, job) => sum + (job.truck_rental_cost || 0) + (job.truck_gas_cost || 0), 0);
 
   const truckProfit = truckRevenue - truckExpenses;
 
-  const activeJobs = jobs.filter(job => job.status !== 'completed').length;
-  const completedJobs = jobs.filter(job => job.status === 'completed').length;
-  const paidJobs = jobs.filter(job => job.is_paid).length;
+  const completedJobs = displayedJobs.filter(job => job.status === 'completed').length;
+  const paidJobs = displayedJobs.filter(job => job.is_paid).length;
   
-  const unpaidRevenue = jobs
+  const unpaidRevenue = displayedJobs
     .filter(job => job.status === 'completed' && !job.is_paid)
     .reduce((sum, job) => {
       const jobRevenue = job.actual_total || 0;
       return sum + jobRevenue;
     }, 0);
+
+  const jobStatusOptions = [
+    { value: 'scheduled', label: 'Scheduled' },
+    { value: 'in_progress', label: 'In Progress' },
+    { value: 'completed', label: 'Completed' },
+    { value: 'cancelled', label: 'Cancelled' },
+    { value: 'rescheduled', label: 'Rescheduled' }
+  ];
 
   if (isLoading) {
     return (
@@ -101,32 +151,65 @@ export const Jobs = () => {
           <h1 className="text-4xl font-bold text-purple-800">Jobs Management</h1>
           <p className="text-purple-600 mt-2">Schedule and track all moving jobs with financial insights</p>
         </div>
-        <button 
-          onClick={() => setIsScheduleDialogOpen(true)}
-          className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-lg transition-colors flex items-center gap-2 shadow-lg"
-        >
-          <Plus className="h-4 w-4" />
-          Schedule New Job
-        </button>
+        <div className="flex gap-3">
+          <button 
+            onClick={() => setIsScheduleDialogOpen(true)}
+            className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-lg transition-colors flex items-center gap-2 shadow-lg"
+          >
+            <Plus className="h-4 w-4" />
+            Schedule New Job
+          </button>
+        </div>
       </div>
+
+      {/* Archive Toggle */}
+      <Card className="border-2 border-purple-200">
+        <CardContent className="p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="archive-mode"
+                  checked={showArchived}
+                  onCheckedChange={toggleArchiveView}
+                />
+                <Label htmlFor="archive-mode" className="flex items-center gap-2">
+                  {showArchived ? <Archive className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  {showArchived ? 'Viewing Archives' : 'Viewing Active Jobs'}
+                </Label>
+              </div>
+            </div>
+            <div className="flex gap-4 text-sm text-gray-600">
+              <span>Active Jobs: <strong>{activeCount}</strong></span>
+              <span>Archived Jobs: <strong>{archivedCount}</strong></span>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
         <Card className="border-l-4 border-l-purple-500 hover:shadow-lg transition-shadow">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-gray-600">Total Jobs</CardTitle>
+            <CardTitle className="text-sm text-gray-600">
+              {showArchived ? 'Archived Jobs' : 'Total Jobs'}
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold text-purple-700">{jobs.length}</p>
+            <p className="text-2xl font-bold text-purple-700">{displayedJobs.length}</p>
           </CardContent>
         </Card>
         
         <Card className="border-l-4 border-l-yellow-500 hover:shadow-lg transition-shadow">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-gray-600">Active Jobs</CardTitle>
+            <CardTitle className="text-sm text-gray-600">
+              {showArchived ? 'All Completed' : 'Active Jobs'}
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold text-yellow-600">{activeJobs}</p>
+            <p className="text-2xl font-bold text-yellow-600">
+              {showArchived ? displayedJobs.length : displayedJobs.filter(job => job.status !== 'completed').length}
+            </p>
           </CardContent>
         </Card>
         
@@ -171,9 +254,20 @@ export const Jobs = () => {
         </Card>
       </div>
 
+      {/* Filters */}
+      <FilterBar
+        searchTerm={searchTerm}
+        onSearchChange={setSearchTerm}
+        statusFilter={statusFilter}
+        onStatusFilterChange={setStatusFilter}
+        statusOptions={jobStatusOptions}
+        onClearFilters={handleClearFilters}
+        placeholder="Search by client name, job number, or address..."
+      />
+
       {/* Jobs Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-        {jobs.map((job) => {
+        {paginatedJobs.map((job) => {
           const totalHourlyRate = job.hourly_rate * job.movers_needed;
           const jobTotal = job.actual_total || 0;
           const isCompleted = job.status === 'completed';
@@ -217,6 +311,12 @@ export const Jobs = () => {
                       <Badge className="bg-yellow-100 text-yellow-800">
                         <Truck className="h-3 w-3 mr-1" />
                         TRUCK
+                      </Badge>
+                    )}
+                    {showArchived && (
+                      <Badge className="bg-purple-100 text-purple-800">
+                        <Archive className="h-3 w-3 mr-1" />
+                        ARCHIVED
                       </Badge>
                     )}
                   </div>
@@ -311,37 +411,74 @@ export const Jobs = () => {
                   </div>
                 )}
 
-                <div className="mt-4 flex gap-2">
-                  {job.status !== 'completed' && (
+                {!showArchived && (
+                  <div className="mt-4 flex gap-2">
+                    {job.status !== 'completed' && (
+                      <Button 
+                        onClick={() => handleMarkDone(job)}
+                        variant="outline"
+                        className="flex-1 hover:bg-green-50 hover:border-green-300 text-green-600"
+                      >
+                        <CheckCircle className="h-3 w-3 mr-2" />
+                        Mark Done
+                      </Button>
+                    )}
                     <Button 
-                      onClick={() => handleMarkDone(job)}
+                      onClick={() => handleEditJob(job)}
                       variant="outline"
-                      className="flex-1 hover:bg-green-50 hover:border-green-300 text-green-600"
+                      className="flex-1 hover:bg-purple-50 hover:border-purple-300 text-purple-600"
                     >
-                      <CheckCircle className="h-3 w-3 mr-2" />
-                      Mark Done
+                      <Edit className="h-3 w-3 mr-2" />
+                      Edit Job
                     </Button>
-                  )}
-                  <Button 
-                    onClick={() => handleEditJob(job)}
-                    variant="outline"
-                    className="flex-1 hover:bg-purple-50 hover:border-purple-300 text-purple-600"
-                  >
-                    <Edit className="h-3 w-3 mr-2" />
-                    Edit Job
-                  </Button>
-                </div>
+                  </div>
+                )}
+
+                {showArchived && (
+                  <div className="mt-4">
+                    <Button 
+                      onClick={() => handleEditJob(job)}
+                      variant="outline"
+                      className="w-full hover:bg-purple-50 hover:border-purple-300 text-purple-600"
+                    >
+                      <Eye className="h-3 w-3 mr-2" />
+                      Review Archived Job
+                    </Button>
+                  </div>
+                )}
               </CardContent>
             </Card>
           );
         })}
       </div>
 
-      {jobs.length === 0 && (
+      {filteredJobs.length === 0 && (
         <div className="text-center py-12">
-          <div className="text-purple-600 text-lg">No jobs scheduled yet</div>
-          <p className="text-purple-400 mt-2">Start by scheduling your first moving job</p>
+          <div className="text-purple-600 text-lg">
+            No {showArchived ? 'archived' : 'active'} jobs found
+          </div>
+          <p className="text-purple-400 mt-2">
+            {showArchived 
+              ? 'Complete and mark jobs as paid to see them in archives'
+              : 'Start by scheduling your first moving job'
+            }
+          </p>
         </div>
+      )}
+
+      {/* Pagination */}
+      {filteredJobs.length > 0 && (
+        <PaginationControls
+          currentPage={currentPage}
+          totalPages={totalPages}
+          itemsPerPage={itemsPerPage}
+          totalItems={filteredJobs.length}
+          onPageChange={setCurrentPage}
+          onItemsPerPageChange={(items) => {
+            setItemsPerPage(items);
+            setCurrentPage(1);
+          }}
+        />
       )}
 
       <ScheduleJobDialog 

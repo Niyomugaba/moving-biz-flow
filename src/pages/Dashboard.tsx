@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -33,19 +33,28 @@ import { AddEmployeeDialog } from "@/components/AddEmployeeDialog";
 import { ScheduleJobDialog } from "@/components/ScheduleJobDialog";
 import { AddLeadDialog } from "@/components/AddLeadDialog";
 import { AddTimeEntryDialog } from "@/components/AddTimeEntryDialog";
+import { TimeEntryCard } from "@/components/TimeEntryCard";
+import { FilterBar } from "@/components/FilterBar";
+import { PaginationControls } from "@/components/PaginationControls";
 
 export const Dashboard = () => {
   const navigate = useNavigate();
   const { employees, addEmployee } = useEmployees();
   const { jobs } = useJobs();
   const { leads } = useLeads();
-  const { timeEntries } = useTimeEntries();
+  const { timeEntries, approveTimeEntry, rejectTimeEntry, updateTimeEntry, isApprovingTimeEntry, isRejectingTimeEntry } = useTimeEntries();
 
   // State for dialog controls
   const [showAddEmployee, setShowAddEmployee] = useState(false);
   const [showScheduleJob, setShowScheduleJob] = useState(false);
   const [showAddLead, setShowAddLead] = useState(false);
   const [showAddTimeEntry, setShowAddTimeEntry] = useState(false);
+
+  // Filtering and pagination state
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
   // Calculate key metrics with real financial data
   const activeEmployees = employees.filter(emp => emp.status === 'active').length;
@@ -102,6 +111,22 @@ export const Dashboard = () => {
   const convertedLeads = leads.filter(lead => lead.status === 'converted').length;
   const conversionRate = leads.length > 0 ? (convertedLeads / leads.length) * 100 : 0;
 
+  // Filter and paginate time entries
+  const filteredTimeEntries = useMemo(() => {
+    return timeEntries.filter(entry => {
+      const matchesSearch = entry.employee_id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           (entry.notes && entry.notes.toLowerCase().includes(searchTerm.toLowerCase()));
+      const matchesStatus = statusFilter === 'all' || entry.status === statusFilter;
+      return matchesSearch && matchesStatus;
+    });
+  }, [timeEntries, searchTerm, statusFilter]);
+
+  const totalPages = Math.ceil(filteredTimeEntries.length / itemsPerPage);
+  const paginatedTimeEntries = filteredTimeEntries.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
   // Recent activity data
   const recentJobs = jobs
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
@@ -122,12 +147,37 @@ export const Dashboard = () => {
     });
   };
 
+  const handleApproveTimeEntry = (id: string) => {
+    approveTimeEntry(id);
+  };
+
+  const handleRejectTimeEntry = (id: string) => {
+    rejectTimeEntry(id);
+  };
+
+  const handleResetTimeEntryStatus = (id: string) => {
+    updateTimeEntry({ 
+      id, 
+      updates: { 
+        status: 'pending',
+        approved_at: null,
+        approved_by: null 
+      } 
+    });
+  };
+
   const handleExportData = () => {
     toast.success("Dashboard data exported successfully!");
   };
 
   const handleRefreshData = () => {
     toast.success("Dashboard data refreshed!");
+  };
+
+  const handleClearFilters = () => {
+    setSearchTerm('');
+    setStatusFilter('all');
+    setCurrentPage(1);
   };
 
   const getStatusColor = (status: string) => {
@@ -150,15 +200,21 @@ export const Dashboard = () => {
     }
   };
 
+  const timeEntryStatusOptions = [
+    { value: 'pending', label: 'Pending' },
+    { value: 'approved', label: 'Approved' },
+    { value: 'rejected', label: 'Rejected' }
+  ];
+
   return (
-    <div className="p-6 space-y-8 bg-gradient-to-br from-purple-50 to-gold-50 min-h-screen">
+    <div className="p-6 space-y-8 bg-gradient-to-br from-purple-50 to-yellow-50 min-h-screen">
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-purple-800 bg-clip-text text-transparent">
+          <h1 className="text-4xl font-bold text-purple-800">
             Financial Dashboard
           </h1>
-          <p className="text-gray-600 mt-2">
+          <p className="text-purple-600 mt-2">
             Real-time business performance and financial insights
           </p>
         </div>
@@ -167,7 +223,7 @@ export const Dashboard = () => {
             <RefreshCw className="h-4 w-4" />
             Refresh
           </Button>
-          <Button onClick={handleExportData} className="flex items-center gap-2 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800">
+          <Button onClick={handleExportData} className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700">
             <Download className="h-4 w-4" />
             Export Report
           </Button>
@@ -300,6 +356,64 @@ export const Dashboard = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Time Entries Section with Clock-in Times */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Clock className="h-5 w-5" />
+            Recent Time Entries - Clock In/Out Times
+          </CardTitle>
+          <CardDescription>
+            Review employee work hours with detailed clock-in and clock-out times for approval
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <FilterBar
+            searchTerm={searchTerm}
+            onSearchChange={setSearchTerm}
+            statusFilter={statusFilter}
+            onStatusFilterChange={setStatusFilter}
+            statusOptions={timeEntryStatusOptions}
+            onClearFilters={handleClearFilters}
+            placeholder="Search by employee ID or notes..."
+          />
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {paginatedTimeEntries.map((entry) => (
+              <TimeEntryCard
+                key={entry.id}
+                entry={entry}
+                onApprove={handleApproveTimeEntry}
+                onReject={handleRejectTimeEntry}
+                onResetStatus={handleResetTimeEntryStatus}
+                isApproving={isApprovingTimeEntry}
+                isRejecting={isRejectingTimeEntry}
+              />
+            ))}
+          </div>
+
+          {filteredTimeEntries.length === 0 && (
+            <div className="text-center py-8 text-gray-500">
+              No time entries found matching your filters.
+            </div>
+          )}
+
+          {filteredTimeEntries.length > 0 && (
+            <PaginationControls
+              currentPage={currentPage}
+              totalPages={totalPages}
+              itemsPerPage={itemsPerPage}
+              totalItems={filteredTimeEntries.length}
+              onPageChange={setCurrentPage}
+              onItemsPerPageChange={(items) => {
+                setItemsPerPage(items);
+                setCurrentPage(1);
+              }}
+            />
+          )}
+        </CardContent>
+      </Card>
 
       {/* Analytics Tabs */}
       <Tabs defaultValue="overview" className="space-y-6">
@@ -497,7 +611,7 @@ export const Dashboard = () => {
                   <p className="text-2xl font-bold text-green-600">
                     ${realRevenue.toLocaleString()}
                   </p>
-                  <p className="text-sm text-gray-500">Estimated weekly revenue</p>
+                  <p className="text-sm text-gray-500">Total paid revenue</p>
                 </div>
                 
                 <div className="pt-4 border-t">
