@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -25,7 +26,7 @@ import {
 import { useEmployees } from "@/hooks/useEmployees";
 import { useJobs } from "@/hooks/useJobs";
 import { useLeads } from "@/hooks/useLeads";
-import { useTimeEntries } from "@/hooks/useTimeEntries";
+import { useTimeEntries, TimeEntry } from "@/hooks/useTimeEntries";
 import { format, startOfWeek, endOfWeek, isWithinInterval } from "date-fns";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
