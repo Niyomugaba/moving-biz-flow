@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,99 +17,9 @@ export const EmployeePortal = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [employeeData, setEmployeeData] = useState<any>(null);
-  const [user, setUser] = useState<any>(null);
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
-  const [employeeRequestStatus, setEmployeeRequestStatus] = useState<string | null>(null);
+  const [showPendingMessage, setShowPendingMessage] = useState(false);
   const { toast } = useToast();
-
-  useEffect(() => {
-    // Check if user is already logged in
-    const checkUser = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
-        setUser(session.user);
-        await checkEmployeeStatus(session.user);
-      }
-    };
-    
-    checkUser();
-
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        console.log('Auth event in EmployeePortal:', event, session?.user?.email);
-        
-        if (session?.user) {
-          setUser(session.user);
-          await checkEmployeeStatus(session.user);
-        } else {
-          setUser(null);
-          setEmployeeData(null);
-          setEmployeeRequestStatus(null);
-        }
-      }
-    );
-
-    return () => subscription.unsubscribe();
-  }, []);
-
-  const checkEmployeeStatus = async (user: any) => {
-    try {
-      // Check if user is an approved employee
-      const { data: employee, error } = await supabase
-        .from('employees')
-        .select('*')
-        .eq('email', user.email)
-        .eq('status', 'active')
-        .maybeSingle();
-
-      if (error) {
-        console.error('Error checking employee status:', error);
-        return;
-      }
-
-      if (employee) {
-        setEmployeeData(employee);
-        setEmployeeRequestStatus(null);
-        toast({
-          title: "Welcome Back!",
-          description: `Hello ${employee.name}! Access granted to your dashboard.`,
-        });
-      } else {
-        // Check employee request status
-        const { data: employeeRequest } = await supabase
-          .from('employee_requests')
-          .select('status')
-          .eq('email', user.email)
-          .maybeSingle();
-
-        if (employeeRequest) {
-          setEmployeeRequestStatus(employeeRequest.status);
-          
-          if (employeeRequest.status === 'pending') {
-            toast({
-              title: "Account Pending Approval",
-              description: "Your mover request is being reviewed. You can still log time entries while waiting for approval.",
-            });
-          } else if (employeeRequest.status === 'rejected') {
-            toast({
-              title: "Account Request Rejected",
-              description: "Your mover request has been rejected. Please contact management for more information.",
-              variant: "destructive",
-            });
-          }
-        } else {
-          setEmployeeRequestStatus(null);
-          toast({
-            title: "Account Not Found",
-            description: "You'll need to submit a mover request to access the system.",
-          });
-        }
-      }
-    } catch (error) {
-      console.error('Error checking employee status:', error);
-    }
-  };
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -116,100 +27,118 @@ export const EmployeePortal = () => {
 
     try {
       if (isLogin) {
-        const { error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
+        // Check if user exists in employees table (approved users)
+        const { data: employee, error: employeeError } = await supabase
+          .from('employees')
+          .select('*')
+          .eq('email', email)
+          .eq('status', 'active')
+          .maybeSingle();
 
-        if (error) throw error;
+        if (employeeError) {
+          console.error('Error checking employee:', employeeError);
+          throw new Error('Login failed. Please try again.');
+        }
 
-        toast({
-          title: "Login Successful",
-          description: "Welcome back! Checking your mover status...",
-        });
+        if (employee) {
+          // Check if the employee has a notes field with password (PIN)
+          const storedPassword = employee.notes?.replace('PIN: ', '') || employee.phone;
+          
+          if (password === storedPassword) {
+            setEmployeeData(employee);
+            toast({
+              title: "Login Successful",
+              description: `Welcome back, ${employee.name}!`,
+            });
+          } else {
+            throw new Error('Invalid credentials. Please check your email and password.');
+          }
+        } else {
+          // Check if user exists in employee_requests table
+          const { data: request, error: requestError } = await supabase
+            .from('employee_requests')
+            .select('*')
+            .eq('email', email)
+            .maybeSingle();
+
+          if (requestError) {
+            console.error('Error checking request:', requestError);
+            throw new Error('Login failed. Please try again.');
+          }
+
+          if (request) {
+            if (request.status === 'pending') {
+              throw new Error('Your account is pending approval. Please contact Niyo for approval.');
+            } else if (request.status === 'rejected') {
+              throw new Error('Your account request has been rejected. Please contact Niyo for more information.');
+            }
+          } else {
+            throw new Error('Account not found. Please create an account first.');
+          }
+        }
       } else {
         // Sign up new employee
         console.log('Starting signup process for:', email);
         
-        const { data, error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            data: {
-              full_name: fullName,
-              phone: phone,
-            }
-          }
-        });
+        // Check if email already exists
+        const { data: existingEmployee } = await supabase
+          .from('employees')
+          .select('email')
+          .eq('email', email)
+          .maybeSingle();
 
-        if (error) {
-          console.error('Signup error:', error);
-          throw error;
+        const { data: existingRequest } = await supabase
+          .from('employee_requests')
+          .select('email')
+          .eq('email', email)
+          .maybeSingle();
+
+        if (existingEmployee || existingRequest) {
+          throw new Error('An account with this email already exists. Please try logging in instead.');
         }
 
-        console.log('Signup successful, user:', data.user?.email);
+        // Create employee request
+        const { error: requestError } = await supabase
+          .from('employee_requests')
+          .insert({
+            name: fullName,
+            email: email,
+            phone: phone,
+            position_applied: 'mover',
+            notes: `PIN: ${password}`,
+            status: 'pending'
+          });
 
-        // Create employee request immediately after successful signup
-        if (data.user) {
-          console.log('Creating employee request...');
-          
-          const { error: requestError } = await supabase
-            .from('employee_requests')
-            .insert({
-              name: fullName,
-              email: email,
-              phone: phone,
-              position_applied: 'mover',
-              notes: 'Self-registered through mover portal'
-            });
-
-          if (requestError) {
-            console.error('Error creating employee request:', requestError);
-            toast({
-              title: "Warning",
-              description: "Account created but employee request failed. Please contact support.",
-              variant: "destructive",
-            });
-          } else {
-            console.log('Employee request created successfully');
-          }
-
-          // Show success message and redirect to login
-          setShowSuccessMessage(true);
-          
-          // Auto redirect to login after 3 seconds
-          setTimeout(() => {
-            setShowSuccessMessage(false);
-            setIsLogin(true);
-            setEmail('');
-            setPassword('');
-            setFullName('');
-            setPhone('');
-            toast({
-              title: "Account Created!",
-              description: "Please log in with your new credentials.",
-            });
-          }, 3000);
+        if (requestError) {
+          console.error('Error creating employee request:', requestError);
+          throw new Error('Failed to create account. Please try again.');
         }
+
+        console.log('Employee request created successfully');
+        
+        // Show pending approval message
+        setShowPendingMessage(true);
+        
+        // Auto redirect to login after 5 seconds
+        setTimeout(() => {
+          setShowPendingMessage(false);
+          setIsLogin(true);
+          setEmail('');
+          setPassword('');
+          setFullName('');
+          setPhone('');
+          toast({
+            title: "Account Created!",
+            description: "Please log in once your account is approved.",
+          });
+        }, 5000);
       }
     } catch (error: any) {
       console.error('Auth error:', error);
       
-      let errorMessage = "An error occurred during authentication.";
-      
-      if (error.message?.includes('User already registered')) {
-        errorMessage = "An account with this email already exists. Please try logging in instead.";
-      } else if (error.message?.includes('Invalid login credentials')) {
-        errorMessage = "Invalid email or password. Please check your credentials and try again.";
-      } else if (error.message?.includes('Email not confirmed')) {
-        errorMessage = "Please check your email and click the confirmation link before logging in.";
-      } else if (error.message) {
-        errorMessage = error.message;
-      }
-      
       toast({
         title: "Authentication Error",
-        description: errorMessage,
+        description: error.message || "An error occurred during authentication.",
         variant: "destructive",
       });
     } finally {
@@ -217,61 +146,47 @@ export const EmployeePortal = () => {
     }
   };
 
-  const handleLogout = async () => {
-    try {
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
-      
-      setUser(null);
-      setEmployeeData(null);
-      setEmployeeRequestStatus(null);
-      setEmail('');
-      setPassword('');
-      setFullName('');
-      setPhone('');
-      toast({
-        title: "Logged Out",
-        description: "You have been successfully logged out.",
-      });
-    } catch (error: any) {
-      console.error('Logout error:', error);
-      toast({
-        title: "Logout Error",
-        description: error.message || "An error occurred during logout.",
-        variant: "destructive",
-      });
-    }
+  const handleLogout = () => {
+    setEmployeeData(null);
+    setEmail('');
+    setPassword('');
+    setFullName('');
+    setPhone('');
+    toast({
+      title: "Logged Out",
+      description: "You have been successfully logged out.",
+    });
   };
 
-  // Show success message overlay
-  if (showSuccessMessage) {
+  // Show pending approval message
+  if (showPendingMessage) {
     return (
       <div className="min-h-screen bg-purple-600 flex items-center justify-center p-6">
         <div className="max-w-md w-full">
           <Card className="border-2 border-white/20 shadow-2xl bg-white backdrop-blur-sm">
-            <CardHeader className="text-center pb-6 bg-green-500 rounded-t-lg">
+            <CardHeader className="text-center pb-6 bg-yellow-500 rounded-t-lg">
               <div className="flex justify-center mb-4">
                 <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center">
-                  <CheckCircle className="w-8 h-8 text-green-500" />
+                  <Users className="w-8 h-8 text-yellow-500" />
                 </div>
               </div>
               <CardTitle className="text-2xl font-bold text-white">
-                Account Created Successfully!
+                Account Pending Approval
               </CardTitle>
-              <CardDescription className="text-green-100 text-base">
+              <CardDescription className="text-yellow-100 text-base">
                 Your mover request has been submitted
               </CardDescription>
             </CardHeader>
             
             <CardContent className="p-8 text-center">
               <p className="text-gray-600 mb-4">
-                Welcome to the Bantu Movers team! Your account has been created and your mover request is pending approval.
+                Thank you for creating your account! Your mover request has been submitted and is waiting for approval.
               </p>
               <p className="text-sm text-gray-500 mb-6">
-                You can log time entries while waiting for approval. Redirecting to login page...
+                Please contact <strong>Niyo</strong> for approval or wait for approval notification. You will be able to log in once approved.
               </p>
               <div className="w-full bg-gray-200 rounded-full h-2">
-                <div className="bg-green-500 h-2 rounded-full animate-pulse w-full"></div>
+                <div className="bg-yellow-500 h-2 rounded-full animate-pulse w-full"></div>
               </div>
             </CardContent>
           </Card>
@@ -281,94 +196,12 @@ export const EmployeePortal = () => {
   }
 
   // If user is logged in and approved employee, show dashboard
-  if (user && employeeData) {
+  if (employeeData) {
     return (
       <EmployeeDashboard 
         employee={employeeData} 
         onLogout={handleLogout}
       />
-    );
-  }
-
-  // If user is logged in but request was rejected, show rejection message
-  if (user && employeeRequestStatus === 'rejected') {
-    return (
-      <div className="min-h-screen bg-purple-600 flex items-center justify-center p-6">
-        <div className="max-w-md w-full">
-          <Card className="border-2 border-white/20 shadow-2xl bg-white backdrop-blur-sm">
-            <CardHeader className="text-center pb-6 bg-red-500 rounded-t-lg">
-              <div className="flex justify-center mb-4">
-                <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center">
-                  <XCircle className="w-8 h-8 text-red-500" />
-                </div>
-              </div>
-              <CardTitle className="text-2xl font-bold text-white">
-                Request Rejected
-              </CardTitle>
-              <CardDescription className="text-red-100 text-base">
-                Your mover request has been rejected
-              </CardDescription>
-            </CardHeader>
-            
-            <CardContent className="p-8 text-center">
-              <p className="text-gray-600 mb-6">
-                Hello {user.user_metadata?.full_name || user.email}! Unfortunately, your mover request has been rejected by management.
-              </p>
-              <p className="text-sm text-gray-500 mb-6">
-                Please contact management for more information about this decision.
-              </p>
-              <Button 
-                onClick={handleLogout}
-                variant="outline"
-                className="w-full"
-              >
-                Logout
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    );
-  }
-
-  // If user is logged in but not approved, show pending status
-  if (user && employeeRequestStatus === 'pending') {
-    return (
-      <div className="min-h-screen bg-purple-600 flex items-center justify-center p-6">
-        <div className="max-w-md w-full">
-          <Card className="border-2 border-white/20 shadow-2xl bg-white backdrop-blur-sm">
-            <CardHeader className="text-center pb-6 bg-yellow-500 rounded-t-lg">
-              <div className="flex justify-center mb-4">
-                <div className="w-16 h-16 bg-purple-600 rounded-full flex items-center justify-center">
-                  <Users className="w-8 h-8 text-white" />
-                </div>
-              </div>
-              <CardTitle className="text-2xl font-bold text-purple-800">
-                Account Pending
-              </CardTitle>
-              <CardDescription className="text-purple-600 text-base">
-                Your mover request is being reviewed
-              </CardDescription>
-            </CardHeader>
-            
-            <CardContent className="p-8 text-center">
-              <p className="text-gray-600 mb-6">
-                Hello {user.user_metadata?.full_name || user.email}! Your mover request has been submitted and is pending approval from management.
-              </p>
-              <p className="text-sm text-gray-500 mb-6">
-                You can still log time entries while waiting for approval.
-              </p>
-              <Button 
-                onClick={handleLogout}
-                variant="outline"
-                className="w-full"
-              >
-                Logout
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
     );
   }
 
@@ -531,7 +364,7 @@ export const EmployeePortal = () => {
             <p className="text-purple-100 text-sm">
               {isLogin 
                 ? 'Create an account to request mover access and join our team'
-                : 'Create your account, and we\'ll review your request. You can log time entries while waiting for approval.'
+                : 'Create your account, and we\'ll review your request. Contact Niyo for faster approval.'
               }
             </p>
           </div>
