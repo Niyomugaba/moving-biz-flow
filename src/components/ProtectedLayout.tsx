@@ -14,10 +14,11 @@ export const ProtectedLayout: React.FC<ProtectedLayoutProps> = ({
   children, 
   requiredRoles = ['owner', 'admin', 'manager', 'employee'] 
 }) => {
-  const { isAuthenticated, isLoading, canAccess } = useAuth();
+  const { isAuthenticated, isLoading, canAccess, userRole } = useAuth();
   const isMobile = useIsMobile();
 
-  if (isLoading) {
+  // Show loading while auth is initializing OR while user role is being fetched
+  if (isLoading || (isAuthenticated && !userRole)) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
