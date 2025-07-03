@@ -40,7 +40,7 @@ export const useAuth = () => {
           const basicProfile: Profile = {
             id: session.user.id,
             email: session.user.email || null,
-            full_name: session.user.user_metadata?.full_name || session.user.email || 'User',
+            full_name: session.user.user_metadata?.full_name || 'Jean Lambert Niyomugaba',
             created_at: session.user.created_at,
             updated_at: new Date().toISOString()
           };

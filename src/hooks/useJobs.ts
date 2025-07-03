@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { SystemValidator, sanitizeDataForDatabase } from '@/utils/systemValidator';
 
 export interface Job {
   id: string;
@@ -128,24 +129,33 @@ export const useJobs = () => {
     mutationFn: async (jobData: CreateJobData) => {
       console.log('Creating job with data:', jobData);
       
+      // Validate job data
+      const validation = SystemValidator.validateJobData(jobData);
+      if (!validation.isValid) {
+        throw new Error(validation.errors.join(', '));
+      }
+      
+      // Sanitize data for database
+      const sanitizedData = sanitizeDataForDatabase(jobData);
+      
       const insertData = {
-        client_id: jobData.client_id,
-        client_name: jobData.client_name,
-        client_phone: jobData.client_phone,
-        client_email: jobData.client_email,
-        origin_address: jobData.origin_address,
-        destination_address: jobData.destination_address,
-        job_date: jobData.job_date,
-        start_time: jobData.start_time,
-        hourly_rate: jobData.hourly_rate,
-        estimated_total: jobData.estimated_total,
-        movers_needed: jobData.movers_needed,
-        truck_size: jobData.truck_size,
-        special_requirements: jobData.special_requirements,
-        is_paid: jobData.is_paid || false,
-        payment_method: jobData.payment_method,
-        paid_at: jobData.paid_at,
-        lead_id: jobData.lead_id,
+        client_id: sanitizedData.client_id,
+        client_name: sanitizedData.client_name,
+        client_phone: sanitizedData.client_phone,
+        client_email: sanitizedData.client_email,
+        origin_address: sanitizedData.origin_address,
+        destination_address: sanitizedData.destination_address,
+        job_date: sanitizedData.job_date,
+        start_time: sanitizedData.start_time,
+        hourly_rate: sanitizedData.hourly_rate,
+        estimated_total: sanitizedData.estimated_total,
+        movers_needed: sanitizedData.movers_needed,
+        truck_size: sanitizedData.truck_size,
+        special_requirements: sanitizedData.special_requirements,
+        is_paid: sanitizedData.is_paid || false,
+        payment_method: sanitizedData.payment_method,
+        paid_at: sanitizedData.paid_at,
+        lead_id: sanitizedData.lead_id,
         status: 'scheduled' as const,
         estimated_duration_hours: 2 // Default 2 hours minimum
       };

@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { SystemValidator, sanitizeDataForDatabase } from '@/utils/systemValidator';
 
 export interface TimeEntry {
   id: string;
@@ -65,20 +66,29 @@ export const useTimeEntries = () => {
     mutationFn: async (entryData: CreateTimeEntryData) => {
       console.log('Creating time entry with data:', entryData);
       
+      // Validate time entry data
+      const validation = SystemValidator.validateTimeEntryData(entryData);
+      if (!validation.isValid) {
+        throw new Error(validation.errors.join(', '));
+      }
+      
+      // Sanitize data for database
+      const sanitizedData = sanitizeDataForDatabase(entryData);
+      
       const insertData = {
-        employee_id: entryData.employee_id,
-        job_id: entryData.job_id || null,
-        entry_date: entryData.entry_date,
-        clock_in_time: entryData.clock_in_time,
-        clock_out_time: entryData.clock_out_time,
-        regular_hours: entryData.regular_hours,
-        overtime_hours: entryData.overtime_hours || null,
-        hourly_rate: entryData.hourly_rate,
-        overtime_rate: entryData.overtime_rate || null,
-        notes: entryData.notes || null,
-        break_duration_minutes: entryData.break_duration_minutes || 0,
+        employee_id: sanitizedData.employee_id,
+        job_id: sanitizedData.job_id,
+        entry_date: sanitizedData.entry_date,
+        clock_in_time: sanitizedData.clock_in_time,
+        clock_out_time: sanitizedData.clock_out_time,
+        regular_hours: sanitizedData.regular_hours,
+        overtime_hours: sanitizedData.overtime_hours,
+        hourly_rate: sanitizedData.hourly_rate,
+        overtime_rate: sanitizedData.overtime_rate,
+        notes: sanitizedData.notes,
+        break_duration_minutes: sanitizedData.break_duration_minutes || 0,
         status: 'pending' as const
-        // Removed total_pay calculation - let the database handle it
+        // total_pay will be calculated by database trigger
       };
 
       console.log('Inserting time entry data:', insertData);
