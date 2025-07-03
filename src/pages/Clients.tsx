@@ -192,7 +192,6 @@ export const Clients = () => {
         <AddClientDialog 
           open={showAddDialog} 
           onOpenChange={setShowAddDialog}
-          onAddClient={() => {}}
         />
 
         <AlertDialog open={!!clientToDelete} onOpenChange={() => setClientToDelete(null)}>
@@ -446,7 +445,6 @@ export const Clients = () => {
       <AddClientDialog 
         open={showAddDialog} 
         onOpenChange={setShowAddDialog}
-        onAddClient={() => {}}
       />
 
       <AlertDialog open={!!clientToDelete} onOpenChange={() => setClientToDelete(null)}>
