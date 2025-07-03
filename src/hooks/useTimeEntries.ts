@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -66,13 +65,6 @@ export const useTimeEntries = () => {
     mutationFn: async (entryData: CreateTimeEntryData) => {
       console.log('Creating time entry with data:', entryData);
       
-      // Calculate total pay
-      const regularPay = entryData.regular_hours * entryData.hourly_rate;
-      const overtimePay = entryData.overtime_hours && entryData.overtime_rate 
-        ? entryData.overtime_hours * entryData.overtime_rate 
-        : 0;
-      const totalPay = regularPay + overtimePay;
-      
       const insertData = {
         employee_id: entryData.employee_id,
         job_id: entryData.job_id || null,
@@ -83,10 +75,10 @@ export const useTimeEntries = () => {
         overtime_hours: entryData.overtime_hours || null,
         hourly_rate: entryData.hourly_rate,
         overtime_rate: entryData.overtime_rate || null,
-        total_pay: totalPay,
         notes: entryData.notes || null,
         break_duration_minutes: entryData.break_duration_minutes || 0,
         status: 'pending' as const
+        // Removed total_pay calculation - let the database handle it
       };
 
       console.log('Inserting time entry data:', insertData);
@@ -125,29 +117,7 @@ export const useTimeEntries = () => {
     mutationFn: async ({ id, updates }: { id: string; updates: Partial<TimeEntry> }) => {
       console.log('Updating time entry:', id, updates);
       
-      // Recalculate total pay if hours or rates are being updated
-      if (updates.regular_hours !== undefined || updates.overtime_hours !== undefined || 
-          updates.hourly_rate !== undefined || updates.overtime_rate !== undefined) {
-        
-        // Get current entry to fill in missing values
-        const { data: currentEntry } = await supabase
-          .from('time_entries')
-          .select('*')
-          .eq('id', id)
-          .single();
-        
-        if (currentEntry) {
-          const regularHours = updates.regular_hours ?? currentEntry.regular_hours ?? 0;
-          const overtimeHours = updates.overtime_hours ?? currentEntry.overtime_hours ?? 0;
-          const hourlyRate = updates.hourly_rate ?? currentEntry.hourly_rate ?? 0;
-          const overtimeRate = updates.overtime_rate ?? currentEntry.overtime_rate ?? (hourlyRate * 1.5);
-          
-          const regularPay = regularHours * hourlyRate;
-          const overtimePay = overtimeHours * overtimeRate;
-          updates.total_pay = regularPay + overtimePay;
-        }
-      }
-      
+      // Don't recalculate total_pay on updates - let the database handle it
       const { data, error } = await supabase
         .from('time_entries')
         .update(updates)
