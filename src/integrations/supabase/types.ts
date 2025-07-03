@@ -353,6 +353,7 @@ export type Database = {
           estimated_value: number | null
           follow_up_date: string | null
           id: string
+          lead_cost: number | null
           name: string
           notes: string | null
           phone: string
@@ -367,6 +368,7 @@ export type Database = {
           estimated_value?: number | null
           follow_up_date?: string | null
           id?: string
+          lead_cost?: number | null
           name: string
           notes?: string | null
           phone: string
@@ -381,6 +383,7 @@ export type Database = {
           estimated_value?: number | null
           follow_up_date?: string | null
           id?: string
+          lead_cost?: number | null
           name?: string
           notes?: string | null
           phone?: string
