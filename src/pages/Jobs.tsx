@@ -4,7 +4,7 @@ import { ScheduleJobDialog } from '../components/ScheduleJobDialog';
 import { EditJobDialog } from '../components/EditJobDialog';
 import { FilterBar } from '../components/FilterBar';
 import { PaginationControls } from '../components/PaginationControls';
-import { Plus, Calendar, MapPin, Users, Edit, CheckCircle, Phone, Mail, Truck, Archive, Eye, Undo, Trash2, UserCheck } from 'lucide-react';
+import { Plus, Calendar, MapPin, Users, Edit, CheckCircle, Phone, Mail, Truck, Archive, Eye, Undo, Trash2, UserCheck, Play, Clock } from 'lucide-react';
 import { useJobs, Job } from '@/hooks/useJobs';
 import { useJobArchive } from '@/hooks/useJobArchive';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -74,27 +74,12 @@ export const Jobs = () => {
 
   const handleScheduleConvertedLead = (job: Job) => {
     console.log('Opening schedule dialog for converted lead:', job);
-    // Open the edit dialog in scheduling mode for converted leads
     setSelectedJob(job);
     setIsEditDialogOpen(true);
   };
 
-  const handleMarkDone = (job: Job) => {
-    const hours = prompt('Enter total hours worked:');
-    if (hours && !isNaN(parseFloat(hours))) {
-      const actualHours = parseFloat(hours);
-      const totalHourlyRate = job.hourly_rate * job.movers_needed;
-      const calculatedTotal = totalHourlyRate * actualHours;
-      
-      updateJob({ 
-        id: job.id, 
-        updates: { 
-          status: 'completed',
-          actual_duration_hours: actualHours,
-          actual_total: calculatedTotal
-        } 
-      });
-    }
+  const handleQuickStatusUpdate = (job: Job, newStatus: Job['status']) => {
+    updateJob({ id: job.id, updates: { status: newStatus } });
   };
 
   const handleRecallJob = (job: Job) => {
@@ -503,80 +488,93 @@ export const Jobs = () => {
                 )}
 
                 {!showArchived && (
-                  <div className="mt-4 flex gap-2">
+                  <div className="mt-4 space-y-2">
                     {isPendingSchedule ? (
                       <Button 
                         onClick={() => handleScheduleConvertedLead(job)}
-                        className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
+                        className="w-full bg-blue-600 hover:bg-blue-700 text-white"
                       >
                         <Calendar className="h-3 w-3 mr-2" />
                         {isConvertedLead ? 'Schedule Converted Lead' : 'Schedule Job'}
                       </Button>
                     ) : (
                       <>
-                        {job.status !== 'completed' && (
+                        {/* Quick Status Action Buttons */}
+                        <div className="flex gap-2">
+                          {job.status === 'scheduled' && (
+                            <Button 
+                              onClick={() => handleQuickStatusUpdate(job, 'in_progress')}
+                              variant="outline"
+                              className="flex-1 hover:bg-blue-50 hover:border-blue-300 text-blue-600"
+                            >
+                              <Play className="h-3 w-3 mr-2" />
+                              Start Job
+                            </Button>
+                          )}
+                          
+                          {job.status === 'in_progress' && (
+                            <Button 
+                              onClick={() => handleEditJob(job)}
+                              className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+                            >
+                              <CheckCircle className="h-3 w-3 mr-2" />
+                              Complete Job
+                            </Button>
+                          )}
+                          
+                          {job.status !== 'completed' && job.status !== 'in_progress' && (
+                            <Button 
+                              onClick={() => handleEditJob(job)}
+                              variant="outline"
+                              className="flex-1 hover:bg-green-50 hover:border-green-300 text-green-600"
+                            >
+                              <CheckCircle className="h-3 w-3 mr-2" />
+                              Mark Complete
+                            </Button>
+                          )}
+                          
                           <Button 
-                            onClick={() => {
-                              const hours = prompt('Enter total hours worked:');
-                              if (hours && !isNaN(parseFloat(hours))) {
-                                const actualHours = parseFloat(hours);
-                                const totalHourlyRate = job.hourly_rate * job.movers_needed;
-                                const calculatedTotal = totalHourlyRate * actualHours;
-                                
-                                updateJob({ 
-                                  id: job.id, 
-                                  updates: { 
-                                    status: 'completed',
-                                    actual_duration_hours: actualHours,
-                                    actual_total: calculatedTotal
-                                  } 
-                                });
-                              }
-                            }}
+                            onClick={() => handleEditJob(job)}
                             variant="outline"
-                            className="flex-1 hover:bg-green-50 hover:border-green-300 text-green-600"
+                            className="flex-1 hover:bg-purple-50 hover:border-purple-300 text-purple-600"
                           >
-                            <CheckCircle className="h-3 w-3 mr-2" />
-                            Mark Done
+                            <Edit className="h-3 w-3 mr-2" />
+                            Edit
                           </Button>
-                        )}
-                        <Button 
-                          onClick={() => handleEditJob(job)}
-                          variant="outline"
-                          className="flex-1 hover:bg-purple-50 hover:border-purple-300 text-purple-600"
-                        >
-                          <Edit className="h-3 w-3 mr-2" />
-                          Edit Job
-                        </Button>
+                        </div>
                       </>
                     )}
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button 
-                          variant="outline"
-                          className="hover:bg-red-50 hover:border-red-300 text-red-600"
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Delete Job</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            Are you sure you want to delete job {job.job_number}? This action cannot be undone.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancel</AlertDialogCancel>
-                          <AlertDialogAction
-                            onClick={() => deleteJob(job.id)}
-                            className="bg-red-600 hover:bg-red-700"
+                    
+                    <div className="flex gap-2">
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button 
+                            variant="outline"
+                            className="flex-1 hover:bg-red-50 hover:border-red-300 text-red-600"
                           >
+                            <Trash2 className="h-3 w-3 mr-2" />
                             Delete
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Delete Job</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Are you sure you want to delete job {job.job_number}? This action cannot be undone.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() => deleteJob(job.id)}
+                              className="bg-red-600 hover:bg-red-700"
+                            >
+                              Delete
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
                   </div>
                 )}
 
