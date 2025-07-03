@@ -118,10 +118,15 @@ export const ScheduleJobDialog = ({ open, onOpenChange, leadData, jobData }: Sch
     if (field === 'hourly_rate' || field === 'movers_needed') {
       const rate = field === 'hourly_rate' ? Number(value) : formData.hourly_rate;
       const movers = field === 'movers_needed' ? Number(value) : formData.movers_needed;
+      
+      // Prevent numeric overflow by limiting calculations
+      const calculatedTotal = rate * movers * 2;
+      const maxTotal = 999999.99; // Stay within PostgreSQL numeric limits
+      
       setFormData(prev => ({ 
         ...prev, 
         [field]: value,
-        estimated_total: rate * movers * 2 // Default 2 hour minimum
+        estimated_total: Math.min(calculatedTotal, maxTotal)
       }));
     }
   };
