@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -90,6 +89,41 @@ export const useJobs = () => {
     }
   });
 
+  const updateJobMutation = useMutation({
+    mutationFn: async ({ id, updates }: { id: string; updates: Partial<Job> }) => {
+      console.log('Updating job:', id, updates);
+      const { data, error } = await supabase
+        .from('jobs')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data as Job;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['jobs'] });
+      queryClient.invalidateQueries({ queryKey: ['clients'] });
+      queryClient.invalidateQueries({ queryKey: ['client-stats'] });
+      
+      toast({
+        title: "Job Updated",
+        description: "Job has been successfully updated.",
+        duration: 2000
+      });
+    },
+    onError: (error: any) => {
+      console.error('Error updating job:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update job.",
+        variant: "destructive",
+        duration: 2000
+      });
+    }
+  });
+
   const addJobMutation = useMutation({
     mutationFn: async (jobData: CreateJobData) => {
       console.log('Creating job with data:', jobData);
@@ -133,9 +167,13 @@ export const useJobs = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['jobs'] });
+      queryClient.invalidateQueries({ queryKey: ['clients'] });
+      queryClient.invalidateQueries({ queryKey: ['client-stats'] });
+      
       toast({
         title: "Job Created",
         description: "Job has been successfully scheduled.",
+        duration: 2000
       });
     },
     onError: (error: any) => {
@@ -144,6 +182,7 @@ export const useJobs = () => {
         title: "Error",
         description: error.message || "Failed to create job.",
         variant: "destructive",
+        duration: 2000
       });
     }
   });
@@ -244,10 +283,12 @@ export const useJobs = () => {
       queryClient.invalidateQueries({ queryKey: ['jobs'] });
       queryClient.invalidateQueries({ queryKey: ['leads'] });
       queryClient.invalidateQueries({ queryKey: ['clients'] });
+      queryClient.invalidateQueries({ queryKey: ['client-stats'] });
       
       toast({
         title: "Lead Converted Successfully",
         description: `Lead converted to client "${data.client.name}". The job is ready for scheduling in the Jobs section.`,
+        duration: 2000
       });
     },
     onError: (error: any) => {
@@ -256,35 +297,7 @@ export const useJobs = () => {
         title: "Conversion Failed",
         description: error.message || "Failed to convert lead to job. Please try again.",
         variant: "destructive",
-      });
-    }
-  });
-
-  const updateJobMutation = useMutation({
-    mutationFn: async ({ id, updates }: { id: string; updates: Partial<Job> }) => {
-      console.log('Updating job:', id, updates);
-      const { data, error } = await supabase
-        .from('jobs')
-        .update(updates)
-        .eq('id', id)
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data as Job;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['jobs'] });
-      toast({
-        title: "Job Updated",
-        description: "Job has been successfully updated.",
-      });
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to update job.",
-        variant: "destructive",
+        duration: 2000
       });
     }
   });
@@ -301,16 +314,22 @@ export const useJobs = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['jobs'] });
+      queryClient.invalidateQueries({ queryKey: ['clients'] });
+      queryClient.invalidateQueries({ queryKey: ['client-stats'] });
+      
       toast({
         title: "Job Deleted",
         description: "Job has been successfully deleted.",
+        duration: 2000
       });
     },
     onError: (error: any) => {
+      console.error('Error deleting job:', error);
       toast({
         title: "Error",
         description: error.message || "Failed to delete job.",
         variant: "destructive",
+        duration: 2000
       });
     }
   });

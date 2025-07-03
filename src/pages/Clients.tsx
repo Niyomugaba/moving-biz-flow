@@ -7,6 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useClients } from "@/hooks/useClients";
 import { useLeads } from "@/hooks/useLeads";
+import { useClientStats } from "@/hooks/useClientStats";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { AddClientDialog } from "@/components/AddClientDialog";
 import { 
@@ -28,12 +29,13 @@ import { toast } from "sonner";
 export const Clients = () => {
   const { clients, isLoading, deleteClient } = useClients();
   const { leads } = useLeads();
+  const { clientStats } = useClientStats();
   const [searchTerm, setSearchTerm] = useState('');
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [clientToDelete, setClientToDelete] = useState<string | null>(null);
   const isMobile = useIsMobile();
 
-  // Merge clients with lead status information
+  // Merge clients with lead status information and updated stats
   const clientsWithStatus = useMemo(() => {
     return clients.map(client => {
       const associatedLead = leads.find(lead => 
@@ -41,13 +43,18 @@ export const Clients = () => {
         lead.phone === client.phone
       );
       
+      // Use calculated stats if available
+      const stats = clientStats.find(s => s.client_id === client.id);
+      
       return {
         ...client,
         leadStatus: associatedLead?.status || 'direct',
-        leadCost: associatedLead?.lead_cost || 0
+        leadCost: associatedLead?.lead_cost || 0,
+        total_jobs_completed: stats?.total_jobs_completed || client.total_jobs_completed || 0,
+        total_revenue: stats?.total_revenue || client.total_revenue || 0
       };
     });
-  }, [clients, leads]);
+  }, [clients, leads, clientStats]);
 
   // Filter clients
   const filteredClients = useMemo(() => {

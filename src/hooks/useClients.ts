@@ -2,6 +2,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useClientStats } from './useClientStats';
 
 export interface Client {
   id: string;
@@ -23,17 +24,39 @@ export interface Client {
 export const useClients = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { clientStats } = useClientStats();
 
   const { data: clients = [], isLoading } = useQuery({
     queryKey: ['clients'],
     queryFn: async () => {
+      console.log('Fetching clients...');
       const { data, error } = await supabase
         .from('clients')
         .select('*')
         .order('name');
       
-      if (error) throw error;
-      return data as Client[];
+      if (error) {
+        console.error('Error fetching clients:', error);
+        throw error;
+      }
+      
+      console.log('Clients fetched:', data?.length);
+      
+      // Merge with calculated stats
+      const updatedClients = data?.map(client => {
+        const stats = clientStats.find(s => s.client_id === client.id);
+        if (stats) {
+          return {
+            ...client,
+            total_jobs_completed: stats.total_jobs_completed,
+            total_revenue: stats.total_revenue
+          };
+        }
+        return client;
+      }) || [];
+      
+      console.log('Clients with updated stats:', updatedClients);
+      return updatedClients as Client[];
     }
   });
 
@@ -50,7 +73,11 @@ export const useClients = () => {
       
       const { data, error } = await supabase
         .from('clients')
-        .insert([clientData])
+        .insert([{
+          ...clientData,
+          total_jobs_completed: 0,
+          total_revenue: 0
+        }])
         .select()
         .single();
       
@@ -67,6 +94,7 @@ export const useClients = () => {
       toast({
         title: "Client Added",
         description: `${data.name} has been added as a new client.`,
+        duration: 2000
       });
     },
     onError: (error) => {
@@ -75,6 +103,7 @@ export const useClients = () => {
         title: "Error Adding Client",
         description: "There was an error adding the client. Please try again.",
         variant: "destructive",
+        duration: 2000
       });
     }
   });
@@ -101,6 +130,7 @@ export const useClients = () => {
       toast({
         title: "Client Deleted",
         description: "The client has been successfully deleted.",
+        duration: 2000
       });
     },
     onError: (error) => {
@@ -109,6 +139,7 @@ export const useClients = () => {
         title: "Error Deleting Client",
         description: "There was an error deleting the client. Please try again.",
         variant: "destructive",
+        duration: 2000
       });
     }
   });
