@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -17,35 +17,78 @@ interface ScheduleJobDialogProps {
     phone: string;
     email?: string;
   };
+  jobData?: {
+    id: string;
+    client_name: string;
+    client_phone: string;
+    client_email?: string;
+    origin_address: string;
+    destination_address: string;
+    job_date: string;
+    start_time: string;
+    hourly_rate: number;
+    movers_needed: number;
+    estimated_total: number;
+    truck_size?: string;
+    special_requirements?: string;
+    is_paid: boolean;
+    payment_method?: string;
+    paid_at?: string;
+    lead_id?: string;
+  };
 }
 
-export const ScheduleJobDialog = ({ open, onOpenChange, leadData }: ScheduleJobDialogProps) => {
+export const ScheduleJobDialog = ({ open, onOpenChange, leadData, jobData }: ScheduleJobDialogProps) => {
   const [formData, setFormData] = useState({
     client_id: '',
-    client_name: leadData?.name || '',
-    client_phone: leadData?.phone || '',
-    client_email: leadData?.email || '',
-    origin_address: '',
-    destination_address: '',
-    job_date: '',
-    start_time: '',
-    hourly_rate: 50,
-    movers_needed: 2,
-    estimated_total: 100,
-    truck_size: '',
-    special_requirements: '',
-    is_paid: false,
-    payment_method: '',
-    paid_at: null as string | null
+    client_name: leadData?.name || jobData?.client_name || '',
+    client_phone: leadData?.phone || jobData?.client_phone || '',
+    client_email: leadData?.email || jobData?.client_email || '',
+    origin_address: jobData?.origin_address || '',
+    destination_address: jobData?.destination_address || '',
+    job_date: jobData?.job_date || '',
+    start_time: jobData?.start_time || '',
+    hourly_rate: jobData?.hourly_rate || 50,
+    movers_needed: jobData?.movers_needed || 2,
+    estimated_total: jobData?.estimated_total || 100,
+    truck_size: jobData?.truck_size || '',
+    special_requirements: jobData?.special_requirements || '',
+    is_paid: jobData?.is_paid || false,
+    payment_method: jobData?.payment_method || '',
+    paid_at: jobData?.paid_at || null as string | null
   });
 
-  const { addJob, isAddingJob } = useJobs();
+  const { addJob, updateJob, isAddingJob, isUpdatingJob } = useJobs();
   const { clients } = useClients();
+
+  // Reset form when dialog opens with new data
+  useEffect(() => {
+    if (open) {
+      setFormData({
+        client_id: '',
+        client_name: leadData?.name || jobData?.client_name || '',
+        client_phone: leadData?.phone || jobData?.client_phone || '',
+        client_email: leadData?.email || jobData?.client_email || '',
+        origin_address: jobData?.origin_address || '',
+        destination_address: jobData?.destination_address || '',
+        job_date: jobData?.job_date || '',
+        start_time: jobData?.start_time || '',
+        hourly_rate: jobData?.hourly_rate || 50,
+        movers_needed: jobData?.movers_needed || 2,
+        estimated_total: jobData?.estimated_total || 100,
+        truck_size: jobData?.truck_size || '',
+        special_requirements: jobData?.special_requirements || '',
+        is_paid: jobData?.is_paid || false,
+        payment_method: jobData?.payment_method || '',
+        paid_at: jobData?.paid_at || null
+      });
+    }
+  }, [open, leadData, jobData]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    const jobData = {
+    const submissionData = {
       ...formData,
       estimated_total: Number(formData.estimated_total),
       hourly_rate: Number(formData.hourly_rate),
@@ -55,8 +98,16 @@ export const ScheduleJobDialog = ({ open, onOpenChange, leadData }: ScheduleJobD
       paid_at: formData.is_paid && formData.paid_at ? formData.paid_at : null
     };
 
-    console.log('Submitting job data:', jobData);
-    addJob(jobData);
+    console.log('Submitting job data:', submissionData);
+    
+    if (jobData) {
+      // Update existing job
+      updateJob({ id: jobData.id, updates: submissionData });
+    } else {
+      // Create new job
+      addJob(submissionData);
+    }
+    
     onOpenChange(false);
   };
 
@@ -92,7 +143,9 @@ export const ScheduleJobDialog = ({ open, onOpenChange, leadData }: ScheduleJobD
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Schedule New Job</DialogTitle>
+          <DialogTitle>
+            {jobData ? 'Update Job Details' : 'Schedule New Job'}
+          </DialogTitle>
         </DialogHeader>
         
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -294,8 +347,8 @@ export const ScheduleJobDialog = ({ open, onOpenChange, leadData }: ScheduleJobD
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button type="submit" disabled={isAddingJob}>
-              {isAddingJob ? 'Scheduling...' : 'Schedule Job'}
+            <Button type="submit" disabled={isAddingJob || isUpdatingJob}>
+              {(isAddingJob || isUpdatingJob) ? 'Saving...' : (jobData ? 'Update Job' : 'Schedule Job')}
             </Button>
           </div>
         </form>

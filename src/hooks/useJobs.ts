@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -33,6 +32,7 @@ export interface Job {
   truck_service_fee?: number;
   truck_rental_cost?: number;
   truck_gas_cost?: number;
+  lead_id?: string;
   created_at: string;
   updated_at: string;
 }
@@ -54,6 +54,7 @@ export interface CreateJobData {
   is_paid?: boolean;
   payment_method?: string;
   paid_at?: string;
+  lead_id?: string;
 }
 
 export const useJobs = () => {
@@ -100,6 +101,7 @@ export const useJobs = () => {
         is_paid: jobData.is_paid || false,
         payment_method: jobData.payment_method,
         paid_at: jobData.paid_at,
+        lead_id: jobData.lead_id,
         status: 'scheduled' as const,
         estimated_duration_hours: 2 // Default 2 hours minimum
       };
@@ -131,6 +133,69 @@ export const useJobs = () => {
       toast({
         title: "Error",
         description: error.message || "Failed to create job.",
+        variant: "destructive",
+      });
+    }
+  });
+
+  const convertLeadToJobMutation = useMutation({
+    mutationFn: async ({ leadId, leadData }: { leadId: string; leadData: any }) => {
+      console.log('Converting lead to job:', leadId, leadData);
+      
+      // Create job with minimal required data
+      const jobData = {
+        client_name: leadData.name,
+        client_phone: leadData.phone,
+        client_email: leadData.email,
+        origin_address: 'TBD', // To be determined during scheduling
+        destination_address: 'TBD', // To be determined during scheduling
+        job_date: new Date().toISOString().split('T')[0], // Today's date as placeholder
+        start_time: '09:00', // Default start time
+        hourly_rate: 50, // Default rate
+        movers_needed: 2, // Default movers
+        estimated_total: 100, // Default estimate
+        lead_id: leadId,
+        status: 'scheduled' as const,
+        estimated_duration_hours: 2
+      };
+
+      const { data: jobData, error: jobError } = await supabase
+        .from('jobs')
+        .insert(jobData)
+        .select()
+        .single();
+
+      if (jobError) {
+        console.error('Error creating job from lead:', jobError);
+        throw jobError;
+      }
+
+      // Update lead status to converted
+      const { error: leadError } = await supabase
+        .from('leads')
+        .update({ status: 'converted' })
+        .eq('id', leadId);
+
+      if (leadError) {
+        console.error('Error updating lead status:', leadError);
+        throw leadError;
+      }
+
+      return jobData as Job;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['jobs'] });
+      queryClient.invalidateQueries({ queryKey: ['leads'] });
+      toast({
+        title: "Lead Converted",
+        description: "Lead has been converted to a job. You can now schedule it from the Jobs page.",
+      });
+    },
+    onError: (error: any) => {
+      console.error('Error converting lead to job:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to convert lead to job.",
         variant: "destructive",
       });
     }
@@ -198,8 +263,10 @@ export const useJobs = () => {
     addJob: addJobMutation.mutate,
     updateJob: updateJobMutation.mutate,
     deleteJob: deleteJobMutation.mutate,
+    convertLeadToJob: convertLeadToJobMutation.mutate,
     isAddingJob: addJobMutation.isPending,
     isUpdatingJob: updateJobMutation.isPending,
-    isDeletingJob: deleteJobMutation.isPending
+    isDeletingJob: deleteJobMutation.isPending,
+    isConvertingLead: convertLeadToJobMutation.isPending
   };
 };

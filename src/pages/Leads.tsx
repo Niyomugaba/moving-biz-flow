@@ -1,13 +1,12 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Phone, Mail, Calendar, DollarSign, User, Filter, Search } from 'lucide-react';
+import { Plus, Phone, Mail, Calendar, DollarSign, User, Filter, Search, ArrowRight } from 'lucide-react';
 import { useLeads } from '@/hooks/useLeads';
+import { useJobs } from '@/hooks/useJobs';
 import { AddLeadDialog } from '@/components/AddLeadDialog';
 import { LeadContactCard } from '@/components/LeadContactCard';
-import { ScheduleJobDialog } from '@/components/ScheduleJobDialog';
 import { FilterBar } from '@/components/FilterBar';
 import { PaginationControls } from '@/components/PaginationControls';
 import { StatusBadge } from '@/components/StatusBadge';
@@ -26,9 +25,9 @@ export const Leads = () => {
     isDeletingLead 
   } = useLeads();
   
+  const { convertLeadToJob, isConvertingLead } = useJobs();
+  
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [isScheduleDialogOpen, setIsScheduleDialogOpen] = useState(false);
-  const [selectedLead, setSelectedLead] = useState<any>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [sourceFilter, setSourceFilter] = useState('all');
@@ -49,9 +48,15 @@ export const Leads = () => {
   const startIndex = (currentPage - 1) * itemsPerPage;
   const paginatedLeads = filteredLeads.slice(startIndex, startIndex + itemsPerPage);
 
-  const handleScheduleJob = (lead: any) => {
-    setSelectedLead(lead);
-    setIsScheduleDialogOpen(true);
+  const handleConvertToJob = (lead: any) => {
+    convertLeadToJob({ 
+      leadId: lead.id, 
+      leadData: {
+        name: lead.name,
+        phone: lead.phone,
+        email: lead.email
+      }
+    });
   };
 
   const handleStatusChange = (leadId: string, newStatus: 'new' | 'contacted' | 'quoted' | 'converted' | 'lost') => {
@@ -255,11 +260,12 @@ export const Leads = () => {
                   
                   {lead.status === 'quoted' && (
                     <Button 
-                      onClick={() => handleScheduleJob(lead)}
+                      onClick={() => handleConvertToJob(lead)}
+                      disabled={isConvertingLead}
                       className="bg-green-600 hover:bg-green-700 text-white text-xs px-3 py-2"
                     >
-                      <Calendar className="h-3 w-3 mr-1" />
-                      Schedule
+                      <ArrowRight className="h-3 w-3 mr-1" />
+                      {isConvertingLead ? 'Converting...' : 'Convert to Job'}
                     </Button>
                   )}
                 </div>
@@ -304,16 +310,6 @@ export const Leads = () => {
       <AddLeadDialog 
         open={isAddDialogOpen} 
         onOpenChange={setIsAddDialogOpen} 
-      />
-      
-      <ScheduleJobDialog
-        open={isScheduleDialogOpen}
-        onOpenChange={setIsScheduleDialogOpen}
-        leadData={selectedLead ? {
-          name: selectedLead.name,
-          phone: selectedLead.phone,
-          email: selectedLead.email
-        } : undefined}
       />
     </div>
   );

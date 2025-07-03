@@ -242,6 +242,7 @@ export type Database = {
           is_paid: boolean
           job_date: string
           job_number: string
+          lead_id: string | null
           movers_needed: number
           origin_address: string
           paid_at: string | null
@@ -276,6 +277,7 @@ export type Database = {
           is_paid?: boolean
           job_date: string
           job_number?: string
+          lead_id?: string | null
           movers_needed?: number
           origin_address: string
           paid_at?: string | null
@@ -310,6 +312,7 @@ export type Database = {
           is_paid?: boolean
           job_date?: string
           job_number?: string
+          lead_id?: string | null
           movers_needed?: number
           origin_address?: string
           paid_at?: string | null
@@ -331,6 +334,13 @@ export type Database = {
             columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jobs_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
             referencedColumns: ["id"]
           },
         ]
