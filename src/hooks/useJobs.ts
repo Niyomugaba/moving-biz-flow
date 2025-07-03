@@ -1,3 +1,4 @@
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -147,7 +148,7 @@ export const useJobs = () => {
         name: leadData.name,
         phone: leadData.phone,
         email: leadData.email || null,
-        primary_address: 'To be determined during scheduling',
+        primary_address: leadData.origin_address || 'To be determined during scheduling',
         secondary_address: null,
         company_name: null,
         notes: leadData.notes || null,
@@ -172,24 +173,29 @@ export const useJobs = () => {
 
       console.log('Client created successfully:', createdClient);
 
-      // Then create job linked to the new client with placeholder data
+      // Get today's date for job scheduling
+      const today = new Date();
+      const jobDate = today.toISOString().split('T')[0];
+
+      // Then create job linked to the new client
       const jobInsertData = {
         client_id: createdClient.id,
         client_name: leadData.name,
         client_phone: leadData.phone,
         client_email: leadData.email || null,
-        origin_address: 'To be determined during scheduling',
-        destination_address: 'To be determined during scheduling',
-        job_date: new Date().toISOString().split('T')[0], // Today's date as placeholder
-        start_time: '09:00', // Default start time
-        hourly_rate: leadData.estimated_value ? Math.max(50, leadData.estimated_value / 4) : 50, // Estimate hourly rate
-        movers_needed: 2, // Default movers
-        estimated_total: leadData.estimated_value || 200, // Use estimated value or default
+        origin_address: leadData.origin_address || 'To be determined during scheduling',
+        destination_address: leadData.destination_address || 'To be determined during scheduling',
+        job_date: jobDate,
+        start_time: '09:00',
+        hourly_rate: leadData.estimated_value ? Math.max(50, Math.floor(leadData.estimated_value / 4)) : 50,
+        movers_needed: 2,
+        estimated_total: leadData.estimated_value || 200,
         lead_id: leadId,
         status: 'scheduled' as const,
-        estimated_duration_hours: 2,
+        estimated_duration_hours: 4,
         truck_size: null,
-        special_requirements: leadData.notes || null
+        special_requirements: leadData.notes || null,
+        is_paid: false
       };
 
       console.log('Creating job with data:', jobInsertData);
@@ -205,6 +211,8 @@ export const useJobs = () => {
         throw jobError;
       }
 
+      console.log('Job created successfully:', createdJob);
+
       // Update lead status to converted
       const { error: leadError } = await supabase
         .from('leads')
@@ -216,6 +224,8 @@ export const useJobs = () => {
         throw leadError;
       }
 
+      console.log('Lead status updated to converted');
+
       return { job: createdJob as Job, client: createdClient };
     },
     onSuccess: (data) => {
@@ -224,7 +234,7 @@ export const useJobs = () => {
       queryClient.invalidateQueries({ queryKey: ['clients'] });
       toast({
         title: "Lead Converted Successfully",
-        description: `Lead converted to client "${data.client.name}" with job #${data.job.job_number}. You can now schedule the job details.`,
+        description: `Lead converted to client "${data.client.name}" with job #${data.job.job_number}. The job is now visible in the Jobs section.`,
       });
     },
     onError: (error: any) => {
