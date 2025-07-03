@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -179,11 +178,7 @@ export const useJobs = () => {
 
       console.log('Client created successfully:', createdClient);
 
-      // Get today's date for job scheduling
-      const today = new Date();
-      const jobDate = today.toISOString().split('T')[0];
-
-      // Then create job linked to the new client
+      // Create job but with pending_schedule status - not scheduled yet
       const jobInsertData = {
         client_id: createdClient.id,
         client_name: leadData.name,
@@ -191,20 +186,20 @@ export const useJobs = () => {
         client_email: leadData.email || null,
         origin_address: leadData.origin_address || 'Origin address to be confirmed',
         destination_address: leadData.destination_address || 'Destination address to be confirmed',
-        job_date: jobDate,
-        start_time: '09:00',
+        job_date: new Date().toISOString().split('T')[0], // Placeholder date
+        start_time: '09:00', // Placeholder time
         hourly_rate: leadData.estimated_value ? Math.max(50, Math.floor(leadData.estimated_value / 4)) : 50,
         movers_needed: 2,
         estimated_total: leadData.estimated_value || 200,
         lead_id: leadId,
-        status: 'scheduled' as const,
+        status: 'pending_schedule' as const, // New status - needs scheduling
         estimated_duration_hours: 4,
         truck_size: null,
         special_requirements: leadData.notes || null,
         is_paid: false
       };
 
-      console.log('Creating job with data:', jobInsertData);
+      console.log('Creating job with pending_schedule status:', jobInsertData);
 
       const { data: createdJob, error: jobError } = await supabase
         .from('jobs')
@@ -217,7 +212,7 @@ export const useJobs = () => {
         throw jobError;
       }
 
-      console.log('Job created successfully:', createdJob);
+      console.log('Job created successfully with pending schedule status:', createdJob);
 
       // Update lead status to converted
       const { error: leadError } = await supabase
@@ -240,7 +235,7 @@ export const useJobs = () => {
       queryClient.invalidateQueries({ queryKey: ['clients'] });
       toast({
         title: "Lead Converted Successfully",
-        description: `Lead converted to client "${data.client.name}" with job #${data.job.job_number}. The job is now visible in the Jobs section.`,
+        description: `Lead converted to client "${data.client.name}". The job is ready for scheduling in the Jobs section.`,
       });
     },
     onError: (error: any) => {

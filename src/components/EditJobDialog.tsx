@@ -19,6 +19,7 @@ export const EditJobDialog = ({ open, onOpenChange, job }: EditJobDialogProps) =
   const { updateJob } = useJobs();
   const [showTruckExpenses, setShowTruckExpenses] = useState(false);
   const [rescheduleDate, setRescheduleDate] = useState<Date | undefined>(undefined);
+  const [scheduleTime, setScheduleTime] = useState('');
   const [formData, setFormData] = useState({
     status: job?.status || 'scheduled',
     actualHours: job?.actual_duration_hours?.toString() || '',
@@ -26,7 +27,9 @@ export const EditJobDialog = ({ open, onOpenChange, job }: EditJobDialogProps) =
     completionNotes: job?.completion_notes || '',
     customerSatisfaction: job?.customer_satisfaction?.toString() || '',
     isPaid: job?.is_paid || false,
-    paymentMethod: job?.payment_method || ''
+    paymentMethod: job?.payment_method || '',
+    jobDate: job?.job_date || '',
+    startTime: job?.start_time || ''
   });
 
   React.useEffect(() => {
@@ -38,9 +41,12 @@ export const EditJobDialog = ({ open, onOpenChange, job }: EditJobDialogProps) =
         completionNotes: job.completion_notes || '',
         customerSatisfaction: job.customer_satisfaction?.toString() || '',
         isPaid: job.is_paid,
-        paymentMethod: job.payment_method || ''
+        paymentMethod: job.payment_method || '',
+        jobDate: job.job_date || '',
+        startTime: job.start_time || ''
       });
       setRescheduleDate(undefined);
+      setScheduleTime('');
     }
   }, [job]);
 
@@ -58,6 +64,12 @@ export const EditJobDialog = ({ open, onOpenChange, job }: EditJobDialogProps) =
       payment_method: formData.paymentMethod || null,
       paid_at: formData.isPaid && !job.paid_at ? new Date().toISOString() : job.paid_at
     };
+
+    // Handle scheduling from pending_schedule status
+    if (job.status === 'pending_schedule' && formData.status === 'scheduled') {
+      updates.job_date = formData.jobDate;
+      updates.start_time = formData.startTime;
+    }
 
     // If rescheduled, update the job date
     if (formData.status === 'rescheduled' && rescheduleDate) {
@@ -87,32 +99,69 @@ export const EditJobDialog = ({ open, onOpenChange, job }: EditJobDialogProps) =
     ? totalHourlyRate * parseFloat(formData.actualHours) + (job.truck_service_fee || 0)
     : 0;
 
+  const isPendingSchedule = job.status === 'pending_schedule';
+
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Edit Job - {job.client_name}</DialogTitle>
+            <DialogTitle>
+              {isPendingSchedule ? 'Schedule Job' : 'Edit Job'} - {job.client_name}
+            </DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Status
-              </label>
-              <select
-                value={formData.status}
-                onChange={(e) => setFormData({ ...formData, status: e.target.value as 'scheduled' | 'in_progress' | 'completed' | 'cancelled' | 'rescheduled' })}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-              >
-                <option value="scheduled">Scheduled</option>
-                <option value="in_progress">In Progress</option>
-                <option value="completed">Completed</option>
-                <option value="cancelled">Cancelled</option>
-                <option value="rescheduled">Rescheduled</option>
-              </select>
-            </div>
+            {isPendingSchedule ? (
+              <>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Job Date *
+                  </label>
+                  <input
+                    type="date"
+                    value={formData.jobDate}
+                    onChange={(e) => setFormData({ ...formData, jobDate: e.target.value })}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                    required
+                  />
+                </div>
 
-            {formData.status === 'rescheduled' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Start Time *
+                  </label>
+                  <input
+                    type="time"
+                    value={formData.startTime}
+                    onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                    required
+                  />
+                </div>
+
+                <input type="hidden" value="scheduled" onChange={() => setFormData({ ...formData, status: 'scheduled' })} />
+              </>
+            ) : (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Status
+                </label>
+                <select
+                  value={formData.status}
+                  onChange={(e) => setFormData({ ...formData, status: e.target.value as any })}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                >
+                  <option value="pending_schedule">Pending Schedule</option>
+                  <option value="scheduled">Scheduled</option>
+                  <option value="in_progress">In Progress</option>
+                  <option value="completed">Completed</option>
+                  <option value="cancelled">Cancelled</option>
+                  <option value="rescheduled">Rescheduled</option>
+                </select>
+              </div>
+            )}
+
+            {formData.status === 'rescheduled' && !isPendingSchedule && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   New Date
@@ -302,7 +351,7 @@ export const EditJobDialog = ({ open, onOpenChange, job }: EditJobDialogProps) =
                 Cancel
               </Button>
               <Button type="submit" className="flex-1 bg-purple-600 hover:bg-purple-700">
-                Update Job
+                {isPendingSchedule ? 'Schedule Job' : 'Update Job'}
               </Button>
             </div>
           </form>

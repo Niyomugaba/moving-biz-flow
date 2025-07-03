@@ -158,6 +158,7 @@ export const Jobs = () => {
     }, 0);
 
   const jobStatusOptions = [
+    { value: 'pending_schedule', label: 'Pending Schedule' },
     { value: 'scheduled', label: 'Scheduled' },
     { value: 'in_progress', label: 'In Progress' },
     { value: 'completed', label: 'Completed' },
@@ -306,6 +307,7 @@ export const Jobs = () => {
           const jobTotal = job.actual_total || 0;
           const isCompleted = job.status === 'completed';
           const isCancelled = job.status === 'cancelled';
+          const isPendingSchedule = job.status === 'pending_schedule';
           const isArchived = (job.status === 'completed' && job.is_paid) || job.status === 'cancelled';
           const jobProfit = calculateJobProfit(job);
           const truckJobProfit = job.truck_service_fee ? 
@@ -355,13 +357,22 @@ export const Jobs = () => {
                         ARCHIVED
                       </Badge>
                     )}
+                    {isPendingSchedule && (
+                      <Badge className="bg-orange-100 text-orange-800">
+                        NEEDS SCHEDULING
+                      </Badge>
+                    )}
                   </div>
                 </div>
                 
                 <div className="space-y-3">
                   <div className="flex items-center text-sm text-gray-600">
                     <Calendar className="h-4 w-4 mr-2" />
-                    {job.job_date} at {job.start_time}
+                    {isPendingSchedule ? (
+                      <span className="text-orange-600 italic">Date to be scheduled</span>
+                    ) : (
+                      <span>{job.job_date} at {job.start_time}</span>
+                    )}
                   </div>
                   
                   <div className="flex items-start text-sm text-gray-600">
@@ -449,24 +460,36 @@ export const Jobs = () => {
 
                 {!showArchived && (
                   <div className="mt-4 flex gap-2">
-                    {job.status !== 'completed' && (
+                    {isPendingSchedule ? (
                       <Button 
-                        onClick={() => handleMarkDone(job)}
-                        variant="outline"
-                        className="flex-1 hover:bg-green-50 hover:border-green-300 text-green-600"
+                        onClick={() => handleEditJob(job)}
+                        className="flex-1 bg-orange-600 hover:bg-orange-700 text-white"
                       >
-                        <CheckCircle className="h-3 w-3 mr-2" />
-                        Mark Done
+                        <Calendar className="h-3 w-3 mr-2" />
+                        Schedule Job
                       </Button>
+                    ) : (
+                      <>
+                        {job.status !== 'completed' && (
+                          <Button 
+                            onClick={() => handleMarkDone(job)}
+                            variant="outline"
+                            className="flex-1 hover:bg-green-50 hover:border-green-300 text-green-600"
+                          >
+                            <CheckCircle className="h-3 w-3 mr-2" />
+                            Mark Done
+                          </Button>
+                        )}
+                        <Button 
+                          onClick={() => handleEditJob(job)}
+                          variant="outline"
+                          className="flex-1 hover:bg-purple-50 hover:border-purple-300 text-purple-600"
+                        >
+                          <Edit className="h-3 w-3 mr-2" />
+                          Edit Job
+                        </Button>
+                      </>
                     )}
-                    <Button 
-                      onClick={() => handleEditJob(job)}
-                      variant="outline"
-                      className="flex-1 hover:bg-purple-50 hover:border-purple-300 text-purple-600"
-                    >
-                      <Edit className="h-3 w-3 mr-2" />
-                      Edit Job
-                    </Button>
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
                         <Button 
