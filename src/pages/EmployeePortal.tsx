@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -6,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { EmployeeDashboard } from './EmployeeDashboard';
-import { Shield, Users, Mail, LogIn, Truck, Eye, EyeOff, UserPlus } from 'lucide-react';
+import { Shield, Users, Mail, LogIn, Truck, Eye, EyeOff, UserPlus, CheckCircle } from 'lucide-react';
 
 export const EmployeePortal = () => {
   const [email, setEmail] = useState('');
@@ -18,6 +17,7 @@ export const EmployeePortal = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [employeeData, setEmployeeData] = useState<any>(null);
   const [user, setUser] = useState<any>(null);
+  const [showSuccessMessage, setShowSuccessMessage] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -145,10 +145,18 @@ export const EmployeePortal = () => {
           console.error('Error creating employee request:', requestError);
         }
 
-        toast({
-          title: "Account Created!",
-          description: "Please check your email to verify your account. Your employee request has been submitted for approval.",
-        });
+        // Show success message and redirect to login
+        setShowSuccessMessage(true);
+        
+        // Auto redirect to login after 3 seconds
+        setTimeout(() => {
+          setShowSuccessMessage(false);
+          setIsLogin(true);
+          setEmail('');
+          setPassword('');
+          setFullName('');
+          setPhone('');
+        }, 3000);
       }
     } catch (error: any) {
       console.error('Auth error:', error);
@@ -175,6 +183,43 @@ export const EmployeePortal = () => {
       description: "You have been successfully logged out.",
     });
   };
+
+  // Show success message overlay
+  if (showSuccessMessage) {
+    return (
+      <div className="min-h-screen bg-purple-600 flex items-center justify-center p-6">
+        <div className="max-w-md w-full">
+          <Card className="border-2 border-white/20 shadow-2xl bg-white backdrop-blur-sm">
+            <CardHeader className="text-center pb-6 bg-green-500 rounded-t-lg">
+              <div className="flex justify-center mb-4">
+                <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center">
+                  <CheckCircle className="w-8 h-8 text-green-500" />
+                </div>
+              </div>
+              <CardTitle className="text-2xl font-bold text-white">
+                Account Created Successfully!
+              </CardTitle>
+              <CardDescription className="text-green-100 text-base">
+                Your employee request has been submitted
+              </CardDescription>
+            </CardHeader>
+            
+            <CardContent className="p-8 text-center">
+              <p className="text-gray-600 mb-4">
+                Welcome to the Bantu Movers team! Your account has been created and your employee request is pending approval.
+              </p>
+              <p className="text-sm text-gray-500 mb-6">
+                You can log time entries while waiting for approval. Redirecting to login page...
+              </p>
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div className="bg-green-500 h-2 rounded-full animate-pulse w-full"></div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
 
   // If user is logged in and approved employee, show dashboard
   if (user && employeeData) {
