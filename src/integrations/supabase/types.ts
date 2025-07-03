@@ -583,6 +583,7 @@ export type Database = {
         | "completed"
         | "cancelled"
         | "rescheduled"
+        | "pending_schedule"
       lead_source:
         | "website"
         | "referral"
@@ -716,6 +717,7 @@ export const Constants = {
         "completed",
         "cancelled",
         "rescheduled",
+        "pending_schedule",
       ],
       lead_source: [
         "website",

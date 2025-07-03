@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import { Button } from './ui/button';
@@ -55,7 +56,7 @@ export const EditJobDialog = ({ open, onOpenChange, job }: EditJobDialogProps) =
     if (!job) return;
 
     const updates: Partial<Job> = {
-      status: formData.status as 'scheduled' | 'in_progress' | 'completed' | 'cancelled' | 'rescheduled',
+      status: formData.status as Job['status'],
       actual_duration_hours: formData.actualHours ? parseFloat(formData.actualHours) : null,
       actual_total: formData.actualTotal ? parseFloat(formData.actualTotal) : null,
       completion_notes: formData.completionNotes || null,
@@ -148,7 +149,7 @@ export const EditJobDialog = ({ open, onOpenChange, job }: EditJobDialogProps) =
                 </label>
                 <select
                   value={formData.status}
-                  onChange={(e) => setFormData({ ...formData, status: e.target.value as any })}
+                  onChange={(e) => setFormData({ ...formData, status: e.target.value as Job['status'] })}
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                 >
                   <option value="pending_schedule">Pending Schedule</option>
