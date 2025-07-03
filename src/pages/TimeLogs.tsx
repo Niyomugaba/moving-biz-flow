@@ -156,12 +156,6 @@ export const TimeLogs = () => {
     a.click();
   };
 
-  const handleReject = (timeEntry: TimeEntry) => {
-    const reason = prompt('Please provide a reason for rejection:');
-    if (reason) {
-      rejectTimeEntry(timeEntry.id); // Pass only the ID as string
-    }
-  };
 
   if (isLoading) {
     return <div className="flex justify-center items-center h-64">Loading time entries...</div>;
@@ -258,7 +252,7 @@ export const TimeLogs = () => {
               key={entry.id}
               entry={entry}
               onApprove={approveTimeEntry}
-              onReject={(id: string, reason?: string) => rejectTimeEntry(id)}
+              onReject={rejectTimeEntry}
               onResetStatus={handleResetStatus}
               onMarkAsPaid={markAsPaid}
               onMarkAsUnpaid={markAsUnpaid}

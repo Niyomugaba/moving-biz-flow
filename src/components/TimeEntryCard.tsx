@@ -16,7 +16,7 @@ import { format } from 'date-fns';
 interface TimeEntryCardProps {
   entry: TimeEntry;
   onApprove: (id: string) => void;
-  onReject: (id: string, reason?: string) => void;
+  onReject: ({ id, reason }: { id: string; reason?: string }) => void;
   onResetStatus: (id: string) => void;
   onMarkAsPaid: (id: string) => void;
   onMarkAsUnpaid: (id: string) => void;
@@ -90,7 +90,7 @@ export const TimeEntryCard = ({
   };
 
   const handleRejectWithReason = () => {
-    onReject(entry.id, rejectReason);
+    onReject({ id: entry.id, reason: rejectReason });
     setRejectDialogOpen(false);
     setRejectReason('');
   };

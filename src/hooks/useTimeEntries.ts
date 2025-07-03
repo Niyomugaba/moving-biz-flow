@@ -227,10 +227,13 @@ export const useTimeEntries = () => {
   });
 
   const rejectTimeEntryMutation = useMutation({
-    mutationFn: async (id: string) => {
+    mutationFn: async ({ id, reason }: { id: string; reason?: string }) => {
       const { data, error } = await supabase
         .from('time_entries')
-        .update({ status: 'rejected' })
+        .update({ 
+          status: 'rejected',
+          manager_notes: reason || null
+        })
         .eq('id', id)
         .select()
         .single();
@@ -330,7 +333,7 @@ export const useTimeEntries = () => {
     updateTimeEntry: updateTimeEntryMutation.mutate,
     deleteTimeEntry: deleteTimeEntryMutation.mutate,
     approveTimeEntry: approveTimeEntryMutation.mutate,
-    rejectTimeEntry: rejectTimeEntryMutation.mutate,
+    rejectTimeEntry: ({ id, reason }: { id: string; reason?: string }) => rejectTimeEntryMutation.mutate({ id, reason }),
     markAsPaid: markAsPaidMutation.mutate,
     markAsUnpaid: markAsUnpaidMutation.mutate,
     isAddingTimeEntry: addTimeEntryMutation.isPending,
