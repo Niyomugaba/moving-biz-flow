@@ -79,10 +79,46 @@ export const useClients = () => {
     }
   });
 
+  const deleteClientMutation = useMutation({
+    mutationFn: async (clientId: string) => {
+      console.log('Deleting client with id:', clientId);
+      
+      const { error } = await supabase
+        .from('clients')
+        .delete()
+        .eq('id', clientId);
+      
+      if (error) {
+        console.error('Error deleting client:', error);
+        throw error;
+      }
+      
+      console.log('Client deleted successfully');
+      return clientId;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['clients'] });
+      toast({
+        title: "Client Deleted",
+        description: "The client has been successfully deleted.",
+      });
+    },
+    onError: (error) => {
+      console.error('Error in deleteClientMutation:', error);
+      toast({
+        title: "Error Deleting Client",
+        description: "There was an error deleting the client. Please try again.",
+        variant: "destructive",
+      });
+    }
+  });
+
   return {
     clients,
     isLoading,
-    addClient: addClientMutation.mutateAsync, // Return mutateAsync for promise handling
-    isAddingClient: addClientMutation.isPending
+    addClient: addClientMutation.mutateAsync,
+    isAddingClient: addClientMutation.isPending,
+    deleteClient: deleteClientMutation.mutateAsync,
+    isDeletingClient: deleteClientMutation.isPending
   };
 };

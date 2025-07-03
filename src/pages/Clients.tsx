@@ -1,13 +1,14 @@
-
 import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useClients } from "@/hooks/useClients";
 import { useLeads } from "@/hooks/useLeads";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { AddClientDialog } from "@/components/AddClientDialog";
 import { 
   Search, 
   Plus,
@@ -16,16 +17,20 @@ import {
   Users,
   Building,
   Star,
-  Download
+  Download,
+  Trash2,
+  Edit,
+  MoreHorizontal
 } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 
 export const Clients = () => {
-  const { clients, isLoading } = useClients();
+  const { clients, isLoading, deleteClient } = useClients();
   const { leads } = useLeads();
   const [searchTerm, setSearchTerm] = useState('');
   const [showAddDialog, setShowAddDialog] = useState(false);
+  const [clientToDelete, setClientToDelete] = useState<string | null>(null);
   const isMobile = useIsMobile();
 
   // Merge clients with lead status information
@@ -89,6 +94,17 @@ export const Clients = () => {
     toast.success('Client data exported successfully!');
   };
 
+  const handleDeleteClient = async (clientId: string) => {
+    try {
+      await deleteClient(clientId);
+      setClientToDelete(null);
+      toast.success('Client deleted successfully');
+    } catch (error) {
+      console.error('Error deleting client:', error);
+      toast.error('Failed to delete client');
+    }
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'converted':
@@ -145,12 +161,6 @@ export const Clients = () => {
               <div className="flex justify-between items-start mb-2">
                 <div>
                   <div className="font-semibold">{client.name}</div>
-                  {client.company_name && (
-                    <div className="text-sm text-gray-600 flex items-center gap-1">
-                      <Building className="h-3 w-3" />
-                      {client.company_name}
-                    </div>
-                  )}
                   <div className="text-sm text-gray-600 flex items-center gap-1">
                     <Phone className="h-3 w-3" />
                     {client.phone}
@@ -162,21 +172,48 @@ export const Clients = () => {
                     </div>
                   )}
                 </div>
-                <div className="text-right">
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setClientToDelete(client.id)}
+                  >
+                    <Trash2 className="h-3 w-3" />
+                  </Button>
                   <Badge className={getStatusColor(client.leadStatus)}>
                     {client.leadStatus}
                   </Badge>
-                  <div className="text-sm font-semibold text-green-700 mt-1">
-                    ${(client.total_revenue || 0).toLocaleString()}
-                  </div>
-                  <div className="text-xs text-gray-500">
-                    {client.total_jobs_completed || 0} jobs
-                  </div>
                 </div>
               </div>
             </Card>
           ))}
         </div>
+
+        <AddClientDialog 
+          open={showAddDialog} 
+          onOpenChange={setShowAddDialog}
+          onAddClient={() => {}}
+        />
+
+        <AlertDialog open={!!clientToDelete} onOpenChange={() => setClientToDelete(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete Client</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to delete this client? This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => clientToDelete && handleDeleteClient(clientToDelete)}
+                className="bg-red-600 hover:bg-red-700"
+              >
+                Delete
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     );
   }
@@ -387,6 +424,14 @@ export const Clients = () => {
                               <Mail className="h-4 w-4" />
                             </Button>
                           )}
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => setClientToDelete(client.id)}
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
                         </div>
                       </TableCell>
                     </TableRow>
@@ -397,6 +442,32 @@ export const Clients = () => {
           </div>
         </CardContent>
       </Card>
+
+      <AddClientDialog 
+        open={showAddDialog} 
+        onOpenChange={setShowAddDialog}
+        onAddClient={() => {}}
+      />
+
+      <AlertDialog open={!!clientToDelete} onOpenChange={() => setClientToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Client</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this client? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => clientToDelete && handleDeleteClient(clientToDelete)}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
