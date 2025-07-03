@@ -4,7 +4,7 @@ import { ScheduleJobDialog } from '../components/ScheduleJobDialog';
 import { EditJobDialog } from '../components/EditJobDialog';
 import { FilterBar } from '../components/FilterBar';
 import { PaginationControls } from '../components/PaginationControls';
-import { Plus, Calendar, MapPin, Users, Edit, CheckCircle, Phone, Mail, Truck, Archive, Eye, Undo, Trash2 } from 'lucide-react';
+import { Plus, Calendar, MapPin, Users, Edit, CheckCircle, Phone, Mail, Truck, Archive, Eye, Undo, Trash2, UserCheck } from 'lucide-react';
 import { useJobs, Job } from '@/hooks/useJobs';
 import { useJobArchive } from '@/hooks/useJobArchive';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -63,6 +63,12 @@ export const Jobs = () => {
   );
 
   const handleEditJob = (job: Job) => {
+    setSelectedJob(job);
+    setIsEditDialogOpen(true);
+  };
+
+  const handleScheduleConvertedLead = (job: Job) => {
+    // Open the edit dialog in scheduling mode for converted leads
     setSelectedJob(job);
     setIsEditDialogOpen(true);
   };
@@ -308,6 +314,7 @@ export const Jobs = () => {
           const isCompleted = job.status === 'completed';
           const isCancelled = job.status === 'cancelled';
           const isPendingSchedule = job.status === 'pending_schedule';
+          const isConvertedLead = Boolean(job.lead_id); // Check if this job was converted from a lead
           const isArchived = (job.status === 'completed' && job.is_paid) || job.status === 'cancelled';
           const jobProfit = calculateJobProfit(job);
           const truckJobProfit = job.truck_service_fee ? 
@@ -360,6 +367,12 @@ export const Jobs = () => {
                     {isPendingSchedule && (
                       <Badge className="bg-orange-100 text-orange-800">
                         NEEDS SCHEDULING
+                      </Badge>
+                    )}
+                    {isConvertedLead && (
+                      <Badge className="bg-blue-100 text-blue-800">
+                        <UserCheck className="h-3 w-3 mr-1" />
+                        CONVERTED LEAD
                       </Badge>
                     )}
                   </div>
@@ -460,7 +473,15 @@ export const Jobs = () => {
 
                 {!showArchived && (
                   <div className="mt-4 flex gap-2">
-                    {isPendingSchedule ? (
+                    {isPendingSchedule && isConvertedLead ? (
+                      <Button 
+                        onClick={() => handleScheduleConvertedLead(job)}
+                        className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
+                      >
+                        <Calendar className="h-3 w-3 mr-2" />
+                        Schedule Converted Lead
+                      </Button>
+                    ) : isPendingSchedule ? (
                       <Button 
                         onClick={() => handleEditJob(job)}
                         className="flex-1 bg-orange-600 hover:bg-orange-700 text-white"
