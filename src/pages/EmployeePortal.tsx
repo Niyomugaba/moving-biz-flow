@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -87,12 +86,12 @@ export const EmployeePortal = () => {
           if (employeeRequest.status === 'pending') {
             toast({
               title: "Account Pending Approval",
-              description: "Your employee request is being reviewed. You can still log time entries while waiting for approval.",
+              description: "Your mover request is being reviewed. You can still log time entries while waiting for approval.",
             });
           } else if (employeeRequest.status === 'rejected') {
             toast({
               title: "Account Request Rejected",
-              description: "Your employee request has been rejected. Please contact management for more information.",
+              description: "Your mover request has been rejected. Please contact management for more information.",
               variant: "destructive",
             });
           }
@@ -100,7 +99,7 @@ export const EmployeePortal = () => {
           setEmployeeRequestStatus(null);
           toast({
             title: "Account Not Found",
-            description: "You'll need to submit an employee request to access the system.",
+            description: "You'll need to submit a mover request to access the system.",
           });
         }
       }
@@ -124,7 +123,7 @@ export const EmployeePortal = () => {
 
         toast({
           title: "Login Successful",
-          description: "Welcome back! Checking your employee status...",
+          description: "Welcome back! Checking your mover status...",
         });
       } else {
         // Sign up new employee
@@ -152,7 +151,7 @@ export const EmployeePortal = () => {
             email: email,
             phone: phone,
             position_applied: 'mover',
-            notes: 'Self-registered through employee portal'
+            notes: 'Self-registered through mover portal'
           });
 
         if (requestError) {
@@ -226,13 +225,13 @@ export const EmployeePortal = () => {
                 Account Created Successfully!
               </CardTitle>
               <CardDescription className="text-green-100 text-base">
-                Your employee request has been submitted
+                Your mover request has been submitted
               </CardDescription>
             </CardHeader>
             
             <CardContent className="p-8 text-center">
               <p className="text-gray-600 mb-4">
-                Welcome to the Bantu Movers team! Your account has been created and your employee request is pending approval.
+                Welcome to the Bantu Movers team! Your account has been created and your mover request is pending approval.
               </p>
               <p className="text-sm text-gray-500 mb-6">
                 You can log time entries while waiting for approval. Redirecting to login page...
@@ -273,13 +272,13 @@ export const EmployeePortal = () => {
                 Request Rejected
               </CardTitle>
               <CardDescription className="text-red-100 text-base">
-                Your employee request has been rejected
+                Your mover request has been rejected
               </CardDescription>
             </CardHeader>
             
             <CardContent className="p-8 text-center">
               <p className="text-gray-600 mb-6">
-                Hello {user.user_metadata?.full_name || user.email}! Unfortunately, your employee request has been rejected by management.
+                Hello {user.user_metadata?.full_name || user.email}! Unfortunately, your mover request has been rejected by management.
               </p>
               <p className="text-sm text-gray-500 mb-6">
                 Please contact management for more information about this decision.
@@ -314,13 +313,13 @@ export const EmployeePortal = () => {
                 Account Pending
               </CardTitle>
               <CardDescription className="text-purple-600 text-base">
-                Your employee request is being reviewed
+                Your mover request is being reviewed
               </CardDescription>
             </CardHeader>
             
             <CardContent className="p-8 text-center">
               <p className="text-gray-600 mb-6">
-                Hello {user.user_metadata?.full_name || user.email}! Your employee request has been submitted and is pending approval from management.
+                Hello {user.user_metadata?.full_name || user.email}! Your mover request has been submitted and is pending approval from management.
               </p>
               <p className="text-sm text-gray-500 mb-6">
                 You can still log time entries while waiting for approval.
@@ -351,7 +350,7 @@ export const EmployeePortal = () => {
             </div>
           </div>
           <h1 className="text-3xl font-bold text-white mb-2">Bantu Movers</h1>
-          <p className="text-purple-100 text-xl font-medium">Employee Portal</p>
+          <p className="text-purple-100 text-xl font-medium">Mover Portal</p>
         </div>
 
         {/* Features Section */}
@@ -385,7 +384,7 @@ export const EmployeePortal = () => {
               </div>
             </div>
             <CardTitle className="text-2xl font-bold text-purple-800">
-              {isLogin ? 'Employee Login' : 'Join Our Team'}
+              {isLogin ? 'Mover Login' : 'Join Our Team'}
             </CardTitle>
             <CardDescription className="text-purple-600 text-base">
               {isLogin 
@@ -497,7 +496,7 @@ export const EmployeePortal = () => {
             </p>
             <p className="text-purple-100 text-sm">
               {isLogin 
-                ? 'Create an account to request employee access and join our team'
+                ? 'Create an account to request mover access and join our team'
                 : 'Create your account, and we\'ll review your request. You can log time entries while waiting for approval.'
               }
             </p>
