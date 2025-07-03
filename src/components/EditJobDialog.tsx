@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import { Button } from './ui/button';
@@ -75,6 +74,9 @@ export const EditJobDialog = ({ open, onOpenChange, job }: EditJobDialogProps) =
     // If rescheduled, update the job date
     if (formData.status === 'rescheduled' && rescheduleDate) {
       updates.job_date = rescheduleDate.toISOString().split('T')[0];
+      if (scheduleTime) {
+        updates.start_time = scheduleTime;
+      }
     }
 
     updateJob({ id: job.id, updates });
@@ -101,6 +103,7 @@ export const EditJobDialog = ({ open, onOpenChange, job }: EditJobDialogProps) =
     : 0;
 
   const isPendingSchedule = job.status === 'pending_schedule';
+  const isConvertedLead = Boolean(job.lead_id);
 
   return (
     <>
@@ -109,6 +112,11 @@ export const EditJobDialog = ({ open, onOpenChange, job }: EditJobDialogProps) =
           <DialogHeader>
             <DialogTitle>
               {isPendingSchedule ? 'Schedule Job' : 'Edit Job'} - {job.client_name}
+              {isConvertedLead && (
+                <span className="ml-2 text-sm bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                  Converted Lead
+                </span>
+              )}
             </DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -163,34 +171,48 @@ export const EditJobDialog = ({ open, onOpenChange, job }: EditJobDialogProps) =
             )}
 
             {formData.status === 'rescheduled' && !isPendingSchedule && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  New Date
-                </label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        "w-full justify-start text-left font-normal",
-                        !rescheduleDate && "text-muted-foreground"
-                      )}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {rescheduleDate ? format(rescheduleDate, "PPP") : <span>Pick a date</span>}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0">
-                    <Calendar
-                      mode="single"
-                      selected={rescheduleDate}
-                      onSelect={setRescheduleDate}
-                      initialFocus
-                      className="pointer-events-auto"
-                    />
-                  </PopoverContent>
-                </Popover>
-              </div>
+              <>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    New Date
+                  </label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full justify-start text-left font-normal",
+                          !rescheduleDate && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {rescheduleDate ? format(rescheduleDate, "PPP") : <span>Pick a date</span>}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0">
+                      <Calendar
+                        mode="single"
+                        selected={rescheduleDate}
+                        onSelect={setRescheduleDate}
+                        initialFocus
+                        className="pointer-events-auto"
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    New Time
+                  </label>
+                  <input
+                    type="time"
+                    value={scheduleTime}
+                    onChange={(e) => setScheduleTime(e.target.value)}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                  />
+                </div>
+              </>
             )}
 
             {formData.status === 'completed' && (

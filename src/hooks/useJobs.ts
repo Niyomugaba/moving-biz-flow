@@ -1,3 +1,4 @@
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -178,7 +179,7 @@ export const useJobs = () => {
 
       console.log('Client created successfully:', createdClient);
 
-      // Create job but with pending_schedule status - not scheduled yet
+      // Create job with pending_schedule status - needs to be scheduled
       const jobInsertData = {
         client_id: createdClient.id,
         client_name: leadData.name,
@@ -186,8 +187,8 @@ export const useJobs = () => {
         client_email: leadData.email || null,
         origin_address: leadData.origin_address || 'Origin address to be confirmed',
         destination_address: leadData.destination_address || 'Destination address to be confirmed',
-        job_date: new Date().toISOString().split('T')[0], // Placeholder date
-        start_time: '09:00', // Placeholder time
+        job_date: new Date().toISOString().split('T')[0], // Placeholder date - will be updated when scheduled
+        start_time: '09:00', // Placeholder time - will be updated when scheduled
         hourly_rate: leadData.estimated_value ? Math.max(50, Math.floor(leadData.estimated_value / 4)) : 50,
         movers_needed: 2,
         estimated_total: leadData.estimated_value || 200,

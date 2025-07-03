@@ -473,21 +473,13 @@ export const Jobs = () => {
 
                 {!showArchived && (
                   <div className="mt-4 flex gap-2">
-                    {isPendingSchedule && isConvertedLead ? (
+                    {isPendingSchedule ? (
                       <Button 
                         onClick={() => handleScheduleConvertedLead(job)}
                         className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
                       >
                         <Calendar className="h-3 w-3 mr-2" />
-                        Schedule Converted Lead
-                      </Button>
-                    ) : isPendingSchedule ? (
-                      <Button 
-                        onClick={() => handleEditJob(job)}
-                        className="flex-1 bg-orange-600 hover:bg-orange-700 text-white"
-                      >
-                        <Calendar className="h-3 w-3 mr-2" />
-                        Schedule Job
+                        {isConvertedLead ? 'Schedule Converted Lead' : 'Schedule Job'}
                       </Button>
                     ) : (
                       <>
