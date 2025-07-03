@@ -1,14 +1,14 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Phone, Mail, Calendar, DollarSign, User, Filter, Search, ArrowRight, MessageSquare, Trash2, Download } from 'lucide-react';
+import { Plus, Phone, Mail, Calendar, DollarSign, User, Filter, Search, ArrowRight, MessageSquare, Trash2, Download, Settings } from 'lucide-react';
 import { useLeads } from '@/hooks/useLeads';
 import { useJobs } from '@/hooks/useJobs';
 import { AddLeadDialog } from '@/components/AddLeadDialog';
 import { LeadContactCard } from '@/components/LeadContactCard';
 import { LeadNotesDialog } from '@/components/LeadNotesDialog';
+import { ScheduleJobDialog } from '@/components/ScheduleJobDialog';
 import { FilterBar } from '@/components/FilterBar';
 import { PaginationControls } from '@/components/PaginationControls';
 import { StatusBadge } from '@/components/StatusBadge';
@@ -28,10 +28,11 @@ export const Leads = () => {
     isDeletingLead 
   } = useLeads();
   
-  const { convertLeadToJob, isConvertingLead } = useJobs();
+  const { convertLeadToJob, isConvertingLead, jobs } = useJobs();
   
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isNotesDialogOpen, setIsNotesDialogOpen] = useState(false);
+  const [isScheduleDialogOpen, setIsScheduleDialogOpen] = useState(false);
   const [selectedLead, setSelectedLead] = useState<any>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -60,9 +61,19 @@ export const Leads = () => {
         name: lead.name,
         phone: lead.phone,
         email: lead.email,
-        notes: lead.notes
+        notes: lead.notes,
+        estimated_value: lead.estimated_value
       }
     });
+  };
+
+  const handleScheduleJob = (lead: any) => {
+    // Find the job created from this lead
+    const relatedJob = jobs.find(job => job.lead_id === lead.id);
+    if (relatedJob) {
+      setSelectedLead({ ...lead, jobId: relatedJob.id });
+      setIsScheduleDialogOpen(true);
+    }
   };
 
   const handleStatusChange = (leadId: string, newStatus: 'new' | 'contacted' | 'quoted' | 'converted' | 'lost') => {
@@ -92,7 +103,7 @@ export const Leads = () => {
     const csvRows = [];
     const headers = [
       'Name', 'Phone', 'Email', 'Source', 'Status', 'Estimated Value', 
-      'Follow-up Date', 'Created Date', 'Notes'
+      'Lead Cost', 'Follow-up Date', 'Created Date', 'Notes'
     ];
     csvRows.push(headers.join(','));
 
@@ -104,6 +115,7 @@ export const Leads = () => {
         lead.source?.replace('_', ' ') || '',
         lead.status,
         lead.estimated_value || 0,
+        lead.lead_cost || 0,
         lead.follow_up_date || '',
         new Date(lead.created_at).toLocaleDateString(),
         (lead.notes || '').replace(/"/g, '""') // Escape quotes in notes
@@ -243,139 +255,158 @@ export const Leads = () => {
 
       {/* Mobile-Optimized Lead Cards */}
       <div className="space-y-4">
-        {paginatedLeads.map((lead) => (
-          <Card key={lead.id} className="bg-white rounded-lg shadow-sm border border-blue-200 overflow-hidden hover:shadow-lg transition-shadow">
-            <CardContent className="p-4 md:p-6">
-              <div className="flex justify-between items-start mb-4">
-                <div className="flex-1">
-                  <h3 className="text-lg font-semibold text-gray-900">{lead.name}</h3>
-                  <div className="flex items-center gap-2 text-sm text-gray-600 mt-1">
-                    <Phone className="h-3 w-3" />
-                    <button 
-                      onClick={() => handleCall(lead.phone)}
-                      className="hover:text-blue-600 underline"
-                    >
-                      {lead.phone}
-                    </button>
-                  </div>
-                  {lead.email && (
-                    <div className="flex items-center gap-2 text-sm text-gray-600">
-                      <Mail className="h-3 w-3" />
+        {paginatedLeads.map((lead) => {
+          const relatedJob = jobs.find(job => job.lead_id === lead.id);
+          
+          return (
+            <Card key={lead.id} className="bg-white rounded-lg shadow-sm border border-blue-200 overflow-hidden hover:shadow-lg transition-shadow">
+              <CardContent className="p-4 md:p-6">
+                <div className="flex justify-between items-start mb-4">
+                  <div className="flex-1">
+                    <h3 className="text-lg font-semibold text-gray-900">{lead.name}</h3>
+                    <div className="flex items-center gap-2 text-sm text-gray-600 mt-1">
+                      <Phone className="h-3 w-3" />
                       <button 
-                        onClick={() => handleEmail(lead.email!)}
+                        onClick={() => handleCall(lead.phone)}
                         className="hover:text-blue-600 underline"
                       >
-                        {lead.email}
+                        {lead.phone}
                       </button>
+                    </div>
+                    {lead.email && (
+                      <div className="flex items-center gap-2 text-sm text-gray-600">
+                        <Mail className="h-3 w-3" />
+                        <button 
+                          onClick={() => handleEmail(lead.email!)}
+                          className="hover:text-blue-600 underline"
+                        >
+                          {lead.email}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex flex-col items-end gap-3 ml-4">
+                    <StatusBadge status={lead.status} variant="lead" />
+                    <Badge className="bg-gray-100 text-gray-700 capitalize">
+                      {lead.source?.replace('_', ' ')}
+                    </Badge>
+                  </div>
+                </div>
+                
+                <div className="space-y-3">
+                  {lead.estimated_value && (
+                    <div className="flex items-center text-sm text-gray-600">
+                      <DollarSign className="h-4 w-4 mr-2" />
+                      Estimated Value: ${lead.estimated_value.toLocaleString()}
+                    </div>
+                  )}
+
+                  {lead.lead_cost && (
+                    <div className="flex items-center text-sm text-red-600">
+                      <DollarSign className="h-4 w-4 mr-2" />
+                      Lead Cost: ${lead.lead_cost.toLocaleString()}
+                    </div>
+                  )}
+                  
+                  {lead.follow_up_date && (
+                    <div className="flex items-center text-sm text-gray-600">
+                      <Calendar className="h-4 w-4 mr-2" />
+                      Follow-up: {lead.follow_up_date}
+                    </div>
+                  )}
+                  
+                  {lead.notes && (
+                    <div className="text-sm text-gray-600">
+                      <p className="line-clamp-2">{lead.notes}</p>
                     </div>
                   )}
                 </div>
-                <div className="flex flex-col items-end gap-3 ml-4">
-                  <div className="text-right">
-                    <StatusBadge status={lead.status} variant="lead" />
-                  </div>
-                  <Badge className="bg-gray-100 text-gray-700 capitalize">
-                    {lead.source?.replace('_', ' ')}
-                  </Badge>
-                </div>
-              </div>
-              
-              <div className="space-y-3">
-                {lead.estimated_value && (
-                  <div className="flex items-center text-sm text-gray-600">
-                    <DollarSign className="h-4 w-4 mr-2" />
-                    Estimated Value: ${lead.estimated_value.toLocaleString()}
-                  </div>
-                )}
-                
-                {lead.follow_up_date && (
-                  <div className="flex items-center text-sm text-gray-600">
-                    <Calendar className="h-4 w-4 mr-2" />
-                    Follow-up: {lead.follow_up_date}
-                  </div>
-                )}
-                
-                {lead.notes && (
-                  <div className="text-sm text-gray-600">
-                    <p className="line-clamp-2">{lead.notes}</p>
-                  </div>
-                )}
-              </div>
 
-              <div className="mt-4 pt-4 border-t border-gray-200">
-                <div className="flex flex-col sm:flex-row gap-2">
-                  <Select
-                    value={lead.status}
-                    onValueChange={(value: 'new' | 'contacted' | 'quoted' | 'converted' | 'lost') => handleStatusChange(lead.id, value)}
-                  >
-                    <SelectTrigger className="flex-1 text-xs">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="new">New</SelectItem>
-                      <SelectItem value="contacted">Contacted</SelectItem>
-                      <SelectItem value="quoted">Quoted</SelectItem>
-                      <SelectItem value="converted">Converted</SelectItem>
-                      <SelectItem value="lost">Lost</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  
-                  <div className="flex gap-2">
-                    <Button 
-                      onClick={() => handleAddNote(lead)}
-                      variant="outline"
-                      className="text-xs px-3 py-2"
+                <div className="mt-4 pt-4 border-t border-gray-200">
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <Select
+                      value={lead.status}
+                      onValueChange={(value: 'new' | 'contacted' | 'quoted' | 'converted' | 'lost') => handleStatusChange(lead.id, value)}
                     >
-                      <MessageSquare className="h-3 w-3 mr-1" />
-                      Add Note
-                    </Button>
+                      <SelectTrigger className="flex-1 text-xs">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="new">New</SelectItem>
+                        <SelectItem value="contacted">Contacted</SelectItem>
+                        <SelectItem value="quoted">Quoted</SelectItem>
+                        <SelectItem value="converted">Converted</SelectItem>
+                        <SelectItem value="lost">Lost</SelectItem>
+                      </SelectContent>
+                    </Select>
                     
-                    {lead.status === 'quoted' && (
+                    <div className="flex gap-2">
                       <Button 
-                        onClick={() => handleConvertToJob(lead)}
-                        disabled={isConvertingLead}
-                        className="bg-green-600 hover:bg-green-700 text-white text-xs px-3 py-2"
+                        onClick={() => handleAddNote(lead)}
+                        variant="outline"
+                        className="text-xs px-3 py-2"
                       >
-                        <ArrowRight className="h-3 w-3 mr-1" />
-                        {isConvertingLead ? 'Converting...' : 'Convert to Job'}
+                        <MessageSquare className="h-3 w-3 mr-1" />
+                        Add Note
                       </Button>
-                    )}
-                    
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
+                      
+                      {lead.status === 'quoted' && (
                         <Button 
-                          variant="outline"
-                          className="text-xs px-3 py-2 text-red-600 border-red-200 hover:bg-red-50"
-                          disabled={isDeletingLead}
+                          onClick={() => handleConvertToJob(lead)}
+                          disabled={isConvertingLead}
+                          className="bg-green-600 hover:bg-green-700 text-white text-xs px-3 py-2"
                         >
-                          <Trash2 className="h-3 w-3 mr-1" />
-                          Delete
+                          <ArrowRight className="h-3 w-3 mr-1" />
+                          {isConvertingLead ? 'Converting...' : 'Convert to Job'}
                         </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Delete Lead</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            Are you sure you want to delete "{lead.name}"? This action cannot be undone.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancel</AlertDialogCancel>
-                          <AlertDialogAction 
-                            onClick={() => handleDeleteLead(lead.id)}
-                            className="bg-red-600 hover:bg-red-700"
+                      )}
+
+                      {lead.status === 'converted' && relatedJob && (
+                        <Button 
+                          onClick={() => handleScheduleJob(lead)}
+                          className="bg-blue-600 hover:bg-blue-700 text-white text-xs px-3 py-2"
+                        >
+                          <Settings className="h-3 w-3 mr-1" />
+                          Schedule Job
+                        </Button>
+                      )}
+                      
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button 
+                            variant="outline"
+                            className="text-xs px-3 py-2 text-red-600 border-red-200 hover:bg-red-50"
+                            disabled={isDeletingLead}
                           >
+                            <Trash2 className="h-3 w-3 mr-1" />
                             Delete
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Delete Lead</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Are you sure you want to delete "{lead.name}"? This action cannot be undone.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction 
+                              onClick={() => handleDeleteLead(lead.id)}
+                              className="bg-red-600 hover:bg-red-700"
+                            >
+                              Delete
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+              </CardContent>
+            </Card>
+          );
+        })}
       </div>
 
       {/* No Results */}
@@ -420,6 +451,14 @@ export const Leads = () => {
           open={isNotesDialogOpen}
           onOpenChange={setIsNotesDialogOpen}
           lead={selectedLead}
+        />
+      )}
+
+      {selectedLead && relatedJob && (
+        <ScheduleJobDialog
+          open={isScheduleDialogOpen}
+          onOpenChange={setIsScheduleDialogOpen}
+          jobData={jobs.find(job => job.lead_id === selectedLead.id)}
         />
       )}
     </div>

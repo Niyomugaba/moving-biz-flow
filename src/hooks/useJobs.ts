@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -141,16 +140,24 @@ export const useJobs = () => {
 
   const convertLeadToJobMutation = useMutation({
     mutationFn: async ({ leadId, leadData }: { leadId: string; leadData: any }) => {
-      console.log('Converting lead to job:', leadId, leadData);
+      console.log('Converting lead to job and client:', leadId, leadData);
       
       // First, create a client from the lead data
       const clientInsertData = {
         name: leadData.name,
         phone: leadData.phone,
-        email: leadData.email,
-        primary_address: 'TBD - To be determined during scheduling',
-        notes: leadData.notes || null
+        email: leadData.email || null,
+        primary_address: 'To be determined during scheduling',
+        secondary_address: null,
+        company_name: null,
+        notes: leadData.notes || null,
+        preferred_contact_method: 'phone',
+        rating: null,
+        total_revenue: 0,
+        total_jobs_completed: 0
       };
+
+      console.log('Creating client with data:', clientInsertData);
 
       const { data: createdClient, error: clientError } = await supabase
         .from('clients')
@@ -165,23 +172,27 @@ export const useJobs = () => {
 
       console.log('Client created successfully:', createdClient);
 
-      // Then create job linked to the new client
+      // Then create job linked to the new client with placeholder data
       const jobInsertData = {
         client_id: createdClient.id,
         client_name: leadData.name,
         client_phone: leadData.phone,
-        client_email: leadData.email,
-        origin_address: 'TBD', // To be determined during scheduling
-        destination_address: 'TBD', // To be determined during scheduling
+        client_email: leadData.email || null,
+        origin_address: 'To be determined during scheduling',
+        destination_address: 'To be determined during scheduling',
         job_date: new Date().toISOString().split('T')[0], // Today's date as placeholder
         start_time: '09:00', // Default start time
-        hourly_rate: 50, // Default rate
+        hourly_rate: leadData.estimated_value ? Math.max(50, leadData.estimated_value / 4) : 50, // Estimate hourly rate
         movers_needed: 2, // Default movers
-        estimated_total: 100, // Default estimate
+        estimated_total: leadData.estimated_value || 200, // Use estimated value or default
         lead_id: leadId,
         status: 'scheduled' as const,
-        estimated_duration_hours: 2
+        estimated_duration_hours: 2,
+        truck_size: null,
+        special_requirements: leadData.notes || null
       };
+
+      console.log('Creating job with data:', jobInsertData);
 
       const { data: createdJob, error: jobError } = await supabase
         .from('jobs')
@@ -207,13 +218,13 @@ export const useJobs = () => {
 
       return { job: createdJob as Job, client: createdClient };
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['jobs'] });
       queryClient.invalidateQueries({ queryKey: ['leads'] });
       queryClient.invalidateQueries({ queryKey: ['clients'] });
       toast({
-        title: "Lead Converted",
-        description: "Lead has been converted to a client and job. You can now schedule it from the Jobs page.",
+        title: "Lead Converted Successfully",
+        description: `Lead converted to client "${data.client.name}" with job #${data.job.job_number}. You can now schedule the job details.`,
       });
     },
     onError: (error: any) => {
