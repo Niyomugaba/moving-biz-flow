@@ -102,35 +102,42 @@ export const EditJobDialog = ({ open, onOpenChange, job }: EditJobDialogProps) =
     e.preventDefault();
     if (!job) return;
 
-    const updates: Partial<Job> = {
-      status: formData.status as Job['status']
-    };
+    const updates: Partial<Job> = {};
 
     // Handle scheduling from pending_schedule status
-    if (job.status === 'pending_schedule' && formData.status === 'scheduled') {
+    if (job.status === 'pending_schedule') {
+      if (!formData.jobDate || !formData.startTime) {
+        alert('Please select both date and time to schedule the job.');
+        return;
+      }
+      updates.status = 'scheduled' as const;
       updates.job_date = formData.jobDate;
       updates.start_time = formData.startTime;
-    }
+    } else {
+      // Handle other status updates
+      updates.status = formData.status as Job['status'];
+      
+      // If rescheduled, update the job date
+      if (formData.status === 'rescheduled' && rescheduleDate) {
+        updates.job_date = rescheduleDate.toISOString().split('T')[0];
+        if (scheduleTime) {
+          updates.start_time = scheduleTime;
+        }
+      }
 
-    // If rescheduled, update the job date
-    if (formData.status === 'rescheduled' && rescheduleDate) {
-      updates.job_date = rescheduleDate.toISOString().split('T')[0];
-      if (scheduleTime) {
-        updates.start_time = scheduleTime;
+      // Handle other status updates (non-completion)
+      if (formData.status !== 'completed') {
+        updates.actual_duration_hours = formData.actualHours ? parseFloat(formData.actualHours) : null;
+        updates.actual_total = formData.actualTotal ? parseFloat(formData.actualTotal) : null;
+        updates.completion_notes = formData.completionNotes || null;
+        updates.customer_satisfaction = formData.customerSatisfaction ? parseInt(formData.customerSatisfaction) : null;
+        updates.is_paid = formData.isPaid;
+        updates.payment_method = formData.paymentMethod || null;
+        updates.paid_at = formData.isPaid && !job.paid_at ? new Date().toISOString() : job.paid_at;
       }
     }
 
-    // Handle other status updates
-    if (formData.status !== 'completed') {
-      updates.actual_duration_hours = formData.actualHours ? parseFloat(formData.actualHours) : null;
-      updates.actual_total = formData.actualTotal ? parseFloat(formData.actualTotal) : null;
-      updates.completion_notes = formData.completionNotes || null;
-      updates.customer_satisfaction = formData.customerSatisfaction ? parseInt(formData.customerSatisfaction) : null;
-      updates.is_paid = formData.isPaid;
-      updates.payment_method = formData.paymentMethod || null;
-      updates.paid_at = formData.isPaid && !job.paid_at ? new Date().toISOString() : job.paid_at;
-    }
-
+    console.log('Submitting job updates:', updates);
     updateJob({ id: job.id, updates });
     onOpenChange(false);
   };
@@ -324,6 +331,36 @@ export const EditJobDialog = ({ open, onOpenChange, job }: EditJobDialogProps) =
                     onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
                     className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                     required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Origin Address *
+                  </label>
+                  <input
+                    type="text"
+                    value={job.origin_address}
+                    onChange={(e) => {
+                      // We could add functionality to update addresses here if needed
+                    }}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                    placeholder="Enter pickup address"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Destination Address *
+                  </label>
+                  <input
+                    type="text"
+                    value={job.destination_address}
+                    onChange={(e) => {
+                      // We could add functionality to update addresses here if needed
+                    }}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                    placeholder="Enter delivery address"
                   />
                 </div>
               </>
