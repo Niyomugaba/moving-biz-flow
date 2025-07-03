@@ -235,56 +235,59 @@ export const EmployeeDashboard = ({ employee, onLogout }: EmployeeDashboardProps
                 <p className="text-sm text-purple-600">Welcome back, {employee.name}!</p>
               </div>
             </div>
-            <div className="flex gap-2">
-              <Button 
-                onClick={handleRefresh} 
-                variant="outline" 
-                className="border-purple-300 text-purple-700 hover:bg-purple-50"
-                disabled={isRefreshing}
-              >
-                <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
-                Refresh
-              </Button>
-              <Button onClick={onLogout} variant="outline" className="border-purple-300 text-purple-700 hover:bg-purple-50">
-                <LogOut className="w-4 h-4 mr-2" />
-                Logout
-              </Button>
-            </div>
+            <Button onClick={onLogout} variant="outline" className="border-purple-300 text-purple-700 hover:bg-purple-50">
+              <LogOut className="w-4 h-4 mr-2" />
+              Logout
+            </Button>
           </div>
         </div>
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Navigation */}
-        <div className="grid grid-cols-4 gap-4 mb-8">
-          <TabButton 
-            id="dashboard" 
-            icon={Home} 
-            label="Dashboard" 
-            isActive={activeTab === 'dashboard'} 
-            onClick={setActiveTab} 
-          />
-          <TabButton 
-            id="submit" 
-            icon={Plus} 
-            label="Submit Hours" 
-            isActive={activeTab === 'submit'} 
-            onClick={setActiveTab} 
-          />
-          <TabButton 
-            id="earnings" 
-            icon={DollarSign} 
-            label="My Earnings" 
-            isActive={activeTab === 'earnings'} 
-            onClick={setActiveTab} 
-          />
-          <TabButton 
-            id="profile" 
-            icon={User} 
-            label="My Profile" 
-            isActive={activeTab === 'profile'} 
-            onClick={setActiveTab} 
-          />
+        <div className="relative">
+          <div className="grid grid-cols-4 gap-4 mb-8">
+            <TabButton 
+              id="dashboard" 
+              icon={Home} 
+              label="Dashboard" 
+              isActive={activeTab === 'dashboard'} 
+              onClick={setActiveTab} 
+            />
+            <TabButton 
+              id="submit" 
+              icon={Plus} 
+              label="Submit Hours" 
+              isActive={activeTab === 'submit'} 
+              onClick={setActiveTab} 
+            />
+            <TabButton 
+              id="earnings" 
+              icon={DollarSign} 
+              label="My Earnings" 
+              isActive={activeTab === 'earnings'} 
+              onClick={setActiveTab} 
+            />
+            <TabButton 
+              id="profile" 
+              icon={User} 
+              label="My Profile" 
+              isActive={activeTab === 'profile'} 
+              onClick={setActiveTab} 
+            />
+          </div>
+          
+          {/* Refresh button - positioned in top right corner */}
+          <Button
+            onClick={handleRefresh}
+            variant="outline"
+            size="icon"
+            className="absolute top-0 right-0 border-purple-300 text-purple-700 hover:bg-purple-50 bg-white shadow-md"
+            disabled={isRefreshing}
+            title="Refresh data"
+          >
+            <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+          </Button>
         </div>
 
         {/* Dashboard Tab */}
