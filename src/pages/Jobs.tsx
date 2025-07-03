@@ -23,6 +23,12 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 export const Jobs = () => {
   const { jobs, isLoading, updateJob, deleteJob } = useJobs();
@@ -37,6 +43,9 @@ export const Jobs = () => {
   const [isScheduleDialogOpen, setIsScheduleDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
+  const [showPaymentDialog, setShowPaymentDialog] = useState(false);
+  const [paymentJobId, setPaymentJobId] = useState<string | null>(null);
+  const [paymentMethod, setPaymentMethod] = useState('');
   
   // Filtering and pagination state
   const [searchTerm, setSearchTerm] = useState('');
@@ -164,17 +173,9 @@ export const Jobs = () => {
   ];
 
   const handleMarkAsPaid = (job: Job) => {
-    const paymentMethod = prompt('Enter payment method (cash, check, credit_card, bank_transfer, other):');
-    if (paymentMethod) {
-      updateJob({ 
-        id: job.id, 
-        updates: { 
-          is_paid: true,
-          payment_method: paymentMethod.toLowerCase().replace(' ', '_'),
-          paid_at: new Date().toISOString()
-        } 
-      });
-    }
+    setPaymentJobId(job.id);
+    setPaymentMethod('');
+    setShowPaymentDialog(true);
   };
 
   const handleMarkAsUnpaid = (job: Job) => {
@@ -188,6 +189,23 @@ export const Jobs = () => {
         } 
       });
     }
+  };
+
+  const handlePaymentSubmit = () => {
+    if (!paymentJobId || !paymentMethod) return;
+
+    updateJob({ 
+      id: paymentJobId, 
+      updates: { 
+        is_paid: true,
+        payment_method: paymentMethod,
+        paid_at: new Date().toISOString()
+      } 
+    });
+
+    setShowPaymentDialog(false);
+    setPaymentJobId(null);
+    setPaymentMethod('');
   };
 
   if (isLoading) {
@@ -710,6 +728,54 @@ export const Jobs = () => {
           }}
         />
       )}
+
+      {/* Payment Method Dialog */}
+      <Dialog open={showPaymentDialog} onOpenChange={setShowPaymentDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Select Payment Method</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Payment Method *
+              </label>
+              <select
+                value={paymentMethod}
+                onChange={(e) => setPaymentMethod(e.target.value)}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                required
+              >
+                <option value="">Select payment method...</option>
+                <option value="cash">Cash</option>
+                <option value="check">Check</option>
+                <option value="credit_card">Credit Card</option>
+                <option value="bank_transfer">Bank Transfer</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+
+            <div className="flex gap-2 pt-4">
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={() => setShowPaymentDialog(false)} 
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+              <Button 
+                type="button" 
+                onClick={handlePaymentSubmit}
+                disabled={!paymentMethod}
+                className="flex-1 bg-green-600 hover:bg-green-700"
+              >
+                Mark as Paid
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <ScheduleJobDialog 
         open={isScheduleDialogOpen} 

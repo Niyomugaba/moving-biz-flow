@@ -21,12 +21,16 @@ export const EditJobDialog = ({ open, onOpenChange, job }: EditJobDialogProps) =
   const [rescheduleDate, setRescheduleDate] = useState<Date | undefined>(undefined);
   const [scheduleTime, setScheduleTime] = useState('');
   const [showCompletionPrompt, setShowCompletionPrompt] = useState(false);
+  const [showPaymentDialog, setShowPaymentDialog] = useState(false);
   const [completionData, setCompletionData] = useState({
     hours: '',
     isPaid: false,
     paymentMethod: '',
     notes: '',
     satisfaction: ''
+  });
+  const [paymentData, setPaymentData] = useState({
+    paymentMethod: ''
   });
   const [formData, setFormData] = useState({
     status: job?.status || 'scheduled',
@@ -56,12 +60,16 @@ export const EditJobDialog = ({ open, onOpenChange, job }: EditJobDialogProps) =
       setRescheduleDate(undefined);
       setScheduleTime('');
       setShowCompletionPrompt(false);
+      setShowPaymentDialog(false);
       setCompletionData({
         hours: '',
         isPaid: false,
         paymentMethod: '',
         notes: '',
         satisfaction: ''
+      });
+      setPaymentData({
+        paymentMethod: ''
       });
     }
   }, [job]);
@@ -97,6 +105,37 @@ export const EditJobDialog = ({ open, onOpenChange, job }: EditJobDialogProps) =
     onOpenChange(false);
   };
 
+  const handleMarkAsPaid = () => {
+    setShowPaymentDialog(true);
+  };
+
+  const handleMarkAsUnpaid = () => {
+    if (!job) return;
+    
+    const updates: Partial<Job> = {
+      is_paid: false,
+      payment_method: null,
+      paid_at: null
+    };
+
+    updateJob({ id: job.id, updates });
+    setFormData({ ...formData, isPaid: false, paymentMethod: '' });
+  };
+
+  const handlePaymentMethodSubmit = () => {
+    if (!job || !paymentData.paymentMethod) return;
+
+    const updates: Partial<Job> = {
+      is_paid: true,
+      payment_method: paymentData.paymentMethod,
+      paid_at: new Date().toISOString()
+    };
+
+    updateJob({ id: job.id, updates });
+    setFormData({ ...formData, isPaid: true, paymentMethod: paymentData.paymentMethod });
+    setShowPaymentDialog(false);
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!job) return;
@@ -124,15 +163,19 @@ export const EditJobDialog = ({ open, onOpenChange, job }: EditJobDialogProps) =
         }
       }
 
+      // Handle payment status updates
+      if (formData.isPaid !== job.is_paid) {
+        updates.is_paid = formData.isPaid;
+        updates.payment_method = formData.isPaid ? formData.paymentMethod : null;
+        updates.paid_at = formData.isPaid ? new Date().toISOString() : null;
+      }
+
       // Handle other status updates (non-completion)
       if (formData.status !== 'completed') {
         updates.actual_duration_hours = formData.actualHours ? parseFloat(formData.actualHours) : null;
         updates.actual_total = formData.actualTotal ? parseFloat(formData.actualTotal) : null;
         updates.completion_notes = formData.completionNotes || null;
         updates.customer_satisfaction = formData.customerSatisfaction ? parseInt(formData.customerSatisfaction) : null;
-        updates.is_paid = formData.isPaid;
-        updates.payment_method = formData.paymentMethod || null;
-        updates.paid_at = formData.isPaid && !job.paid_at ? new Date().toISOString() : job.paid_at;
       }
     }
 
@@ -162,6 +205,67 @@ export const EditJobDialog = ({ open, onOpenChange, job }: EditJobDialogProps) =
 
   const isPendingSchedule = job.status === 'pending_schedule';
   const isConvertedLead = Boolean(job.lead_id);
+
+  // Payment Method Selection Dialog
+  if (showPaymentDialog) {
+    return (
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Mark Job as Paid - {job.client_name}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Payment Method *
+              </label>
+              <select
+                value={paymentData.paymentMethod}
+                onChange={(e) => setPaymentData({ ...paymentData, paymentMethod: e.target.value })}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                required
+              >
+                <option value="">Select payment method...</option>
+                <option value="cash">Cash</option>
+                <option value="check">Check</option>
+                <option value="credit_card">Credit Card</option>
+                <option value="bank_transfer">Bank Transfer</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+
+            {job.actual_total && (
+              <div className="bg-green-50 p-3 rounded-lg border border-green-200">
+                <div className="text-sm text-green-700">
+                  <div className="font-medium">Total amount: ${job.actual_total.toLocaleString()}</div>
+                  <div>This job will be marked as paid</div>
+                </div>
+              </div>
+            )}
+
+            <div className="flex gap-2 pt-4">
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={() => setShowPaymentDialog(false)} 
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+              <Button 
+                type="button" 
+                onClick={handlePaymentMethodSubmit}
+                disabled={!paymentData.paymentMethod}
+                className="flex-1 bg-green-600 hover:bg-green-700"
+              >
+                Mark as Paid
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   // Completion Prompt Dialog
   if (showCompletionPrompt) {
@@ -432,17 +536,40 @@ export const EditJobDialog = ({ open, onOpenChange, job }: EditJobDialogProps) =
             {formData.status === 'completed' && !isPendingSchedule && (
               <div className="border-t pt-4">
                 <div className="space-y-3">
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      id="isPaid"
-                      checked={formData.isPaid}
-                      onChange={(e) => setFormData({ ...formData, isPaid: e.target.checked })}
-                      className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
-                    />
-                    <label htmlFor="isPaid" className="text-sm font-medium text-gray-700">
-                      Mark as paid
-                    </label>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        id="isPaidEdit"
+                        checked={formData.isPaid}
+                        onChange={(e) => setFormData({ ...formData, isPaid: e.target.checked })}
+                        className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                      />
+                      <label htmlFor="isPaidEdit" className="text-sm font-medium text-gray-700">
+                        Mark as paid
+                      </label>
+                    </div>
+                    
+                    <div className="flex gap-2">
+                      {!formData.isPaid ? (
+                        <Button 
+                          type="button"
+                          onClick={handleMarkAsPaid}
+                          className="bg-green-600 hover:bg-green-700 text-white text-xs px-3 py-1"
+                        >
+                          Mark as Paid
+                        </Button>
+                      ) : (
+                        <Button 
+                          type="button"
+                          onClick={handleMarkAsUnpaid}
+                          variant="outline"
+                          className="text-red-600 hover:bg-red-50 text-xs px-3 py-1"
+                        >
+                          Mark as Unpaid
+                        </Button>
+                      )}
+                    </div>
                   </div>
 
                   {formData.isPaid && (
