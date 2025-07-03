@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import { Button } from './ui/button';
@@ -8,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { useEmployees } from '@/hooks/useEmployees';
 import { useJobs } from '@/hooks/useJobs';
 import { useTimeEntries } from '@/hooks/useTimeEntries';
-import { Clock, Plus } from 'lucide-react';
+import { Clock } from 'lucide-react';
 
 interface AddTimeEntryDialogProps {
   open: boolean;

@@ -90,6 +90,7 @@ export const ScheduleJobDialog = ({ open, onOpenChange, leadData, jobData }: Sch
     
     const submissionData = {
       ...formData,
+      client_id: formData.client_id || null, // Fix: ensure null instead of empty string
       estimated_total: Number(formData.estimated_total),
       hourly_rate: Number(formData.hourly_rate),
       movers_needed: Number(formData.movers_needed),

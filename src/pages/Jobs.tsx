@@ -127,9 +127,17 @@ export const Jobs = () => {
   const calculateJobProfit = (job: Job) => {
     if (job.status !== 'completed' || !job.actual_total) return 0;
     
-    const laborCost = (job.actual_duration_hours || 0) * job.hourly_rate * job.movers_needed;
+    // Calculate labor costs more accurately
+    const actualHours = job.actual_duration_hours || 0;
+    const regularHours = Math.min(actualHours, 8 * job.movers_needed); // Max 8 hours per person regular
+    const overtimeHours = Math.max(0, actualHours - (8 * job.movers_needed));
+    
+    const regularLaborCost = regularHours * job.hourly_rate;
+    const overtimeLaborCost = overtimeHours * job.hourly_rate * 1.5; // 1.5x for overtime
+    const totalLaborCost = regularLaborCost + overtimeLaborCost;
+    
     const truckExpenses = (job.truck_rental_cost || 0) + (job.truck_gas_cost || 0);
-    const totalExpenses = laborCost + truckExpenses;
+    const totalExpenses = totalLaborCost + truckExpenses;
     
     return job.actual_total - totalExpenses;
   };
