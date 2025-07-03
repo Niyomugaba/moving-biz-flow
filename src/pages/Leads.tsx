@@ -454,7 +454,7 @@ export const Leads = () => {
         />
       )}
 
-      {selectedLead && relatedJob && (
+      {selectedLead && (
         <ScheduleJobDialog
           open={isScheduleDialogOpen}
           onOpenChange={setIsScheduleDialogOpen}
