@@ -48,6 +48,7 @@ export const useTimeEntries = () => {
   const { data: timeEntries = [], isLoading, error, refetch } = useQuery({
     queryKey: ['time-entries'],
     queryFn: async () => {
+      console.log('Fetching time entries...');
       const { data, error } = await supabase
         .from('time_entries')
         .select('*')
@@ -58,8 +59,11 @@ export const useTimeEntries = () => {
         throw error;
       }
       
+      console.log('Time entries fetched:', data?.length);
       return data as TimeEntry[];
-    }
+    },
+    staleTime: 0, // Always consider data stale
+    gcTime: 0, // Don't cache data
   });
 
   const addTimeEntryMutation = useMutation({

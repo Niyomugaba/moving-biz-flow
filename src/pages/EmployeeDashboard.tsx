@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
+import { useQueryClient } from '@tanstack/react-query';
 import { useTimeEntries } from '@/hooks/useTimeEntries';
 import { useJobs } from '@/hooks/useJobs';
 import { Clock, User, Calendar, LogOut, CheckCircle, XCircle, AlertCircle, Truck, DollarSign, BarChart3, Plus, Home, RefreshCw } from 'lucide-react';
@@ -30,6 +31,7 @@ export const EmployeeDashboard = ({ employee, onLogout }: EmployeeDashboardProps
   const { toast } = useToast();
   const { timeEntries, addTimeEntry, isAddingTimeEntry, refetchTimeEntries } = useTimeEntries();
   const { jobs = [], refetchJobs } = useJobs();
+  const queryClient = useQueryClient();
   
   const [currentTime, setCurrentTime] = useState(new Date());
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -119,15 +121,29 @@ export const EmployeeDashboard = ({ employee, onLogout }: EmployeeDashboardProps
   const handleRefresh = async () => {
     setIsRefreshing(true);
     try {
-      await Promise.all([
+      console.log('Starting refresh...');
+      
+      // Force fresh data by invalidating queries first
+      queryClient.invalidateQueries({ queryKey: ['time-entries'] });
+      queryClient.invalidateQueries({ queryKey: ['jobs'] });
+      
+      // Then refetch with force to bypass cache
+      const [timeEntriesResult, jobsResult] = await Promise.all([
         refetchTimeEntries(),
         refetchJobs()
       ]);
+      
+      console.log('Refresh completed:', {
+        timeEntries: timeEntriesResult.data?.length,
+        jobs: jobsResult.data?.length
+      });
+      
       toast({
         title: "Data Refreshed",
         description: "Your dashboard has been updated with the latest information.",
       });
     } catch (error) {
+      console.error('Refresh error:', error);
       toast({
         title: "Refresh Failed", 
         description: "Failed to refresh data. Please try again.",

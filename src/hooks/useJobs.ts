@@ -87,7 +87,9 @@ export const useJobs = () => {
       console.log('Jobs with pending_schedule status:', pendingJobs.length, pendingJobs);
       
       return data as Job[];
-    }
+    },
+    staleTime: 0, // Always consider data stale
+    gcTime: 0, // Don't cache data
   });
 
   const updateJobMutation = useMutation({
