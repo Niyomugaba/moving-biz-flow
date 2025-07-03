@@ -36,6 +36,8 @@ export const EmployeePortal = () => {
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        console.log('Auth event in EmployeePortal:', event, session?.user?.email);
+        
         if (session?.user) {
           setUser(session.user);
           await checkEmployeeStatus(session.user);
@@ -127,13 +129,12 @@ export const EmployeePortal = () => {
         });
       } else {
         // Sign up new employee
-        const redirectUrl = `${window.location.origin}/employee-portal`;
+        console.log('Starting signup process for:', email);
         
-        const { error } = await supabase.auth.signUp({
+        const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
-            emailRedirectTo: redirectUrl,
             data: {
               full_name: fullName,
               phone: phone,
@@ -141,41 +142,74 @@ export const EmployeePortal = () => {
           }
         });
 
-        if (error) throw error;
-
-        // Create employee request
-        const { error: requestError } = await supabase
-          .from('employee_requests')
-          .insert({
-            name: fullName,
-            email: email,
-            phone: phone,
-            position_applied: 'mover',
-            notes: 'Self-registered through mover portal'
-          });
-
-        if (requestError) {
-          console.error('Error creating employee request:', requestError);
+        if (error) {
+          console.error('Signup error:', error);
+          throw error;
         }
 
-        // Show success message and redirect to login
-        setShowSuccessMessage(true);
-        
-        // Auto redirect to login after 3 seconds
-        setTimeout(() => {
-          setShowSuccessMessage(false);
-          setIsLogin(true);
-          setEmail('');
-          setPassword('');
-          setFullName('');
-          setPhone('');
-        }, 3000);
+        console.log('Signup successful, user:', data.user?.email);
+
+        // Create employee request immediately after successful signup
+        if (data.user) {
+          console.log('Creating employee request...');
+          
+          const { error: requestError } = await supabase
+            .from('employee_requests')
+            .insert({
+              name: fullName,
+              email: email,
+              phone: phone,
+              position_applied: 'mover',
+              notes: 'Self-registered through mover portal'
+            });
+
+          if (requestError) {
+            console.error('Error creating employee request:', requestError);
+            toast({
+              title: "Warning",
+              description: "Account created but employee request failed. Please contact support.",
+              variant: "destructive",
+            });
+          } else {
+            console.log('Employee request created successfully');
+          }
+
+          // Show success message and redirect to login
+          setShowSuccessMessage(true);
+          
+          // Auto redirect to login after 3 seconds
+          setTimeout(() => {
+            setShowSuccessMessage(false);
+            setIsLogin(true);
+            setEmail('');
+            setPassword('');
+            setFullName('');
+            setPhone('');
+            toast({
+              title: "Account Created!",
+              description: "Please log in with your new credentials.",
+            });
+          }, 3000);
+        }
       }
     } catch (error: any) {
       console.error('Auth error:', error);
+      
+      let errorMessage = "An error occurred during authentication.";
+      
+      if (error.message?.includes('User already registered')) {
+        errorMessage = "An account with this email already exists. Please try logging in instead.";
+      } else if (error.message?.includes('Invalid login credentials')) {
+        errorMessage = "Invalid email or password. Please check your credentials and try again.";
+      } else if (error.message?.includes('Email not confirmed')) {
+        errorMessage = "Please check your email and click the confirmation link before logging in.";
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
       toast({
         title: "Authentication Error",
-        description: error.message || "An error occurred during authentication.",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
