@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Sidebar } from './Sidebar';
+import { ProtectedLayout } from './ProtectedLayout';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -8,11 +8,8 @@ interface LayoutProps {
 
 export const Layout: React.FC<LayoutProps> = ({ children }) => {
   return (
-    <div className="flex h-screen bg-gray-100">
-      <Sidebar />
-      <main className="flex-1 overflow-y-auto">
-        {children}
-      </main>
-    </div>
+    <ProtectedLayout requiredRoles={['owner', 'admin', 'manager', 'employee']}>
+      {children}
+    </ProtectedLayout>
   );
 };

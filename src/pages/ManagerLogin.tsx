@@ -42,12 +42,13 @@ export const ManagerLogin = () => {
       const manager = await authenticateManager(username, pin);
       console.log('Manager authenticated successfully:', manager);
       
-      // Store manager session in localStorage
+      // Store manager session in localStorage with role
       const sessionData = {
         id: manager.id,
         username: manager.username,
         name: manager.name,
-        loginTime: new Date().toISOString()
+        loginTime: new Date().toISOString(),
+        role: 'manager' as const
       };
       
       localStorage.setItem('managerSession', JSON.stringify(sessionData));
@@ -116,7 +117,7 @@ export const ManagerLogin = () => {
                 className="w-6 h-6 object-contain"
               />
             </div>
-            <p className="text-purple-200 text-sm">Admin Portal</p>
+            <p className="text-purple-200 text-sm">Full Access</p>
           </div>
         </div>
 
@@ -126,7 +127,7 @@ export const ManagerLogin = () => {
               Manager Login
             </CardTitle>
             <CardDescription className="text-purple-200">
-              Enter your credentials to access the management dashboard
+              Enter your credentials to access the full management dashboard
             </CardDescription>
           </CardHeader>
           
@@ -164,7 +165,7 @@ export const ManagerLogin = () => {
               disabled={isLoading}
               className="w-full bg-amber-500 hover:bg-amber-600 text-purple-900 font-semibold"
             >
-              {isLoading ? 'Authenticating...' : 'Access Dashboard'}
+              {isLoading ? 'Authenticating...' : 'Access Full Dashboard'}
             </Button>
           </CardContent>
         </Card>
@@ -172,7 +173,7 @@ export const ManagerLogin = () => {
         {/* Footer */}
         <div className="text-center mt-8">
           <p className="text-purple-300 text-sm">
-            © 2024 Bantu Movers. Management Portal.
+            © 2024 Bantu Movers. Management Portal - Full Access.
           </p>
         </div>
       </div>

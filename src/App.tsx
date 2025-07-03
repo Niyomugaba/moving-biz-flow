@@ -5,6 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Layout } from "./components/Layout";
+import { ManagerLayout } from "./components/ManagerLayout";
 import Index from "./pages/Index";
 import { Auth } from "./pages/Auth";
 import { Dashboard } from "./pages/Dashboard";
@@ -35,6 +36,22 @@ function App() {
             <Route path="/auth" element={<Auth />} />
             <Route path="/manager-login" element={<ManagerLogin />} />
             <Route path="/employee-portal" element={<EmployeePortal />} />
+            <Route path="/manager/*" element={
+              <ManagerLayout>
+                <Routes>
+                  <Route path="/dashboard" element={<Dashboard />} />
+                  <Route path="/jobs" element={<Jobs />} />
+                  <Route path="/clients" element={<Clients />} />
+                  <Route path="/employees" element={<Employees />} />
+                  <Route path="/leads" element={<Leads />} />
+                  <Route path="/time-logs" element={<TimeLogs />} />
+                  <Route path="/financials" element={<Financials />} />
+                  <Route path="/financial-reports" element={<FinancialReports />} />
+                  <Route path="/employee-requests" element={<EmployeeRequests />} />
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </ManagerLayout>
+            } />
             <Route path="/*" element={
               <Layout>
                 <Routes>
