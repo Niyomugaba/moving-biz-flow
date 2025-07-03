@@ -129,7 +129,7 @@ export const EmployeeDashboard = ({ employee, onLogout }: EmployeeDashboardProps
       });
     } catch (error) {
       toast({
-        title: "Refresh Failed",
+        title: "Refresh Failed", 
         description: "Failed to refresh data. Please try again.",
         variant: "destructive",
       });
@@ -137,6 +137,13 @@ export const EmployeeDashboard = ({ employee, onLogout }: EmployeeDashboardProps
       setIsRefreshing(false);
     }
   };
+
+  // Auto-refresh when component mounts or when active tab changes
+  React.useEffect(() => {
+    if (activeTab === 'dashboard' || activeTab === 'earnings') {
+      handleRefresh();
+    }
+  }, [activeTab]);
 
   // Filter time entries for this employee
   const employeeTimeEntries = timeEntries.filter(entry => entry.employee_id === employee.id);

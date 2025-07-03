@@ -2,7 +2,7 @@
 import React, { useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DateRangeFilter, DateRange } from "@/components/DateRangeFilter";
-import { filterDataByDateRange } from "@/hooks/useDateFilter";
+import { filterDataByDateRange, useDateFilter } from "@/hooks/useDateFilter";
 import { useJobs } from "@/hooks/useJobs";
 import { useLeads } from "@/hooks/useLeads";
 import { useTimeEntries } from "@/hooks/useTimeEntries";
@@ -16,14 +16,15 @@ export const Financials = () => {
   const { employees } = useEmployees();
   
   const [selectedDateRange, setSelectedDateRange] = useState<DateRange>('this_month');
+  const { startDate, endDate } = useDateFilter(selectedDateRange);
 
   const filteredData = useMemo(() => {
     return {
-      jobs: filterDataByDateRange(jobs, selectedDateRange, 'job_date'),
-      leads: filterDataByDateRange(leads, selectedDateRange, 'created_at'),
-      timeEntries: filterDataByDateRange(timeEntries, selectedDateRange, 'entry_date')
+      jobs: filterDataByDateRange(jobs, startDate, endDate, 'job_date'),
+      leads: filterDataByDateRange(leads, startDate, endDate, 'created_at'),
+      timeEntries: filterDataByDateRange(timeEntries, startDate, endDate, 'entry_date')
     };
-  }, [jobs, leads, timeEntries, selectedDateRange]);
+  }, [jobs, leads, timeEntries, startDate, endDate]);
 
   const financialMetrics = useMemo(() => {
     // Calculate real revenue (only paid jobs)
