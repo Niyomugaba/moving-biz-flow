@@ -8,7 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { useTimeEntries } from '@/hooks/useTimeEntries';
 import { useJobs } from '@/hooks/useJobs';
-import { Clock, User, Calendar, LogOut, CheckCircle, XCircle, AlertCircle, Truck, DollarSign, BarChart3, Plus, Home } from 'lucide-react';
+import { Clock, User, Calendar, LogOut, CheckCircle, XCircle, AlertCircle, Truck, DollarSign, BarChart3, Plus, Home, RefreshCw } from 'lucide-react';
 
 interface EmployeeData {
   id: string;
@@ -28,8 +28,8 @@ interface EmployeeDashboardProps {
 
 export const EmployeeDashboard = ({ employee, onLogout }: EmployeeDashboardProps) => {
   const { toast } = useToast();
-  const { timeEntries, addTimeEntry, isAddingTimeEntry } = useTimeEntries();
-  const { jobs = [] } = useJobs();
+  const { timeEntries, addTimeEntry, isAddingTimeEntry, refetchTimeEntries } = useTimeEntries();
+  const { jobs = [], refetchJobs } = useJobs();
   
   const [currentTime, setCurrentTime] = useState(new Date());
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -37,6 +37,7 @@ export const EmployeeDashboard = ({ employee, onLogout }: EmployeeDashboardProps
   const [endTime, setEndTime] = useState('');
   const [selectedJob, setSelectedJob] = useState('');
   const [notes, setNotes] = useState('');
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -112,6 +113,28 @@ export const EmployeeDashboard = ({ employee, onLogout }: EmployeeDashboardProps
         description: "There was an error submitting your hours. Please try again.",
         variant: "destructive",
       });
+    }
+  };
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      await Promise.all([
+        refetchTimeEntries(),
+        refetchJobs()
+      ]);
+      toast({
+        title: "Data Refreshed",
+        description: "Your dashboard has been updated with the latest information.",
+      });
+    } catch (error) {
+      toast({
+        title: "Refresh Failed",
+        description: "Failed to refresh data. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsRefreshing(false);
     }
   };
 
@@ -205,10 +228,21 @@ export const EmployeeDashboard = ({ employee, onLogout }: EmployeeDashboardProps
                 <p className="text-sm text-purple-600">Welcome back, {employee.name}!</p>
               </div>
             </div>
-            <Button onClick={onLogout} variant="outline" className="border-purple-300 text-purple-700 hover:bg-purple-50">
-              <LogOut className="w-4 h-4 mr-2" />
-              Logout
-            </Button>
+            <div className="flex gap-2">
+              <Button 
+                onClick={handleRefresh} 
+                variant="outline" 
+                className="border-purple-300 text-purple-700 hover:bg-purple-50"
+                disabled={isRefreshing}
+              >
+                <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+                Refresh
+              </Button>
+              <Button onClick={onLogout} variant="outline" className="border-purple-300 text-purple-700 hover:bg-purple-50">
+                <LogOut className="w-4 h-4 mr-2" />
+                Logout
+              </Button>
+            </div>
           </div>
         </div>
       </div>

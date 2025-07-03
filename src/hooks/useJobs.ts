@@ -62,7 +62,7 @@ export const useJobs = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: jobs = [], isLoading, error } = useQuery({
+  const { data: jobs = [], isLoading, error, refetch } = useQuery({
     queryKey: ['jobs'],
     queryFn: async () => {
       console.log('Fetching jobs...');
@@ -348,6 +348,7 @@ export const useJobs = () => {
     jobs,
     isLoading,
     error,
+    refetchJobs: refetch,
     addJob: addJobMutation.mutate,
     updateJob: updateJobMutation.mutate,
     deleteJob: deleteJobMutation.mutate,

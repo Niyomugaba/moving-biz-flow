@@ -45,7 +45,7 @@ export const useTimeEntries = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: timeEntries = [], isLoading, error } = useQuery({
+  const { data: timeEntries = [], isLoading, error, refetch } = useQuery({
     queryKey: ['time-entries'],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -285,6 +285,7 @@ export const useTimeEntries = () => {
     timeEntries,
     isLoading,
     error,
+    refetchTimeEntries: refetch,
     addTimeEntry: addTimeEntryMutation.mutate,
     updateTimeEntry: updateTimeEntryMutation.mutate,
     deleteTimeEntry: deleteTimeEntryMutation.mutate,
