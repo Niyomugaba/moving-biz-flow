@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -69,7 +68,7 @@ export const useJobs = () => {
       const { data, error } = await supabase
         .from('jobs')
         .select('*')
-        .order('job_date', { ascending: false });
+        .order('created_at', { ascending: false });
       
       if (error) {
         console.error('Error fetching jobs:', error);
@@ -82,6 +81,9 @@ export const useJobs = () => {
       // Check for jobs with lead_id to see converted leads
       const convertedLeadJobs = data?.filter(job => job.lead_id) || [];
       console.log('Jobs converted from leads:', convertedLeadJobs.length, convertedLeadJobs);
+      
+      const pendingJobs = data?.filter(job => job.status === 'pending_schedule') || [];
+      console.log('Jobs with pending_schedule status:', pendingJobs.length, pendingJobs);
       
       return data as Job[];
     }
@@ -147,93 +149,101 @@ export const useJobs = () => {
 
   const convertLeadToJobMutation = useMutation({
     mutationFn: async ({ leadId, leadData }: { leadId: string; leadData: any }) => {
-      console.log('Converting lead to job and client:', leadId, leadData);
+      console.log('Starting lead conversion process:', leadId, leadData);
       
-      // First, create a client from the lead data
-      const clientInsertData = {
-        name: leadData.name,
-        phone: leadData.phone,
-        email: leadData.email || null,
-        primary_address: leadData.origin_address || leadData.destination_address || 'Address to be confirmed',
-        secondary_address: null,
-        company_name: null,
-        notes: leadData.notes || null,
-        preferred_contact_method: 'phone',
-        rating: null,
-        total_revenue: 0,
-        total_jobs_completed: 0
-      };
+      try {
+        // First, create a client from the lead data
+        const clientInsertData = {
+          name: leadData.name,
+          phone: leadData.phone,
+          email: leadData.email || null,
+          primary_address: 'Address to be confirmed during scheduling',
+          secondary_address: null,
+          company_name: null,
+          notes: leadData.notes || null,
+          preferred_contact_method: 'phone',
+          rating: null,
+          total_revenue: 0,
+          total_jobs_completed: 0
+        };
 
-      console.log('Creating client with data:', clientInsertData);
+        console.log('Creating client with data:', clientInsertData);
 
-      const { data: createdClient, error: clientError } = await supabase
-        .from('clients')
-        .insert(clientInsertData)
-        .select()
-        .single();
+        const { data: createdClient, error: clientError } = await supabase
+          .from('clients')
+          .insert(clientInsertData)
+          .select()
+          .single();
 
-      if (clientError) {
-        console.error('Error creating client from lead:', clientError);
-        throw clientError;
+        if (clientError) {
+          console.error('Error creating client from lead:', clientError);
+          throw new Error(`Failed to create client: ${clientError.message}`);
+        }
+
+        console.log('Client created successfully:', createdClient);
+
+        // Create job with pending_schedule status - needs to be scheduled
+        const jobInsertData = {
+          client_id: createdClient.id,
+          client_name: leadData.name,
+          client_phone: leadData.phone,
+          client_email: leadData.email || null,
+          origin_address: 'Origin address to be confirmed during scheduling',
+          destination_address: 'Destination address to be confirmed during scheduling',
+          job_date: '2025-01-01', // Placeholder date - will be updated when scheduled
+          start_time: '09:00', // Placeholder time - will be updated when scheduled
+          hourly_rate: leadData.estimated_value ? Math.max(50, Math.floor(leadData.estimated_value / 4)) : 50,
+          movers_needed: 2,
+          estimated_total: leadData.estimated_value || 200,
+          estimated_duration_hours: 4,
+          lead_id: leadId,
+          status: 'pending_schedule',
+          truck_size: null,
+          special_requirements: leadData.notes || null,
+          is_paid: false
+        };
+
+        console.log('Creating job with data:', jobInsertData);
+
+        const { data: createdJob, error: jobError } = await supabase
+          .from('jobs')
+          .insert(jobInsertData)
+          .select()
+          .single();
+
+        if (jobError) {
+          console.error('Error creating job from lead:', jobError);
+          throw new Error(`Failed to create job: ${jobError.message}`);
+        }
+
+        console.log('Job created successfully:', createdJob);
+
+        // Update lead status to converted
+        const { error: leadError } = await supabase
+          .from('leads')
+          .update({ status: 'converted' })
+          .eq('id', leadId);
+
+        if (leadError) {
+          console.error('Error updating lead status:', leadError);
+          throw new Error(`Failed to update lead status: ${leadError.message}`);
+        }
+
+        console.log('Lead status updated to converted successfully');
+
+        return { job: createdJob as Job, client: createdClient };
+
+      } catch (error) {
+        console.error('Full error in lead conversion:', error);
+        throw error;
       }
-
-      console.log('Client created successfully:', createdClient);
-
-      // Create job with pending_schedule status - needs to be scheduled
-      const jobInsertData = {
-        client_id: createdClient.id,
-        client_name: leadData.name,
-        client_phone: leadData.phone,
-        client_email: leadData.email || null,
-        origin_address: leadData.origin_address || 'Origin address to be confirmed',
-        destination_address: leadData.destination_address || 'Destination address to be confirmed',
-        job_date: '2024-01-01', // Placeholder date - will be updated when scheduled
-        start_time: '09:00', // Placeholder time - will be updated when scheduled
-        hourly_rate: leadData.estimated_value ? Math.max(50, Math.floor(leadData.estimated_value / 4)) : 50,
-        movers_needed: 2,
-        estimated_total: leadData.estimated_value || 200,
-        lead_id: leadId,
-        status: 'pending_schedule' as const,
-        estimated_duration_hours: 4,
-        truck_size: null,
-        special_requirements: leadData.notes || null,
-        is_paid: false
-      };
-
-      console.log('Creating job with pending_schedule status:', jobInsertData);
-
-      const { data: createdJob, error: jobError } = await supabase
-        .from('jobs')
-        .insert(jobInsertData)
-        .select()
-        .single();
-
-      if (jobError) {
-        console.error('Error creating job from lead:', jobError);
-        throw jobError;
-      }
-
-      console.log('Job created successfully with pending schedule status:', createdJob);
-
-      // Update lead status to converted
-      const { error: leadError } = await supabase
-        .from('leads')
-        .update({ status: 'converted' })
-        .eq('id', leadId);
-
-      if (leadError) {
-        console.error('Error updating lead status:', leadError);
-        throw leadError;
-      }
-
-      console.log('Lead status updated to converted');
-
-      return { job: createdJob as Job, client: createdClient };
     },
     onSuccess: (data) => {
+      console.log('Lead conversion successful, invalidating queries');
       queryClient.invalidateQueries({ queryKey: ['jobs'] });
       queryClient.invalidateQueries({ queryKey: ['leads'] });
       queryClient.invalidateQueries({ queryKey: ['clients'] });
+      
       toast({
         title: "Lead Converted Successfully",
         description: `Lead converted to client "${data.client.name}". The job is ready for scheduling in the Jobs section.`,
@@ -242,8 +252,8 @@ export const useJobs = () => {
     onError: (error: any) => {
       console.error('Error converting lead to job:', error);
       toast({
-        title: "Error",
-        description: error.message || "Failed to convert lead to job.",
+        title: "Conversion Failed",
+        description: error.message || "Failed to convert lead to job. Please try again.",
         variant: "destructive",
       });
     }

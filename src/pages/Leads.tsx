@@ -65,13 +65,18 @@ export const Leads = () => {
           phone: lead.phone,
           email: lead.email,
           notes: lead.notes,
-          estimated_value: lead.estimated_value,
-          origin_address: '',
-          destination_address: ''
+          estimated_value: lead.estimated_value
         }
       });
       
-      console.log('Lead converted successfully, job should now be visible in Jobs tab');
+      console.log('Lead converted successfully');
+      
+      // Show success message and redirect option
+      setTimeout(() => {
+        if (confirm('Lead converted successfully! Would you like to go to the Jobs tab to schedule it?')) {
+          window.location.href = '/jobs';
+        }
+      }, 1000);
       
     } catch (error) {
       console.error('Error converting lead:', error);
@@ -377,26 +382,13 @@ export const Leads = () => {
                           <Badge className="bg-green-100 text-green-800">
                             ✓ Converted
                           </Badge>
-                          {relatedJob ? (
-                            <Button 
-                              onClick={() => window.location.href = '/jobs'}
-                              className="bg-blue-600 hover:bg-blue-700 text-white text-xs px-3 py-2"
-                            >
-                              <Settings className="h-3 w-3 mr-1" />
-                              View in Jobs
-                            </Button>
-                          ) : (
-                            <div className="flex items-center gap-2">
-                              <span className="text-xs text-green-600 font-medium">Job Created!</span>
-                              <Button 
-                                onClick={() => window.location.href = '/jobs'}
-                                className="bg-blue-600 hover:bg-blue-700 text-white text-xs px-3 py-2"
-                              >
-                                <Settings className="h-3 w-3 mr-1" />
-                                Go to Jobs
-                              </Button>
-                            </div>
-                          )}
+                          <Button 
+                            onClick={() => window.location.href = '/jobs'}
+                            className="bg-blue-600 hover:bg-blue-700 text-white text-xs px-3 py-2"
+                          >
+                            <Settings className="h-3 w-3 mr-1" />
+                            Go to Jobs
+                          </Button>
                         </div>
                       )}
                       
