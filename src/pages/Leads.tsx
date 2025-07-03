@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -246,7 +247,7 @@ export const Leads = () => {
           <Card key={lead.id} className="bg-white rounded-lg shadow-sm border border-blue-200 overflow-hidden hover:shadow-lg transition-shadow">
             <CardContent className="p-4 md:p-6">
               <div className="flex justify-between items-start mb-4">
-                <div>
+                <div className="flex-1">
                   <h3 className="text-lg font-semibold text-gray-900">{lead.name}</h3>
                   <div className="flex items-center gap-2 text-sm text-gray-600 mt-1">
                     <Phone className="h-3 w-3" />
@@ -269,8 +270,10 @@ export const Leads = () => {
                     </div>
                   )}
                 </div>
-                <div className="flex flex-col items-end gap-2">
-                  <StatusBadge status={lead.status} variant="lead" />
+                <div className="flex flex-col items-end gap-3 ml-4">
+                  <div className="text-right">
+                    <StatusBadge status={lead.status} variant="lead" />
+                  </div>
                   <Badge className="bg-gray-100 text-gray-700 capitalize">
                     {lead.source?.replace('_', ' ')}
                   </Badge>
