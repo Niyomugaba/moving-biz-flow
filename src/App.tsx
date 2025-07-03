@@ -5,7 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Layout } from "./components/Layout";
-import { Index } from "./pages/Index";
+import Index from "./pages/Index";
 import { Auth } from "./pages/Auth";
 import { Dashboard } from "./pages/Dashboard";
 import { Jobs } from "./pages/Jobs";
@@ -18,9 +18,8 @@ import { FinancialReports } from "./pages/FinancialReports";
 import { EmployeeRequests } from "./pages/EmployeeRequests";
 import { UserManagement } from "./pages/UserManagement";
 import { EmployeePortal } from "./pages/EmployeePortal";
-import { EmployeeDashboard } from "./pages/EmployeeDashboard";
 import { ManagerLogin } from "./pages/ManagerLogin";
-import { NotFound } from "./pages/NotFound";
+import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
@@ -36,7 +35,6 @@ function App() {
             <Route path="/auth" element={<Auth />} />
             <Route path="/manager-login" element={<ManagerLogin />} />
             <Route path="/employee-portal" element={<EmployeePortal />} />
-            <Route path="/employee-dashboard" element={<EmployeeDashboard />} />
             <Route path="/*" element={
               <Layout>
                 <Routes>
