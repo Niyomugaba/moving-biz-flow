@@ -27,7 +27,7 @@ export const AddEmployeeDialog = ({ open, onOpenChange, onAddEmployee }: AddEmpl
       name: formData.name,
       phone: formData.phone,
       email: formData.email,
-      hourly_wage: parseFloat(formData.hourlyWage),
+      hourly_wage: parseFloat(formData.hourlyWage) || 0,
       hire_date: formData.hireDate,
       position: formData.position,
       department: formData.department,
