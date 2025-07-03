@@ -172,18 +172,27 @@ export const useTimeEntries = () => {
 
   const approveTimeEntryMutation = useMutation({
     mutationFn: async (id: string) => {
+      // Get current user session to use proper UUID
+      const { data: { user } } = await supabase.auth.getUser();
+      const approvedBy = user?.id || null;
+      
+      console.log('Approving time entry with user ID:', approvedBy);
+      
       const { data, error } = await supabase
         .from('time_entries')
         .update({ 
           status: 'approved',
           approved_at: new Date().toISOString(),
-          approved_by: 'system' // You might want to get actual user ID
+          approved_by: approvedBy
         })
         .eq('id', id)
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error approving time entry:', error);
+        throw error;
+      }
       return data as TimeEntry;
     },
     onSuccess: () => {
@@ -194,6 +203,7 @@ export const useTimeEntries = () => {
       });
     },
     onError: (error: any) => {
+      console.error('Error in approveTimeEntryMutation:', error);
       toast({
         title: "Error",
         description: error.message || "Failed to approve time entry.",

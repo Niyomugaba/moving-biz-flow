@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Phone, Mail, Calendar, DollarSign, User, Filter, Search, ArrowRight, MessageSquare } from 'lucide-react';
+import { Plus, Phone, Mail, Calendar, DollarSign, User, Filter, Search, ArrowRight, MessageSquare, Trash2, Download } from 'lucide-react';
 import { useLeads } from '@/hooks/useLeads';
 import { useJobs } from '@/hooks/useJobs';
 import { AddLeadDialog } from '@/components/AddLeadDialog';
@@ -13,6 +13,7 @@ import { PaginationControls } from '@/components/PaginationControls';
 import { StatusBadge } from '@/components/StatusBadge';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 
 export const Leads = () => {
   const { 
@@ -80,6 +81,45 @@ export const Leads = () => {
     setIsNotesDialogOpen(true);
   };
 
+  const handleDeleteLead = (leadId: string) => {
+    deleteLead(leadId);
+  };
+
+  const exportLeadsToCSV = () => {
+    if (!leads.length) return;
+    
+    const csvRows = [];
+    const headers = [
+      'Name', 'Phone', 'Email', 'Source', 'Status', 'Estimated Value', 
+      'Follow-up Date', 'Created Date', 'Notes'
+    ];
+    csvRows.push(headers.join(','));
+
+    for (const lead of filteredLeads) {
+      const values = [
+        lead.name,
+        lead.phone,
+        lead.email || '',
+        lead.source?.replace('_', ' ') || '',
+        lead.status,
+        lead.estimated_value || 0,
+        lead.follow_up_date || '',
+        new Date(lead.created_at).toLocaleDateString(),
+        (lead.notes || '').replace(/"/g, '""') // Escape quotes in notes
+      ].map(value => `"${value}"`);
+      
+      csvRows.push(values.join(','));
+    }
+
+    const csvData = csvRows.join('\n');
+    const blob = new Blob([csvData], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.setAttribute('href', url);
+    a.setAttribute('download', 'leads_report.csv');
+    a.click();
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'new': return 'bg-blue-100 text-blue-800 border-blue-200';
@@ -120,13 +160,23 @@ export const Leads = () => {
     <div className="space-y-6 p-4 md:p-6 bg-blue-50 min-h-screen">
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
         <h1 className="text-2xl sm:text-3xl font-bold text-purple-800">Leads Management</h1>
-        <Button 
-          onClick={() => setIsAddDialogOpen(true)}
-          className="bg-purple-600 hover:bg-purple-700 w-full sm:w-auto"
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Add Lead
-        </Button>
+        <div className="flex gap-2">
+          <Button 
+            onClick={exportLeadsToCSV}
+            variant="outline"
+            className="w-full sm:w-auto"
+          >
+            <Download className="w-4 h-4 mr-2" />
+            Export CSV
+          </Button>
+          <Button 
+            onClick={() => setIsAddDialogOpen(true)}
+            className="bg-purple-600 hover:bg-purple-700 w-full sm:w-auto"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Add Lead
+          </Button>
+        </div>
       </div>
 
       {/* Mobile-Friendly Filters */}
@@ -287,6 +337,36 @@ export const Leads = () => {
                         {isConvertingLead ? 'Converting...' : 'Convert to Job'}
                       </Button>
                     )}
+                    
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button 
+                          variant="outline"
+                          className="text-xs px-3 py-2 text-red-600 border-red-200 hover:bg-red-50"
+                          disabled={isDeletingLead}
+                        >
+                          <Trash2 className="h-3 w-3 mr-1" />
+                          Delete
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Delete Lead</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Are you sure you want to delete "{lead.name}"? This action cannot be undone.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction 
+                            onClick={() => handleDeleteLead(lead.id)}
+                            className="bg-red-600 hover:bg-red-700"
+                          >
+                            Delete
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                   </div>
                 </div>
               </div>

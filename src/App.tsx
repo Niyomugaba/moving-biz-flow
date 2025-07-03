@@ -4,99 +4,61 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { ProtectedLayout } from "./components/ProtectedLayout";
+import { Layout } from "./components/Layout";
+import { Index } from "./pages/Index";
+import { Auth } from "./pages/Auth";
 import { Dashboard } from "./pages/Dashboard";
-import { Leads } from "./pages/Leads";
 import { Jobs } from "./pages/Jobs";
-import { Employees } from "./pages/Employees";
 import { Clients } from "./pages/Clients";
-import { Financials } from "./pages/Financials";
-import { EmployeePortal } from "./pages/EmployeePortal";
-import { ManagerLogin } from "./pages/ManagerLogin";
+import { Employees } from "./pages/Employees";
+import { Leads } from "./pages/Leads";
 import { TimeLogs } from "./pages/TimeLogs";
+import { Financials } from "./pages/Financials";
+import { FinancialReports } from "./pages/FinancialReports";
 import { EmployeeRequests } from "./pages/EmployeeRequests";
 import { UserManagement } from "./pages/UserManagement";
-import { Auth } from "./pages/Auth";
-import Index from "./pages/Index";
-import NotFound from "./pages/NotFound";
+import { EmployeePortal } from "./pages/EmployeePortal";
+import { EmployeeDashboard } from "./pages/EmployeeDashboard";
+import { ManagerLogin } from "./pages/ManagerLogin";
+import { NotFound } from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          {/* Root route - handles authentication redirect */}
-          <Route path="/" element={<Index />} />
-          
-          {/* Public routes */}
-          <Route path="/auth" element={<Auth />} />
-          <Route path="/employee-portal" element={<EmployeePortal />} />
-          <Route path="/manager-login" element={<ManagerLogin />} />
-          
-          {/* User protected routes */}
-          <Route path="/dashboard" element={
-            <ProtectedLayout>
-              <Dashboard />
-            </ProtectedLayout>
-          } />
-          
-          <Route path="/leads" element={
-            <ProtectedLayout>
-              <Leads />
-            </ProtectedLayout>
-          } />
-          
-          <Route path="/jobs" element={
-            <ProtectedLayout>
-              <Jobs />
-            </ProtectedLayout>
-          } />
-          
-          <Route path="/employees" element={
-            <ProtectedLayout>
-              <Employees />
-            </ProtectedLayout>
-          } />
-          
-          <Route path="/employee-requests" element={
-            <ProtectedLayout>
-              <EmployeeRequests />
-            </ProtectedLayout>
-          } />
-          
-          <Route path="/clients" element={
-            <ProtectedLayout>
-              <Clients />
-            </ProtectedLayout>
-          } />
-          
-          <Route path="/time-logs" element={
-            <ProtectedLayout>
-              <TimeLogs />
-            </ProtectedLayout>
-          } />
-          
-          <Route path="/financials" element={
-            <ProtectedLayout>
-              <Financials />
-            </ProtectedLayout>
-          } />
-          
-          <Route path="/user-management" element={
-            <ProtectedLayout>
-              <UserManagement />
-            </ProtectedLayout>
-          } />
-          
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/auth" element={<Auth />} />
+            <Route path="/manager-login" element={<ManagerLogin />} />
+            <Route path="/employee-portal" element={<EmployeePortal />} />
+            <Route path="/employee-dashboard" element={<EmployeeDashboard />} />
+            <Route path="/*" element={
+              <Layout>
+                <Routes>
+                  <Route path="/dashboard" element={<Dashboard />} />
+                  <Route path="/jobs" element={<Jobs />} />
+                  <Route path="/clients" element={<Clients />} />
+                  <Route path="/employees" element={<Employees />} />
+                  <Route path="/leads" element={<Leads />} />
+                  <Route path="/time-logs" element={<TimeLogs />} />
+                  <Route path="/financials" element={<Financials />} />
+                  <Route path="/financial-reports" element={<FinancialReports />} />
+                  <Route path="/employee-requests" element={<EmployeeRequests />} />
+                  <Route path="/user-management" element={<UserManagement />} />
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </Layout>
+            } />
+          </Routes>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
+  );
+}
 
 export default App;
