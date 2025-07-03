@@ -77,6 +77,12 @@ export const useJobs = () => {
       }
       
       console.log('Jobs fetched successfully:', data?.length);
+      console.log('Jobs data:', data);
+      
+      // Check for jobs with lead_id to see converted leads
+      const convertedLeadJobs = data?.filter(job => job.lead_id) || [];
+      console.log('Jobs converted from leads:', convertedLeadJobs.length, convertedLeadJobs);
+      
       return data as Job[];
     }
   });
@@ -148,7 +154,7 @@ export const useJobs = () => {
         name: leadData.name,
         phone: leadData.phone,
         email: leadData.email || null,
-        primary_address: leadData.origin_address || 'To be determined during scheduling',
+        primary_address: leadData.origin_address || leadData.destination_address || 'Address to be confirmed',
         secondary_address: null,
         company_name: null,
         notes: leadData.notes || null,
@@ -183,8 +189,8 @@ export const useJobs = () => {
         client_name: leadData.name,
         client_phone: leadData.phone,
         client_email: leadData.email || null,
-        origin_address: leadData.origin_address || 'To be determined during scheduling',
-        destination_address: leadData.destination_address || 'To be determined during scheduling',
+        origin_address: leadData.origin_address || 'Origin address to be confirmed',
+        destination_address: leadData.destination_address || 'Destination address to be confirmed',
         job_date: jobDate,
         start_time: '09:00',
         hourly_rate: leadData.estimated_value ? Math.max(50, Math.floor(leadData.estimated_value / 4)) : 50,
