@@ -19,10 +19,12 @@ interface TimeEntryCardProps {
   onReject: (id: string, reason?: string) => void;
   onResetStatus: (id: string) => void;
   onMarkAsPaid: (id: string) => void;
+  onMarkAsUnpaid: (id: string) => void;
   onUpdateEntry: (id: string, updates: Partial<TimeEntry>) => void;
   isApproving?: boolean;
   isRejecting?: boolean;
   isMarkingAsPaid?: boolean;
+  isMarkingAsUnpaid?: boolean;
 }
 
 export const TimeEntryCard = ({ 
@@ -31,10 +33,12 @@ export const TimeEntryCard = ({
   onReject, 
   onResetStatus,
   onMarkAsPaid,
+  onMarkAsUnpaid,
   onUpdateEntry,
   isApproving = false,
   isRejecting = false,
-  isMarkingAsPaid = false
+  isMarkingAsPaid = false,
+  isMarkingAsUnpaid = false
 }: TimeEntryCardProps) => {
   const { jobs } = useJobs();
   const { employees } = useEmployees();
@@ -294,6 +298,19 @@ export const TimeEntryCard = ({
             >
               <CreditCard className="h-4 w-4 mr-1" />
               {isMarkingAsPaid ? 'Processing...' : 'Mark as Paid'}
+            </Button>
+          )}
+
+          {entry.status === 'approved' && entry.is_paid && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => onMarkAsUnpaid(entry.id)}
+              disabled={isMarkingAsUnpaid}
+              className="border-red-500 text-red-600 hover:bg-red-50"
+            >
+              <CreditCard className="h-4 w-4 mr-1" />
+              {isMarkingAsUnpaid ? 'Processing...' : 'Mark as Unpaid'}
             </Button>
           )}
           

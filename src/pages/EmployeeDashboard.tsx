@@ -32,6 +32,12 @@ export const EmployeeDashboard = ({ employee, onLogout }: EmployeeDashboardProps
   const { timeEntries, addTimeEntry, isAddingTimeEntry, refetchTimeEntries } = useTimeEntries();
   const { jobs = [], refetchJobs } = useJobs();
   const queryClient = useQueryClient();
+
+  // Force component re-render when timeEntries change
+  const [lastUpdateTime, setLastUpdateTime] = useState(Date.now());
+  React.useEffect(() => {
+    setLastUpdateTime(Date.now());
+  }, [timeEntries]);
   
   const [currentTime, setCurrentTime] = useState(new Date());
   const [activeTab, setActiveTab] = useState('dashboard');

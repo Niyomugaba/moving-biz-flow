@@ -285,6 +285,42 @@ export const useTimeEntries = () => {
     }
   });
 
+  const markAsUnpaidMutation = useMutation({
+    mutationFn: async (id: string) => {
+      console.log('Marking time entry as unpaid:', id);
+      const { data, error } = await supabase
+        .from('time_entries')
+        .update({ 
+          is_paid: false,
+          paid_at: null
+        })
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error marking time entry as unpaid:', error);
+        throw error;
+      }
+      return data as TimeEntry;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['time-entries'] });
+      toast({
+        title: "Time Entry Marked as Unpaid",
+        description: "Time entry has been marked as unpaid.",
+      });
+    },
+    onError: (error: any) => {
+      console.error('Error in markAsUnpaidMutation:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to mark time entry as unpaid.",
+        variant: "destructive",
+      });
+    }
+  });
+
   return {
     timeEntries,
     isLoading,
@@ -296,11 +332,13 @@ export const useTimeEntries = () => {
     approveTimeEntry: approveTimeEntryMutation.mutate,
     rejectTimeEntry: rejectTimeEntryMutation.mutate,
     markAsPaid: markAsPaidMutation.mutate,
+    markAsUnpaid: markAsUnpaidMutation.mutate,
     isAddingTimeEntry: addTimeEntryMutation.isPending,
     isUpdatingTimeEntry: updateTimeEntryMutation.isPending,
     isDeletingTimeEntry: deleteTimeEntryMutation.isPending,
     isApprovingTimeEntry: approveTimeEntryMutation.isPending,
     isRejectingTimeEntry: rejectTimeEntryMutation.isPending,
-    isMarkingAsPaid: markAsPaidMutation.isPending
+    isMarkingAsPaid: markAsPaidMutation.isPending,
+    isMarkingAsUnpaid: markAsUnpaidMutation.isPending
   };
 };

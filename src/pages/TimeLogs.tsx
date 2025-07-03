@@ -38,10 +38,12 @@ export const TimeLogs = () => {
     approveTimeEntry, 
     rejectTimeEntry,
     markAsPaid,
+    markAsUnpaid,
     updateTimeEntry,
     isApprovingTimeEntry,
     isRejectingTimeEntry,
-    isMarkingAsPaid
+    isMarkingAsPaid,
+    isMarkingAsUnpaid
   } = useTimeEntries();
 
   const totalHours = useMemo(() => {
@@ -95,13 +97,16 @@ export const TimeLogs = () => {
   const paginatedEntries = filteredEntries.slice(startIndex, startIndex + itemsPerPage);
 
   const handleResetStatus = (id: string) => {
+    console.log('Resetting status to pending for entry:', id);
     updateTimeEntry({ 
       id, 
       updates: { 
         status: 'pending',
         approved_at: null,
         approved_by: null,
-        manager_notes: null
+        manager_notes: null,
+        is_paid: false,
+        paid_at: null
       }
     });
   };
@@ -256,10 +261,12 @@ export const TimeLogs = () => {
               onReject={(id: string, reason?: string) => rejectTimeEntry(id)}
               onResetStatus={handleResetStatus}
               onMarkAsPaid={markAsPaid}
+              onMarkAsUnpaid={markAsUnpaid}
               onUpdateEntry={(id: string, updates) => updateTimeEntry({ id, updates })}
               isApproving={isApprovingTimeEntry}
               isRejecting={isRejectingTimeEntry}
               isMarkingAsPaid={isMarkingAsPaid}
+              isMarkingAsUnpaid={isMarkingAsUnpaid}
             />
           ))
         )}
