@@ -110,6 +110,35 @@ export const useLeads = () => {
 
   const deleteLeadMutation = useMutation({
     mutationFn: async (id: string) => {
+      console.log('Deleting lead:', id);
+      
+      // First, check if this lead has been converted to jobs
+      const { data: relatedJobs, error: jobsError } = await supabase
+        .from('jobs')
+        .select('id, job_number')
+        .eq('lead_id', id);
+
+      if (jobsError) {
+        console.error('Error checking related jobs:', jobsError);
+        throw jobsError;
+      }
+
+      // If there are related jobs, update them to remove the lead reference
+      if (relatedJobs && relatedJobs.length > 0) {
+        console.log('Found related jobs, removing lead reference:', relatedJobs);
+        
+        const { error: updateError } = await supabase
+          .from('jobs')
+          .update({ lead_id: null })
+          .eq('lead_id', id);
+
+        if (updateError) {
+          console.error('Error updating related jobs:', updateError);
+          throw updateError;
+        }
+      }
+
+      // Now delete the lead
       const { error } = await supabase
         .from('leads')
         .delete()
@@ -119,12 +148,14 @@ export const useLeads = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['leads'] });
+      queryClient.invalidateQueries({ queryKey: ['jobs'] }); // Also invalidate jobs since we may have updated them
       toast({
         title: "Lead Deleted",
-        description: "Lead has been successfully deleted.",
+        description: "Lead has been successfully deleted. Any related jobs will remain but no longer reference this lead.",
       });
     },
     onError: (error: any) => {
+      console.error('Error deleting lead:', error);
       toast({
         title: "Error",
         description: error.message || "Failed to delete lead.",
