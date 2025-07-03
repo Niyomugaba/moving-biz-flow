@@ -167,6 +167,7 @@ export const useJobs = () => {
 
   const deleteJobMutation = useMutation({
     mutationFn: async (id: string) => {
+      console.log('Deleting job:', id);
       const { error } = await supabase
         .from('jobs')
         .delete()

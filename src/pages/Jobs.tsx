@@ -12,6 +12,17 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 
 export const Jobs = () => {
   const { jobs, isLoading, updateJob, deleteJob } = useJobs();
@@ -90,9 +101,7 @@ export const Jobs = () => {
   };
 
   const handleDeleteJob = (job: Job) => {
-    if (confirm(`Permanently delete job ${job.job_number}? This action cannot be undone.`)) {
-      deleteJob(job.id);
-    }
+    deleteJob(job.id);
   };
 
   const handleCall = (phone: string) => {
@@ -458,6 +467,33 @@ export const Jobs = () => {
                       <Edit className="h-3 w-3 mr-2" />
                       Edit Job
                     </Button>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button 
+                          variant="outline"
+                          className="hover:bg-red-50 hover:border-red-300 text-red-600"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Delete Job</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Are you sure you want to delete job {job.job_number}? This action cannot be undone.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={() => handleDeleteJob(job)}
+                            className="bg-red-600 hover:bg-red-700"
+                          >
+                            Delete
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                   </div>
                 )}
 
@@ -479,13 +515,33 @@ export const Jobs = () => {
                       <Eye className="h-3 w-3 mr-2" />
                       Review
                     </Button>
-                    <Button 
-                      onClick={() => handleDeleteJob(job)}
-                      variant="outline"
-                      className="hover:bg-red-50 hover:border-red-300 text-red-600"
-                    >
-                      <Trash2 className="h-3 w-3" />
-                    </Button>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button 
+                          variant="outline"
+                          className="hover:bg-red-50 hover:border-red-300 text-red-600"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Delete Job</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Are you sure you want to permanently delete job {job.job_number}? This action cannot be undone.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={() => handleDeleteJob(job)}
+                            className="bg-red-600 hover:bg-red-700"
+                          >
+                            Delete
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                   </div>
                 )}
               </CardContent>
