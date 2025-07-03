@@ -1,3 +1,4 @@
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -143,7 +144,7 @@ export const useJobs = () => {
       console.log('Converting lead to job:', leadId, leadData);
       
       // Create job with minimal required data
-      const jobData = {
+      const jobInsertData = {
         client_name: leadData.name,
         client_phone: leadData.phone,
         client_email: leadData.email,
@@ -159,9 +160,9 @@ export const useJobs = () => {
         estimated_duration_hours: 2
       };
 
-      const { data: jobData, error: jobError } = await supabase
+      const { data: createdJob, error: jobError } = await supabase
         .from('jobs')
-        .insert(jobData)
+        .insert(jobInsertData)
         .select()
         .single();
 
@@ -181,7 +182,7 @@ export const useJobs = () => {
         throw leadError;
       }
 
-      return jobData as Job;
+      return createdJob as Job;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['jobs'] });
