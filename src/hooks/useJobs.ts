@@ -187,7 +187,7 @@ export const useJobs = () => {
         client_email: leadData.email || null,
         origin_address: leadData.origin_address || 'Origin address to be confirmed',
         destination_address: leadData.destination_address || 'Destination address to be confirmed',
-        job_date: new Date().toISOString().split('T')[0], // Placeholder date - will be updated when scheduled
+        job_date: '2024-01-01', // Placeholder date - will be updated when scheduled
         start_time: '09:00', // Placeholder time - will be updated when scheduled
         hourly_rate: leadData.estimated_value ? Math.max(50, Math.floor(leadData.estimated_value / 4)) : 50,
         movers_needed: 2,

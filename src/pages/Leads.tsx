@@ -54,17 +54,31 @@ export const Leads = () => {
   const startIndex = (currentPage - 1) * itemsPerPage;
   const paginatedLeads = filteredLeads.slice(startIndex, startIndex + itemsPerPage);
 
-  const handleConvertToJob = (lead: any) => {
-    convertLeadToJob({ 
-      leadId: lead.id, 
-      leadData: {
-        name: lead.name,
-        phone: lead.phone,
-        email: lead.email,
-        notes: lead.notes,
-        estimated_value: lead.estimated_value
-      }
-    });
+  const handleConvertToJob = async (lead: any) => {
+    console.log('Converting lead to job:', lead);
+    
+    try {
+      await convertLeadToJob({ 
+        leadId: lead.id, 
+        leadData: {
+          name: lead.name,
+          phone: lead.phone,
+          email: lead.email,
+          notes: lead.notes,
+          estimated_value: lead.estimated_value,
+          origin_address: '',
+          destination_address: ''
+        }
+      });
+      
+      // Force refresh after conversion
+      setTimeout(() => {
+        window.location.reload();
+      }, 2000);
+      
+    } catch (error) {
+      console.error('Error converting lead:', error);
+    }
   };
 
   const handleScheduleJob = (lead: any) => {
@@ -361,14 +375,23 @@ export const Leads = () => {
                         </Button>
                       )}
 
-                      {lead.status === 'converted' && relatedJob && (
-                        <Button 
-                          onClick={() => handleScheduleJob(lead)}
-                          className="bg-blue-600 hover:bg-blue-700 text-white text-xs px-3 py-2"
-                        >
-                          <Settings className="h-3 w-3 mr-1" />
-                          Schedule Job
-                        </Button>
+                      {lead.status === 'converted' && (
+                        <div className="flex items-center gap-2">
+                          <Badge className="bg-green-100 text-green-800">
+                            ✓ Converted
+                          </Badge>
+                          {relatedJob ? (
+                            <Button 
+                              onClick={() => window.location.href = '/jobs'}
+                              className="bg-blue-600 hover:bg-blue-700 text-white text-xs px-3 py-2"
+                            >
+                              <Settings className="h-3 w-3 mr-1" />
+                              View in Jobs
+                            </Button>
+                          ) : (
+                            <span className="text-xs text-gray-500">Job being created...</span>
+                          )}
+                        </div>
                       )}
                       
                       <AlertDialog>
