@@ -143,8 +143,31 @@ export const useJobs = () => {
     mutationFn: async ({ leadId, leadData }: { leadId: string; leadData: any }) => {
       console.log('Converting lead to job:', leadId, leadData);
       
-      // Create job with minimal required data
+      // First, create a client from the lead data
+      const clientInsertData = {
+        name: leadData.name,
+        phone: leadData.phone,
+        email: leadData.email,
+        primary_address: 'TBD - To be determined during scheduling',
+        notes: leadData.notes || null
+      };
+
+      const { data: createdClient, error: clientError } = await supabase
+        .from('clients')
+        .insert(clientInsertData)
+        .select()
+        .single();
+
+      if (clientError) {
+        console.error('Error creating client from lead:', clientError);
+        throw clientError;
+      }
+
+      console.log('Client created successfully:', createdClient);
+
+      // Then create job linked to the new client
       const jobInsertData = {
+        client_id: createdClient.id,
         client_name: leadData.name,
         client_phone: leadData.phone,
         client_email: leadData.email,
@@ -182,14 +205,15 @@ export const useJobs = () => {
         throw leadError;
       }
 
-      return createdJob as Job;
+      return { job: createdJob as Job, client: createdClient };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['jobs'] });
       queryClient.invalidateQueries({ queryKey: ['leads'] });
+      queryClient.invalidateQueries({ queryKey: ['clients'] });
       toast({
         title: "Lead Converted",
-        description: "Lead has been converted to a job. You can now schedule it from the Jobs page.",
+        description: "Lead has been converted to a client and job. You can now schedule it from the Jobs page.",
       });
     },
     onError: (error: any) => {

@@ -2,11 +2,12 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Phone, Mail, Calendar, DollarSign, User, Filter, Search, ArrowRight } from 'lucide-react';
+import { Plus, Phone, Mail, Calendar, DollarSign, User, Filter, Search, ArrowRight, MessageSquare } from 'lucide-react';
 import { useLeads } from '@/hooks/useLeads';
 import { useJobs } from '@/hooks/useJobs';
 import { AddLeadDialog } from '@/components/AddLeadDialog';
 import { LeadContactCard } from '@/components/LeadContactCard';
+import { LeadNotesDialog } from '@/components/LeadNotesDialog';
 import { FilterBar } from '@/components/FilterBar';
 import { PaginationControls } from '@/components/PaginationControls';
 import { StatusBadge } from '@/components/StatusBadge';
@@ -28,6 +29,8 @@ export const Leads = () => {
   const { convertLeadToJob, isConvertingLead } = useJobs();
   
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isNotesDialogOpen, setIsNotesDialogOpen] = useState(false);
+  const [selectedLead, setSelectedLead] = useState<any>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [sourceFilter, setSourceFilter] = useState('all');
@@ -54,7 +57,8 @@ export const Leads = () => {
       leadData: {
         name: lead.name,
         phone: lead.phone,
-        email: lead.email
+        email: lead.email,
+        notes: lead.notes
       }
     });
   };
@@ -69,6 +73,11 @@ export const Leads = () => {
 
   const handleEmail = (email: string) => {
     window.open(`mailto:${email}`, '_self');
+  };
+
+  const handleAddNote = (lead: any) => {
+    setSelectedLead(lead);
+    setIsNotesDialogOpen(true);
   };
 
   const getStatusColor = (status: string) => {
@@ -258,16 +267,27 @@ export const Leads = () => {
                     </SelectContent>
                   </Select>
                   
-                  {lead.status === 'quoted' && (
+                  <div className="flex gap-2">
                     <Button 
-                      onClick={() => handleConvertToJob(lead)}
-                      disabled={isConvertingLead}
-                      className="bg-green-600 hover:bg-green-700 text-white text-xs px-3 py-2"
+                      onClick={() => handleAddNote(lead)}
+                      variant="outline"
+                      className="text-xs px-3 py-2"
                     >
-                      <ArrowRight className="h-3 w-3 mr-1" />
-                      {isConvertingLead ? 'Converting...' : 'Convert to Job'}
+                      <MessageSquare className="h-3 w-3 mr-1" />
+                      Add Note
                     </Button>
-                  )}
+                    
+                    {lead.status === 'quoted' && (
+                      <Button 
+                        onClick={() => handleConvertToJob(lead)}
+                        disabled={isConvertingLead}
+                        className="bg-green-600 hover:bg-green-700 text-white text-xs px-3 py-2"
+                      >
+                        <ArrowRight className="h-3 w-3 mr-1" />
+                        {isConvertingLead ? 'Converting...' : 'Convert to Job'}
+                      </Button>
+                    )}
+                  </div>
                 </div>
               </div>
             </CardContent>
@@ -311,6 +331,14 @@ export const Leads = () => {
         open={isAddDialogOpen} 
         onOpenChange={setIsAddDialogOpen} 
       />
+      
+      {selectedLead && (
+        <LeadNotesDialog
+          open={isNotesDialogOpen}
+          onOpenChange={setIsNotesDialogOpen}
+          lead={selectedLead}
+        />
+      )}
     </div>
   );
 };
