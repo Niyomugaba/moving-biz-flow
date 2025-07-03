@@ -171,17 +171,28 @@ export const EmployeePortal = () => {
   };
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
-    setUser(null);
-    setEmployeeData(null);
-    setEmail('');
-    setPassword('');
-    setFullName('');
-    setPhone('');
-    toast({
-      title: "Logged Out",
-      description: "You have been successfully logged out.",
-    });
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      
+      setUser(null);
+      setEmployeeData(null);
+      setEmail('');
+      setPassword('');
+      setFullName('');
+      setPhone('');
+      toast({
+        title: "Logged Out",
+        description: "You have been successfully logged out.",
+      });
+    } catch (error: any) {
+      console.error('Logout error:', error);
+      toast({
+        title: "Logout Error",
+        description: error.message || "An error occurred during logout.",
+        variant: "destructive",
+      });
+    }
   };
 
   // Show success message overlay
