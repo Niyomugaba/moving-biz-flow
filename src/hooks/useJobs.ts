@@ -1,3 +1,4 @@
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -197,7 +198,7 @@ export const useJobs = () => {
           estimated_total: leadData.estimated_value || 200,
           estimated_duration_hours: 4,
           lead_id: leadId,
-          status: 'pending_schedule',
+          status: 'pending_schedule' as const,
           truck_size: null,
           special_requirements: leadData.notes || null,
           is_paid: false
