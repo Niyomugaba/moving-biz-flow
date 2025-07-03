@@ -163,6 +163,33 @@ export const Jobs = () => {
     { value: 'rescheduled', label: 'Rescheduled' }
   ];
 
+  const handleMarkAsPaid = (job: Job) => {
+    const paymentMethod = prompt('Enter payment method (cash, check, credit_card, bank_transfer, other):');
+    if (paymentMethod) {
+      updateJob({ 
+        id: job.id, 
+        updates: { 
+          is_paid: true,
+          payment_method: paymentMethod.toLowerCase().replace(' ', '_'),
+          paid_at: new Date().toISOString()
+        } 
+      });
+    }
+  };
+
+  const handleMarkAsUnpaid = (job: Job) => {
+    if (confirm(`Mark job ${job.job_number} as unpaid?`)) {
+      updateJob({ 
+        id: job.id, 
+        updates: { 
+          is_paid: false,
+          payment_method: null,
+          paid_at: null
+        } 
+      });
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -542,6 +569,30 @@ export const Jobs = () => {
                             Edit
                           </Button>
                         </div>
+
+                        {/* Payment Status Buttons for Completed Jobs */}
+                        {job.status === 'completed' && (
+                          <div className="flex gap-2">
+                            {!job.is_paid ? (
+                              <Button 
+                                onClick={() => handleMarkAsPaid(job)}
+                                className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+                              >
+                                <CheckCircle className="h-3 w-3 mr-2" />
+                                Mark as Paid
+                              </Button>
+                            ) : (
+                              <Button 
+                                onClick={() => handleMarkAsUnpaid(job)}
+                                variant="outline"
+                                className="flex-1 hover:bg-red-50 hover:border-red-300 text-red-600"
+                              >
+                                <Clock className="h-3 w-3 mr-2" />
+                                Mark as Unpaid
+                              </Button>
+                            )}
+                          </div>
+                        )}
                       </>
                     )}
                     

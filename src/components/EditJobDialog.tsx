@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import { Button } from './ui/button';
@@ -427,6 +426,57 @@ export const EditJobDialog = ({ open, onOpenChange, job }: EditJobDialogProps) =
                   />
                 </div>
               </>
+            )}
+
+            {/* Payment Status Section for Completed Jobs */}
+            {formData.status === 'completed' && !isPendingSchedule && (
+              <div className="border-t pt-4">
+                <div className="space-y-3">
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id="isPaid"
+                      checked={formData.isPaid}
+                      onChange={(e) => setFormData({ ...formData, isPaid: e.target.checked })}
+                      className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                    />
+                    <label htmlFor="isPaid" className="text-sm font-medium text-gray-700">
+                      Mark as paid
+                    </label>
+                  </div>
+
+                  {formData.isPaid && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Payment Method
+                      </label>
+                      <select
+                        value={formData.paymentMethod}
+                        onChange={(e) => setFormData({ ...formData, paymentMethod: e.target.value })}
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                      >
+                        <option value="">Select method...</option>
+                        <option value="cash">Cash</option>
+                        <option value="check">Check</option>
+                        <option value="credit_card">Credit Card</option>
+                        <option value="bank_transfer">Bank Transfer</option>
+                        <option value="other">Other</option>
+                      </select>
+                    </div>
+                  )}
+
+                  {formData.actualHours && (
+                    <div className="bg-purple-50 p-3 rounded-lg border border-purple-200">
+                      <div className="text-sm text-purple-700 space-y-1">
+                        <div>Total calculated: ${calculatedTotal.toFixed(2)}</div>
+                        {formData.isPaid && (
+                          <div className="text-green-600 font-medium">✓ Will be marked as paid</div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
             )}
 
             {/* Truck Expenses Section - only show for completed jobs */}
