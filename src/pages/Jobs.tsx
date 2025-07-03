@@ -134,29 +134,29 @@ export const Jobs = () => {
     return job.actual_total - totalExpenses;
   };
 
-  // Calculate revenue using actual totals when available
-  const totalRevenue = displayedJobs
+  // Calculate revenue using ALL jobs, not just displayed jobs
+  const totalRevenue = jobs
     .filter(job => job.status === 'completed' && job.is_paid)
     .reduce((sum, job) => sum + (job.actual_total || 0), 0);
 
-  const totalProfit = displayedJobs
+  const totalProfit = jobs
     .filter(job => job.status === 'completed' && job.is_paid)
     .reduce((sum, job) => sum + calculateJobProfit(job), 0);
 
-  const truckRevenue = displayedJobs
+  const truckRevenue = jobs
     .filter(job => job.status === 'completed' && job.is_paid && job.truck_service_fee)
     .reduce((sum, job) => sum + (job.truck_service_fee || 0), 0);
 
-  const truckExpenses = displayedJobs
+  const truckExpenses = jobs
     .filter(job => job.status === 'completed' && job.truck_service_fee)
     .reduce((sum, job) => sum + (job.truck_rental_cost || 0) + (job.truck_gas_cost || 0), 0);
 
   const truckProfit = truckRevenue - truckExpenses;
 
-  const completedJobs = displayedJobs.filter(job => job.status === 'completed').length;
-  const paidJobs = displayedJobs.filter(job => job.is_paid).length;
+  const completedJobs = jobs.filter(job => job.status === 'completed').length;
+  const paidJobs = jobs.filter(job => job.is_paid).length;
   
-  const unpaidRevenue = displayedJobs
+  const unpaidRevenue = jobs
     .filter(job => job.status === 'completed' && !job.is_paid)
     .reduce((sum, job) => {
       const jobRevenue = job.actual_total || 0;
