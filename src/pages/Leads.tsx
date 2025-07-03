@@ -71,10 +71,7 @@ export const Leads = () => {
         }
       });
       
-      // Force refresh after conversion
-      setTimeout(() => {
-        window.location.reload();
-      }, 2000);
+      console.log('Lead converted successfully, job should now be visible in Jobs tab');
       
     } catch (error) {
       console.error('Error converting lead:', error);
@@ -389,7 +386,16 @@ export const Leads = () => {
                               View in Jobs
                             </Button>
                           ) : (
-                            <span className="text-xs text-gray-500">Job being created...</span>
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs text-green-600 font-medium">Job Created!</span>
+                              <Button 
+                                onClick={() => window.location.href = '/jobs'}
+                                className="bg-blue-600 hover:bg-blue-700 text-white text-xs px-3 py-2"
+                              >
+                                <Settings className="h-3 w-3 mr-1" />
+                                Go to Jobs
+                              </Button>
+                            </div>
                           )}
                         </div>
                       )}

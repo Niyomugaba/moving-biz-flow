@@ -46,6 +46,11 @@ export const Jobs = () => {
 
   // Filter jobs based on current view and search/status filters
   const filteredJobs = useMemo(() => {
+    console.log('All jobs:', jobs);
+    console.log('Displayed jobs:', displayedJobs);
+    console.log('Jobs with pending_schedule:', jobs.filter(job => job.status === 'pending_schedule'));
+    console.log('Jobs with lead_id:', jobs.filter(job => job.lead_id));
+    
     return displayedJobs.filter(job => {
       const matchesSearch = job.client_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            job.job_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -53,7 +58,7 @@ export const Jobs = () => {
       const matchesStatus = statusFilter === 'all' || job.status === statusFilter;
       return matchesSearch && matchesStatus;
     });
-  }, [displayedJobs, searchTerm, statusFilter]);
+  }, [displayedJobs, searchTerm, statusFilter, jobs]);
 
   // Paginate filtered jobs
   const totalPages = Math.ceil(filteredJobs.length / itemsPerPage);
@@ -68,6 +73,7 @@ export const Jobs = () => {
   };
 
   const handleScheduleConvertedLead = (job: Job) => {
+    console.log('Opening schedule dialog for converted lead:', job);
     // Open the edit dialog in scheduling mode for converted leads
     setSelectedJob(job);
     setIsEditDialogOpen(true);
@@ -223,6 +229,7 @@ export const Jobs = () => {
             <div className="flex gap-4 text-sm text-gray-600">
               <span>Active Jobs: <strong>{activeCount}</strong></span>
               <span>Archived Jobs: <strong>{archivedCount}</strong></span>
+              <span>Converted Leads: <strong>{jobs.filter(job => job.lead_id && job.status === 'pending_schedule').length}</strong></span>
             </div>
           </div>
         </CardContent>
@@ -301,8 +308,19 @@ export const Jobs = () => {
         onSearchChange={setSearchTerm}
         statusFilter={statusFilter}
         onStatusFilterChange={setStatusFilter}
-        statusOptions={jobStatusOptions}
-        onClearFilters={handleClearFilters}
+        statusOptions={[
+          { value: 'pending_schedule', label: 'Pending Schedule' },
+          { value: 'scheduled', label: 'Scheduled' },
+          { value: 'in_progress', label: 'In Progress' },
+          { value: 'completed', label: 'Completed' },
+          { value: 'cancelled', label: 'Cancelled' },
+          { value: 'rescheduled', label: 'Rescheduled' }
+        ]}
+        onClearFilters={() => {
+          setSearchTerm('');
+          setStatusFilter('all');
+          setCurrentPage(1);
+        }}
         placeholder="Search by client name, job number, or address..."
       />
 
@@ -314,11 +332,18 @@ export const Jobs = () => {
           const isCompleted = job.status === 'completed';
           const isCancelled = job.status === 'cancelled';
           const isPendingSchedule = job.status === 'pending_schedule';
-          const isConvertedLead = Boolean(job.lead_id); // Check if this job was converted from a lead
+          const isConvertedLead = Boolean(job.lead_id);
           const isArchived = (job.status === 'completed' && job.is_paid) || job.status === 'cancelled';
           const jobProfit = calculateJobProfit(job);
           const truckJobProfit = job.truck_service_fee ? 
             (job.truck_service_fee - (job.truck_rental_cost || 0) - (job.truck_gas_cost || 0)) : 0;
+          
+          console.log(`Job ${job.job_number}:`, {
+            status: job.status,
+            isPendingSchedule,
+            isConvertedLead,
+            lead_id: job.lead_id
+          });
           
           return (
             <Card key={job.id} className="bg-white rounded-lg shadow-sm border border-purple-200 overflow-hidden hover:shadow-lg transition-shadow">
@@ -329,7 +354,7 @@ export const Jobs = () => {
                     <div className="flex items-center gap-2 text-sm text-gray-600 mt-1">
                       <Phone className="h-3 w-3" />
                       <button 
-                        onClick={() => handleCall(job.client_phone)}
+                        onClick={() => window.open(`tel:${job.client_phone}`, '_self')}
                         className="hover:text-purple-600 underline"
                       >
                         {job.client_phone}
@@ -339,7 +364,7 @@ export const Jobs = () => {
                       <div className="flex items-center gap-2 text-sm text-gray-600">
                         <Mail className="h-3 w-3" />
                         <button 
-                          onClick={() => handleEmail(job.client_email!)}
+                          onClick={() => window.open(`mailto:${job.client_email!}`, '_self')}
                           className="hover:text-purple-600 underline"
                         >
                           {job.client_email}
@@ -382,7 +407,7 @@ export const Jobs = () => {
                   <div className="flex items-center text-sm text-gray-600">
                     <Calendar className="h-4 w-4 mr-2" />
                     {isPendingSchedule ? (
-                      <span className="text-orange-600 italic">Date to be scheduled</span>
+                      <span className="text-orange-600 font-medium">Ready to be scheduled</span>
                     ) : (
                       <span>{job.job_date} at {job.start_time}</span>
                     )}
@@ -390,7 +415,13 @@ export const Jobs = () => {
                   
                   <div className="flex items-start text-sm text-gray-600">
                     <MapPin className="h-4 w-4 mr-2 mt-0.5 flex-shrink-0" />
-                    <span>{job.origin_address}</span>
+                    <span>
+                      {job.origin_address === 'Origin address to be confirmed' ? (
+                        <span className="text-orange-600 italic">Address to be confirmed</span>
+                      ) : (
+                        job.origin_address
+                      )}
+                    </span>
                   </div>
                   
                   <div className="flex items-center text-sm text-gray-600">
@@ -485,7 +516,23 @@ export const Jobs = () => {
                       <>
                         {job.status !== 'completed' && (
                           <Button 
-                            onClick={() => handleMarkDone(job)}
+                            onClick={() => {
+                              const hours = prompt('Enter total hours worked:');
+                              if (hours && !isNaN(parseFloat(hours))) {
+                                const actualHours = parseFloat(hours);
+                                const totalHourlyRate = job.hourly_rate * job.movers_needed;
+                                const calculatedTotal = totalHourlyRate * actualHours;
+                                
+                                updateJob({ 
+                                  id: job.id, 
+                                  updates: { 
+                                    status: 'completed',
+                                    actual_duration_hours: actualHours,
+                                    actual_total: calculatedTotal
+                                  } 
+                                });
+                              }
+                            }}
                             variant="outline"
                             className="flex-1 hover:bg-green-50 hover:border-green-300 text-green-600"
                           >
@@ -522,7 +569,7 @@ export const Jobs = () => {
                         <AlertDialogFooter>
                           <AlertDialogCancel>Cancel</AlertDialogCancel>
                           <AlertDialogAction
-                            onClick={() => handleDeleteJob(job)}
+                            onClick={() => deleteJob(job.id)}
                             className="bg-red-600 hover:bg-red-700"
                           >
                             Delete
@@ -594,7 +641,7 @@ export const Jobs = () => {
           <p className="text-purple-400 mt-2">
             {showArchived 
               ? 'Complete and mark jobs as paid to see them in archives'
-              : 'Start by scheduling your first moving job'
+              : 'Start by scheduling your first moving job or convert leads to jobs'
             }
           </p>
         </div>
