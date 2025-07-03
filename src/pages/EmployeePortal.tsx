@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -5,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { EmployeeDashboard } from './EmployeeDashboard';
-import { Shield, Users, Mail, LogIn, Truck, Eye, EyeOff, UserPlus, CheckCircle } from 'lucide-react';
+import { Shield, Users, Mail, LogIn, Truck, Eye, EyeOff, UserPlus, CheckCircle, XCircle } from 'lucide-react';
 
 export const EmployeePortal = () => {
   const [email, setEmail] = useState('');
@@ -18,6 +19,7 @@ export const EmployeePortal = () => {
   const [employeeData, setEmployeeData] = useState<any>(null);
   const [user, setUser] = useState<any>(null);
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
+  const [employeeRequestStatus, setEmployeeRequestStatus] = useState<string | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -41,6 +43,7 @@ export const EmployeePortal = () => {
         } else {
           setUser(null);
           setEmployeeData(null);
+          setEmployeeRequestStatus(null);
         }
       }
     );
@@ -65,25 +68,36 @@ export const EmployeePortal = () => {
 
       if (employee) {
         setEmployeeData(employee);
+        setEmployeeRequestStatus(null);
         toast({
           title: "Welcome Back!",
           description: `Hello ${employee.name}! Access granted to your dashboard.`,
         });
       } else {
-        // Check if there's a pending request
-        const { data: pendingRequest } = await supabase
+        // Check employee request status
+        const { data: employeeRequest } = await supabase
           .from('employee_requests')
-          .select('*')
+          .select('status')
           .eq('email', user.email)
-          .eq('status', 'pending')
           .maybeSingle();
 
-        if (pendingRequest) {
-          toast({
-            title: "Account Pending Approval",
-            description: "Your employee request is being reviewed. You can still log time entries while waiting for approval.",
-          });
+        if (employeeRequest) {
+          setEmployeeRequestStatus(employeeRequest.status);
+          
+          if (employeeRequest.status === 'pending') {
+            toast({
+              title: "Account Pending Approval",
+              description: "Your employee request is being reviewed. You can still log time entries while waiting for approval.",
+            });
+          } else if (employeeRequest.status === 'rejected') {
+            toast({
+              title: "Account Request Rejected",
+              description: "Your employee request has been rejected. Please contact management for more information.",
+              variant: "destructive",
+            });
+          }
         } else {
+          setEmployeeRequestStatus(null);
           toast({
             title: "Account Not Found",
             description: "You'll need to submit an employee request to access the system.",
@@ -177,6 +191,7 @@ export const EmployeePortal = () => {
       
       setUser(null);
       setEmployeeData(null);
+      setEmployeeRequestStatus(null);
       setEmail('');
       setPassword('');
       setFullName('');
@@ -242,8 +257,49 @@ export const EmployeePortal = () => {
     );
   }
 
+  // If user is logged in but request was rejected, show rejection message
+  if (user && employeeRequestStatus === 'rejected') {
+    return (
+      <div className="min-h-screen bg-purple-600 flex items-center justify-center p-6">
+        <div className="max-w-md w-full">
+          <Card className="border-2 border-white/20 shadow-2xl bg-white backdrop-blur-sm">
+            <CardHeader className="text-center pb-6 bg-red-500 rounded-t-lg">
+              <div className="flex justify-center mb-4">
+                <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center">
+                  <XCircle className="w-8 h-8 text-red-500" />
+                </div>
+              </div>
+              <CardTitle className="text-2xl font-bold text-white">
+                Request Rejected
+              </CardTitle>
+              <CardDescription className="text-red-100 text-base">
+                Your employee request has been rejected
+              </CardDescription>
+            </CardHeader>
+            
+            <CardContent className="p-8 text-center">
+              <p className="text-gray-600 mb-6">
+                Hello {user.user_metadata?.full_name || user.email}! Unfortunately, your employee request has been rejected by management.
+              </p>
+              <p className="text-sm text-gray-500 mb-6">
+                Please contact management for more information about this decision.
+              </p>
+              <Button 
+                onClick={handleLogout}
+                variant="outline"
+                className="w-full"
+              >
+                Logout
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
   // If user is logged in but not approved, show pending status
-  if (user && !employeeData) {
+  if (user && employeeRequestStatus === 'pending') {
     return (
       <div className="min-h-screen bg-purple-600 flex items-center justify-center p-6">
         <div className="max-w-md w-full">
