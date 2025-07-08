@@ -33,7 +33,7 @@ export const EditJobDialog = ({ open, onOpenChange, job }: EditJobDialogProps) =
     is_paid: false,
     payment_method: '',
     paid_at: null as string | null,
-    status: 'scheduled'
+    status: 'scheduled' as const
   });
 
   const { updateJob, isUpdatingJob } = useJobs();
