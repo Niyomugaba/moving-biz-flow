@@ -58,6 +58,7 @@ export interface CreateJobData {
   paid_at?: string;
   lead_id?: string;
   lead_cost?: number;
+  is_lead?: boolean; // New flag to indicate if the client is a lead
 }
 
 export const useJobs = () => {
@@ -133,46 +134,91 @@ export const useJobs = () => {
     mutationFn: async (jobData: CreateJobData) => {
       console.log('Creating job with data:', jobData);
       
+      // Extract is_lead flag and remove it from the job data
+      const isLead = jobData.is_lead === true;
+      const { is_lead, ...jobDataWithoutIsLead } = jobData;
+      
       // Validate job data
-      const validation = SystemValidator.validateJobData(jobData);
+      const validation = SystemValidator.validateJobData(jobDataWithoutIsLead);
       if (!validation.isValid) {
         throw new Error(validation.errors.join(', '));
       }
       
       // Sanitize data for database
-      const sanitizedData = sanitizeDataForDatabase(jobData);
+      const sanitizedData = sanitizeDataForDatabase(jobDataWithoutIsLead);
       
-      // If there's a lead_cost but no lead_id, create a pseudo-lead entry first
+      // If client is marked as a lead OR there's a lead_cost but no lead_id, create a lead entry
       let leadId = sanitizedData.lead_id;
-      if (sanitizedData.lead_cost && sanitizedData.lead_cost > 0 && !leadId) {
-        console.log('Creating pseudo-lead for direct scheduling with lead cost:', sanitizedData.lead_cost);
+      
+      if ((isLead || (sanitizedData.lead_cost && sanitizedData.lead_cost > 0)) && !leadId) {
+        console.log('Creating lead entry for client marked as lead:', sanitizedData.client_name);
         
-        const { data: pseudoLead, error: leadError } = await supabase
+        const { data: leadData, error: leadError } = await supabase
           .from('leads')
           .insert({
             name: sanitizedData.client_name,
             phone: sanitizedData.client_phone,
             email: sanitizedData.client_email || null,
             estimated_value: sanitizedData.estimated_total,
-            lead_cost: sanitizedData.lead_cost,
+            lead_cost: sanitizedData.lead_cost || 0,
             status: 'converted',
             source: 'other',
-            notes: 'Direct scheduling with lead cost tracking'
+            notes: isLead ? 'Added as lead during manual job scheduling' : 'Direct scheduling with lead cost tracking'
           })
           .select()
           .single();
         
         if (leadError) {
-          console.error('Error creating pseudo-lead:', leadError);
+          console.error('Error creating lead:', leadError);
           // Continue without lead_id if lead creation fails
         } else {
-          leadId = pseudoLead.id;
-          console.log('Pseudo-lead created successfully:', pseudoLead);
+          leadId = leadData.id;
+          console.log('Lead created successfully:', leadData);
+        }
+      }
+      
+      // Create or find client record
+      let clientId = sanitizedData.client_id;
+      
+      if (!clientId) {
+        // Check if client already exists with this phone number
+        const { data: existingClient, error: clientCheckError } = await supabase
+          .from('clients')
+          .select('id')
+          .eq('phone', sanitizedData.client_phone)
+          .maybeSingle();
+
+        if (clientCheckError) {
+          console.error('Error checking existing client:', clientCheckError);
+        } else if (existingClient) {
+          clientId = existingClient.id;
+          console.log('Found existing client:', existingClient.id);
+        } else {
+          // Create new client
+          const { data: newClient, error: clientError } = await supabase
+            .from('clients')
+            .insert({
+              name: sanitizedData.client_name,
+              phone: sanitizedData.client_phone,
+              email: sanitizedData.client_email || null,
+              primary_address: sanitizedData.origin_address || 'Address from job booking',
+              total_jobs_completed: 0,
+              total_revenue: 0
+            })
+            .select()
+            .single();
+
+          if (clientError) {
+            console.error('Error creating client:', clientError);
+          } else if (newClient) {
+            clientId = newClient.id;
+            console.log('Client created successfully:', newClient);
+          }
         }
       }
       
       const insertData = {
-        client_id: sanitizedData.client_id,
+        client_id: clientId,
         client_name: sanitizedData.client_name,
         client_phone: sanitizedData.client_phone,
         client_email: sanitizedData.client_email,

@@ -6,8 +6,10 @@ import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Textarea } from './ui/textarea';
+import { Checkbox } from './ui/checkbox';
 import { useJobs } from '@/hooks/useJobs';
 import { useClients } from '@/hooks/useClients';
+import { AlertCircle } from 'lucide-react';
 
 interface ScheduleJobDialogProps {
   open: boolean;
@@ -56,7 +58,8 @@ export const ScheduleJobDialog = ({ open, onOpenChange, leadData, jobData }: Sch
     is_paid: jobData?.is_paid || false,
     payment_method: jobData?.payment_method || '',
     paid_at: jobData?.paid_at || null as string | null,
-    lead_cost: 0 // New field for lead cost
+    lead_cost: 0,
+    is_lead: false // New field to track if manually added client is a lead
   });
 
   const { addJob, updateJob, isAddingJob, isUpdatingJob } = useJobs();
@@ -82,7 +85,8 @@ export const ScheduleJobDialog = ({ open, onOpenChange, leadData, jobData }: Sch
         is_paid: jobData?.is_paid || false,
         payment_method: jobData?.payment_method || '',
         paid_at: jobData?.paid_at || null,
-        lead_cost: 0
+        lead_cost: 0,
+        is_lead: false
       });
     }
   }, [open, leadData, jobData]);
@@ -99,7 +103,7 @@ export const ScheduleJobDialog = ({ open, onOpenChange, leadData, jobData }: Sch
       truck_size: formData.truck_size || null,
       special_requirements: formData.special_requirements || null,
       paid_at: formData.is_paid && formData.paid_at ? formData.paid_at : null,
-      lead_cost: Number(formData.lead_cost) || 0
+      lead_cost: formData.is_lead ? Number(formData.lead_cost) : 0
     };
 
     console.log('Submitting job data:', submissionData);
@@ -133,6 +137,15 @@ export const ScheduleJobDialog = ({ open, onOpenChange, leadData, jobData }: Sch
         estimated_total: Math.min(calculatedTotal, maxTotal)
       }));
     }
+
+    // Reset lead cost if is_lead is set to false
+    if (field === 'is_lead' && value === false) {
+      setFormData(prev => ({
+        ...prev,
+        [field]: value,
+        lead_cost: 0
+      }));
+    }
   };
 
   const handleClientSelect = (clientId: string) => {
@@ -143,7 +156,9 @@ export const ScheduleJobDialog = ({ open, onOpenChange, leadData, jobData }: Sch
         client_id: clientId,
         client_name: client.name,
         client_phone: client.phone,
-        client_email: client.email || ''
+        client_email: client.email || '',
+        is_lead: false, // Reset lead status when selecting existing client
+        lead_cost: 0    // Reset lead cost when selecting existing client
       }));
     }
   };
@@ -209,22 +224,43 @@ export const ScheduleJobDialog = ({ open, onOpenChange, leadData, jobData }: Sch
             />
           </div>
 
-          {/* Lead Cost Field - Only show for new clients */}
+          {/* Lead Information Section - Only show for new manually entered clients */}
           {isNewClient && (
-            <div className="space-y-2">
-              <Label htmlFor="lead_cost">Lead Cost (Optional)</Label>
-              <Input
-                id="lead_cost"
-                type="number"
-                value={formData.lead_cost}
-                onChange={(e) => handleInputChange('lead_cost', e.target.value)}
-                min="0"
-                step="0.01"
-                placeholder="Enter cost if this was a paid lead"
-              />
-              <p className="text-sm text-gray-500">
-                Track the cost of generating this lead (advertising, referral fees, etc.)
+            <div className="border p-4 rounded-md bg-gray-50">
+              <div className="flex items-center space-x-2 mb-3">
+                <Checkbox
+                  id="is_lead"
+                  checked={formData.is_lead}
+                  onCheckedChange={(checked) => handleInputChange('is_lead', checked)}
+                />
+                <Label htmlFor="is_lead" className="font-medium text-gray-800">
+                  This client is a lead
+                </Label>
+                <AlertCircle className="h-4 w-4 text-blue-600" />
+              </div>
+              
+              <p className="text-sm text-gray-600 mb-3">
+                Select this if the client came from lead generation activities and you want to track costs.
+                They'll be added to both your leads list and client list.
               </p>
+
+              {formData.is_lead && (
+                <div className="space-y-2">
+                  <Label htmlFor="lead_cost">Lead Cost ($)</Label>
+                  <Input
+                    id="lead_cost"
+                    type="number"
+                    value={formData.lead_cost}
+                    onChange={(e) => handleInputChange('lead_cost', e.target.value)}
+                    min="0"
+                    step="0.01"
+                    placeholder="Enter acquisition cost"
+                  />
+                  <p className="text-sm text-gray-500">
+                    Enter the cost of acquiring this lead (advertising, referral fees, etc.)
+                  </p>
+                </div>
+              )}
             </div>
           )}
 
@@ -335,12 +371,10 @@ export const ScheduleJobDialog = ({ open, onOpenChange, leadData, jobData }: Sch
           </div>
 
           <div className="flex items-center space-x-2">
-            <input
-              type="checkbox"
+            <Checkbox
               id="is_paid"
               checked={formData.is_paid}
-              onChange={(e) => handleInputChange('is_paid', e.target.checked)}
-              className="rounded"
+              onCheckedChange={(checked) => handleInputChange('is_paid', checked)}
             />
             <Label htmlFor="is_paid">Mark as Paid</Label>
           </div>
