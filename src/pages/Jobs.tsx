@@ -209,7 +209,7 @@ export const Jobs = () => {
         <EditJobDialog
           open={showEditDialog}
           onOpenChange={setShowEditDialog}
-          jobData={jobToEdit}
+          job={jobToEdit}
         />
 
         <AlertDialog open={!!jobToDelete} onOpenChange={() => setJobToDelete(null)}>
@@ -473,7 +473,7 @@ export const Jobs = () => {
       <EditJobDialog
         open={showEditDialog}
         onOpenChange={setShowEditDialog}
-        jobData={jobToEdit}
+        job={jobToEdit}
       />
 
       {selectedJobForLeadCost && (
