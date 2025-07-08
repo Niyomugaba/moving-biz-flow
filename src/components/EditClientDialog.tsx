@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import { Button } from './ui/button';
@@ -63,15 +62,18 @@ export const EditClientDialog = ({ open, onOpenChange, client }: EditClientDialo
     
     try {
       // Update client information
-      await updateClient(client.id, {
-        name: formData.name,
-        phone: formData.phone,
-        email: formData.email || null,
-        primary_address: formData.primary_address,
-        secondary_address: formData.secondary_address || null,
-        company_name: formData.company_name || null,
-        preferred_contact_method: formData.preferred_contact_method,
-        notes: formData.notes || null
+      await updateClient({
+        id: client.id,
+        updates: {
+          name: formData.name,
+          phone: formData.phone,
+          email: formData.email || null,
+          primary_address: formData.primary_address,
+          secondary_address: formData.secondary_address || null,
+          company_name: formData.company_name || null,
+          preferred_contact_method: formData.preferred_contact_method,
+          notes: formData.notes || null
+        }
       });
 
       // Handle lead creation/update if marked as lead
