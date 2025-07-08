@@ -55,7 +55,8 @@ export const ScheduleJobDialog = ({ open, onOpenChange, leadData, jobData }: Sch
     special_requirements: jobData?.special_requirements || '',
     is_paid: jobData?.is_paid || false,
     payment_method: jobData?.payment_method || '',
-    paid_at: jobData?.paid_at || null as string | null
+    paid_at: jobData?.paid_at || null as string | null,
+    lead_cost: 0 // New field for lead cost
   });
 
   const { addJob, updateJob, isAddingJob, isUpdatingJob } = useJobs();
@@ -80,7 +81,8 @@ export const ScheduleJobDialog = ({ open, onOpenChange, leadData, jobData }: Sch
         special_requirements: jobData?.special_requirements || '',
         is_paid: jobData?.is_paid || false,
         payment_method: jobData?.payment_method || '',
-        paid_at: jobData?.paid_at || null
+        paid_at: jobData?.paid_at || null,
+        lead_cost: 0
       });
     }
   }, [open, leadData, jobData]);
@@ -96,7 +98,8 @@ export const ScheduleJobDialog = ({ open, onOpenChange, leadData, jobData }: Sch
       movers_needed: Number(formData.movers_needed),
       truck_size: formData.truck_size || null,
       special_requirements: formData.special_requirements || null,
-      paid_at: formData.is_paid && formData.paid_at ? formData.paid_at : null
+      paid_at: formData.is_paid && formData.paid_at ? formData.paid_at : null,
+      lead_cost: Number(formData.lead_cost) || 0
     };
 
     console.log('Submitting job data:', submissionData);
@@ -144,6 +147,8 @@ export const ScheduleJobDialog = ({ open, onOpenChange, leadData, jobData }: Sch
       }));
     }
   };
+
+  const isNewClient = !formData.client_id;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -203,6 +208,25 @@ export const ScheduleJobDialog = ({ open, onOpenChange, leadData, jobData }: Sch
               onChange={(e) => handleInputChange('client_email', e.target.value)}
             />
           </div>
+
+          {/* Lead Cost Field - Only show for new clients */}
+          {isNewClient && (
+            <div className="space-y-2">
+              <Label htmlFor="lead_cost">Lead Cost (Optional)</Label>
+              <Input
+                id="lead_cost"
+                type="number"
+                value={formData.lead_cost}
+                onChange={(e) => handleInputChange('lead_cost', e.target.value)}
+                min="0"
+                step="0.01"
+                placeholder="Enter cost if this was a paid lead"
+              />
+              <p className="text-sm text-gray-500">
+                Track the cost of generating this lead (advertising, referral fees, etc.)
+              </p>
+            </div>
+          )}
 
           <div className="space-y-2">
             <Label htmlFor="origin_address">Origin Address *</Label>

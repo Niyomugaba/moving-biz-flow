@@ -34,6 +34,7 @@ export interface Job {
   truck_rental_cost?: number;
   truck_gas_cost?: number;
   lead_id?: string;
+  lead_cost?: number;
   created_at: string;
   updated_at: string;
 }
@@ -56,6 +57,7 @@ export interface CreateJobData {
   payment_method?: string;
   paid_at?: string;
   lead_id?: string;
+  lead_cost?: number;
 }
 
 export const useJobs = () => {
@@ -140,6 +142,35 @@ export const useJobs = () => {
       // Sanitize data for database
       const sanitizedData = sanitizeDataForDatabase(jobData);
       
+      // If there's a lead_cost but no lead_id, create a pseudo-lead entry first
+      let leadId = sanitizedData.lead_id;
+      if (sanitizedData.lead_cost && sanitizedData.lead_cost > 0 && !leadId) {
+        console.log('Creating pseudo-lead for direct scheduling with lead cost:', sanitizedData.lead_cost);
+        
+        const { data: pseudoLead, error: leadError } = await supabase
+          .from('leads')
+          .insert({
+            name: sanitizedData.client_name,
+            phone: sanitizedData.client_phone,
+            email: sanitizedData.client_email || null,
+            estimated_value: sanitizedData.estimated_total,
+            lead_cost: sanitizedData.lead_cost,
+            status: 'converted',
+            source: 'other',
+            notes: 'Direct scheduling with lead cost tracking'
+          })
+          .select()
+          .single();
+        
+        if (leadError) {
+          console.error('Error creating pseudo-lead:', leadError);
+          // Continue without lead_id if lead creation fails
+        } else {
+          leadId = pseudoLead.id;
+          console.log('Pseudo-lead created successfully:', pseudoLead);
+        }
+      }
+      
       const insertData = {
         client_id: sanitizedData.client_id,
         client_name: sanitizedData.client_name,
@@ -157,7 +188,7 @@ export const useJobs = () => {
         is_paid: sanitizedData.is_paid || false,
         payment_method: sanitizedData.payment_method,
         paid_at: sanitizedData.paid_at,
-        lead_id: sanitizedData.lead_id,
+        lead_id: leadId,
         status: 'scheduled' as const,
         estimated_duration_hours: 2 // Default 2 hours minimum
       };
@@ -181,6 +212,7 @@ export const useJobs = () => {
       queryClient.invalidateQueries({ queryKey: ['jobs'] });
       queryClient.invalidateQueries({ queryKey: ['clients'] });
       queryClient.invalidateQueries({ queryKey: ['client-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['leads'] });
       
       toast({
         title: "Job Created",
