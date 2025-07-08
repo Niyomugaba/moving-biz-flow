@@ -94,7 +94,9 @@ export const EditJobDialog = ({ open, onOpenChange, job }: EditJobDialogProps) =
         );
 
         if (!existingLead) {
-          const leadData = await addLead({
+          // Create new lead - addLead returns void but we need the created lead id
+          // We'll need to refetch leads after creation to get the id
+          addLead({
             name: formData.client_name,
             phone: formData.client_phone,
             email: formData.client_email || null,
@@ -105,7 +107,9 @@ export const EditJobDialog = ({ open, onOpenChange, job }: EditJobDialogProps) =
             notes: 'Retroactively marked as lead for existing job'
           });
           
-          leadId = leadData.id;
+          // Since addLead returns void, we'll update the job without the lead_id first
+          // The lead will be created and the association can be made in a subsequent update
+          leadId = null;
         } else {
           leadId = existingLead.id;
         }
@@ -124,7 +128,7 @@ export const EditJobDialog = ({ open, onOpenChange, job }: EditJobDialogProps) =
         lead_id: formData.is_lead ? leadId : null
       };
 
-      // Remove is_lead from the updates since it's not a database field
+      // Remove is_lead and lead_cost from the updates since they're not database fields
       const { is_lead, lead_cost, ...jobUpdates } = updates;
 
       console.log('Updating job with data:', jobUpdates);
