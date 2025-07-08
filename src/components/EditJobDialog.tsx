@@ -8,6 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Textarea } from './ui/textarea';
 import { Checkbox } from './ui/checkbox';
 import { useJobs } from '@/hooks/useJobs';
+import { useLeads } from '@/hooks/useLeads';
+import { AlertCircle } from 'lucide-react';
 
 interface EditJobDialogProps {
   open: boolean;
@@ -33,13 +35,22 @@ export const EditJobDialog = ({ open, onOpenChange, job }: EditJobDialogProps) =
     is_paid: false,
     payment_method: '',
     paid_at: null as string | null,
-    status: 'scheduled' as const
+    status: 'scheduled' as const,
+    is_lead: false,
+    lead_cost: 0
   });
 
   const { updateJob, isUpdatingJob } = useJobs();
+  const { addLead, leads } = useLeads();
 
   useEffect(() => {
     if (job && open) {
+      // Check if this job already has a lead_id or check if there's a matching lead
+      const hasExistingLead = job.lead_id || leads.find(lead => 
+        lead.name.toLowerCase() === job.client_name.toLowerCase() && 
+        lead.phone === job.client_phone
+      );
+
       setFormData({
         client_name: job.client_name || '',
         client_phone: job.client_phone || '',
@@ -57,32 +68,72 @@ export const EditJobDialog = ({ open, onOpenChange, job }: EditJobDialogProps) =
         is_paid: job.is_paid || false,
         payment_method: job.payment_method || '',
         paid_at: job.paid_at || null,
-        status: job.status || 'scheduled'
+        status: job.status || 'scheduled',
+        is_lead: !!hasExistingLead,
+        lead_cost: hasExistingLead?.lead_cost || 0
       });
     }
-  }, [job, open]);
+  }, [job, open, leads]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!job) return;
 
-    const updates = {
-      ...formData,
-      estimated_total: Number(formData.estimated_total),
-      actual_total: Number(formData.actual_total),
-      hourly_rate: Number(formData.hourly_rate),
-      movers_needed: Number(formData.movers_needed),
-      truck_size: formData.truck_size || null,
-      special_requirements: formData.special_requirements || null,
-      paid_at: formData.is_paid && formData.paid_at ? formData.paid_at : null,
-      payment_method: formData.is_paid ? formData.payment_method : null
-    };
+    try {
+      // If marked as lead and no existing lead_id, create a lead entry
+      let leadId = job.lead_id;
+      
+      if (formData.is_lead && !leadId) {
+        console.log('Creating lead entry for existing job:', formData.client_name);
+        
+        // Check if lead already exists
+        const existingLead = leads.find(lead => 
+          lead.name.toLowerCase() === formData.client_name.toLowerCase() && 
+          lead.phone === formData.client_phone
+        );
 
-    console.log('Updating job with data:', updates);
-    
-    updateJob({ id: job.id, updates });
-    onOpenChange(false);
+        if (!existingLead) {
+          const leadData = await addLead({
+            name: formData.client_name,
+            phone: formData.client_phone,
+            email: formData.client_email || null,
+            estimated_value: formData.estimated_total,
+            lead_cost: formData.lead_cost,
+            status: 'converted',
+            source: 'other',
+            notes: 'Retroactively marked as lead for existing job'
+          });
+          
+          leadId = leadData.id;
+        } else {
+          leadId = existingLead.id;
+        }
+      }
+
+      const updates = {
+        ...formData,
+        estimated_total: Number(formData.estimated_total),
+        actual_total: Number(formData.actual_total),
+        hourly_rate: Number(formData.hourly_rate),
+        movers_needed: Number(formData.movers_needed),
+        truck_size: formData.truck_size || null,
+        special_requirements: formData.special_requirements || null,
+        paid_at: formData.is_paid && formData.paid_at ? formData.paid_at : null,
+        payment_method: formData.is_paid ? formData.payment_method : null,
+        lead_id: formData.is_lead ? leadId : null
+      };
+
+      // Remove is_lead from the updates since it's not a database field
+      const { is_lead, lead_cost, ...jobUpdates } = updates;
+
+      console.log('Updating job with data:', jobUpdates);
+      
+      updateJob({ id: job.id, updates: jobUpdates });
+      onOpenChange(false);
+    } catch (error) {
+      console.error('Error updating job:', error);
+    }
   };
 
   const handleInputChange = (field: string, value: any) => {
@@ -100,6 +151,15 @@ export const EditJobDialog = ({ open, onOpenChange, job }: EditJobDialogProps) =
         ...prev, 
         [field]: value,
         estimated_total: Math.min(calculatedTotal, maxTotal)
+      }));
+    }
+
+    // Reset lead cost if is_lead is set to false
+    if (field === 'is_lead' && value === false) {
+      setFormData(prev => ({
+        ...prev,
+        [field]: value,
+        lead_cost: 0
       }));
     }
   };
@@ -275,6 +335,40 @@ export const EditJobDialog = ({ open, onOpenChange, job }: EditJobDialogProps) =
               onChange={(e) => handleInputChange('special_requirements', e.target.value)}
               rows={3}
             />
+          </div>
+
+          {/* Lead Information Section */}
+          <div className="border p-4 rounded-md bg-gray-50">
+            <div className="flex items-center space-x-2 mb-3">
+              <Checkbox
+                id="is_lead"
+                checked={formData.is_lead}
+                onCheckedChange={(checked) => handleInputChange('is_lead', checked)}
+              />
+              <Label htmlFor="is_lead" className="font-medium text-gray-800">
+                This job came from a lead
+              </Label>
+              <AlertCircle className="h-4 w-4 text-blue-600" />
+            </div>
+            
+            <p className="text-sm text-gray-600 mb-3">
+              Mark this job as originating from a lead to track acquisition costs and performance metrics.
+            </p>
+
+            {formData.is_lead && (
+              <div className="space-y-2">
+                <Label htmlFor="lead_cost">Lead Cost ($)</Label>
+                <Input
+                  id="lead_cost"
+                  type="number"
+                  value={formData.lead_cost}
+                  onChange={(e) => handleInputChange('lead_cost', e.target.value)}
+                  min="0"
+                  step="0.01"
+                  placeholder="Enter lead acquisition cost"
+                />
+              </div>
+            )}
           </div>
 
           <div className="flex items-center space-x-2">
