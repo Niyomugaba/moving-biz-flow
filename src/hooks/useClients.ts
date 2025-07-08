@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -108,6 +107,44 @@ export const useClients = () => {
     }
   });
 
+  const updateClientMutation = useMutation({
+    mutationFn: async ({ id, updates }: { id: string; updates: Partial<Client> }) => {
+      console.log('Updating client:', id, updates);
+      
+      const { data, error } = await supabase
+        .from('clients')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+      
+      if (error) {
+        console.error('Error updating client:', error);
+        throw error;
+      }
+      
+      console.log('Client updated successfully:', data);
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['clients'] });
+      toast({
+        title: "Client Updated",
+        description: `${data.name} has been updated successfully.`,
+        duration: 2000
+      });
+    },
+    onError: (error) => {
+      console.error('Error in updateClientMutation:', error);
+      toast({
+        title: "Error Updating Client",
+        description: "There was an error updating the client. Please try again.",
+        variant: "destructive",
+        duration: 2000
+      });
+    }
+  });
+
   const deleteClientMutation = useMutation({
     mutationFn: async (clientId: string) => {
       console.log('Deleting client with id:', clientId);
@@ -149,6 +186,8 @@ export const useClients = () => {
     isLoading,
     addClient: addClientMutation.mutateAsync,
     isAddingClient: addClientMutation.isPending,
+    updateClient: updateClientMutation.mutateAsync,
+    isUpdatingClient: updateClientMutation.isPending,
     deleteClient: deleteClientMutation.mutateAsync,
     isDeletingClient: deleteClientMutation.isPending
   };

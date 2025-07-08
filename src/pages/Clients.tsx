@@ -10,6 +10,7 @@ import { useLeads } from "@/hooks/useLeads";
 import { useClientStats } from "@/hooks/useClientStats";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { AddClientDialog } from "@/components/AddClientDialog";
+import { EditClientDialog } from "@/components/EditClientDialog";
 import { 
   Search, 
   Plus,
@@ -32,7 +33,9 @@ export const Clients = () => {
   const { clientStats } = useClientStats();
   const [searchTerm, setSearchTerm] = useState('');
   const [showAddDialog, setShowAddDialog] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
   const [clientToDelete, setClientToDelete] = useState<string | null>(null);
+  const [clientToEdit, setClientToEdit] = useState<any>(null);
   const isMobile = useIsMobile();
 
   // Merge clients with lead status information and updated stats
@@ -99,6 +102,11 @@ export const Clients = () => {
     window.URL.revokeObjectURL(url);
     
     toast.success('Client data exported successfully!');
+  };
+
+  const handleEditClient = (client: any) => {
+    setClientToEdit(client);
+    setShowEditDialog(true);
   };
 
   const handleDeleteClient = async (clientId: string) => {
@@ -417,6 +425,14 @@ export const Clients = () => {
                           <Button 
                             variant="outline" 
                             size="sm"
+                            onClick={() => handleEditClient(client)}
+                            className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button 
+                            variant="outline" 
+                            size="sm"
                             onClick={() => handleCall(client.phone)}
                           >
                             <Phone className="h-4 w-4" />
@@ -452,6 +468,12 @@ export const Clients = () => {
       <AddClientDialog 
         open={showAddDialog} 
         onOpenChange={setShowAddDialog}
+      />
+
+      <EditClientDialog 
+        open={showEditDialog} 
+        onOpenChange={setShowEditDialog}
+        client={clientToEdit}
       />
 
       <AlertDialog open={!!clientToDelete} onOpenChange={() => setClientToDelete(null)}>
