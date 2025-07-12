@@ -23,10 +23,10 @@ export interface Client {
 export const useClients = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { clientStats } = useClientStats();
+  const { clientStats, refetchClientStats } = useClientStats();
 
-  const { data: clients = [], isLoading } = useQuery({
-    queryKey: ['clients'],
+  const { data: clients = [], isLoading, refetch } = useQuery({
+    queryKey: ['clients', clientStats],
     queryFn: async () => {
       console.log('Fetching clients...');
       const { data, error } = await supabase
@@ -41,10 +41,11 @@ export const useClients = () => {
       
       console.log('Clients fetched:', data?.length);
       
-      // Merge with calculated stats
+      // Merge with calculated stats - prioritize calculated stats over database values
       const updatedClients = data?.map(client => {
         const stats = clientStats.find(s => s.client_id === client.id);
         if (stats) {
+          console.log(`Merging stats for client ${client.name}: ${stats.total_jobs_completed} jobs, $${stats.total_revenue} revenue`);
           return {
             ...client,
             total_jobs_completed: stats.total_jobs_completed,
@@ -56,7 +57,8 @@ export const useClients = () => {
       
       console.log('Clients with updated stats:', updatedClients);
       return updatedClients as Client[];
-    }
+    },
+    staleTime: 0,
   });
 
   const addClientMutation = useMutation({
@@ -189,6 +191,8 @@ export const useClients = () => {
     updateClient: updateClientMutation.mutateAsync,
     isUpdatingClient: updateClientMutation.isPending,
     deleteClient: deleteClientMutation.mutateAsync,
-    isDeletingClient: deleteClientMutation.isPending
+    isDeletingClient: deleteClientMutation.isPending,
+    refetchClients: refetch,
+    refetchClientStats
   };
 };

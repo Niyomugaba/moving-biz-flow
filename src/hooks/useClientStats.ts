@@ -6,7 +6,7 @@ import { useJobs } from './useJobs';
 export const useClientStats = () => {
   const { jobs } = useJobs();
 
-  const { data: clientStats = [], isLoading } = useQuery({
+  const { data: clientStats = [], isLoading, refetch } = useQuery({
     queryKey: ['client-stats', jobs],
     queryFn: async () => {
       console.log('Calculating client statistics from jobs:', jobs);
@@ -32,20 +32,21 @@ export const useClientStats = () => {
         if (job.status === 'completed') {
           stats.total_jobs_completed += 1;
           console.log(`Job ${job.job_number} is completed for client ${clientName}`);
-        }
-        
-        // Add revenue from completed AND paid jobs
-        if (job.status === 'completed' && job.is_paid) {
-          const revenueAmount = job.actual_total || job.estimated_total || 0;
-          stats.total_revenue += revenueAmount;
-          console.log(`Adding revenue ${revenueAmount} from job ${job.job_number} for client ${clientName}`);
+          
+          // Add revenue from completed jobs (regardless of payment status for job count)
+          // but only add to revenue if actually paid
+          if (job.is_paid) {
+            const revenueAmount = job.actual_total || job.estimated_total || 0;
+            stats.total_revenue += revenueAmount;
+            console.log(`Adding revenue ${revenueAmount} from paid job ${job.job_number} for client ${clientName}`);
+          }
         }
       });
       
       const statsArray = Array.from(clientStatsMap.values());
       console.log('Calculated client stats:', statsArray);
       
-      // Update client records in database
+      // Update client records in database with better error handling
       for (const stats of statsArray) {
         if (stats.client_id) {
           try {
@@ -64,12 +65,12 @@ export const useClientStats = () => {
               .eq('id', stats.client_id);
               
             if (error) {
-              console.error('Error updating client stats:', error);
+              console.error(`Error updating client ${stats.client_name} stats:`, error);
             } else {
-              console.log(`Successfully updated stats for client ${stats.client_name}`);
+              console.log(`Successfully updated stats for client ${stats.client_name}: ${stats.total_jobs_completed} jobs, $${stats.total_revenue} revenue`);
             }
           } catch (error) {
-            console.error('Error updating client stats:', error);
+            console.error(`Exception updating client ${stats.client_name} stats:`, error);
           }
         }
       }
@@ -77,12 +78,14 @@ export const useClientStats = () => {
       return statsArray;
     },
     enabled: jobs.length > 0,
-    staleTime: 1000 * 60 * 5, // 5 minutes
-    refetchOnWindowFocus: false
+    staleTime: 0, // Always refetch to ensure fresh data
+    refetchOnWindowFocus: true, // Refetch when window gains focus
+    refetchInterval: 30000, // Refetch every 30 seconds to ensure data stays fresh
   });
 
   return {
     clientStats,
-    isLoading
+    isLoading,
+    refetchClientStats: refetch
   };
 };

@@ -113,6 +113,11 @@ export const useJobs = () => {
     }) => {
       console.log('Updating job:', id, updates);
       
+      // Log if this is a status change to completed
+      if (updates.status === 'completed') {
+        console.log('Job being marked as completed - this should trigger client stats update');
+      }
+      
       // First update the job
       const { data, error } = await supabase
         .from('jobs')
@@ -218,11 +223,23 @@ export const useJobs = () => {
       return data as Job;
     },
     onSuccess: (data) => {
+      console.log('Job updated successfully, invalidating related queries');
+      
+      // Invalidate all related queries to ensure fresh data
       queryClient.invalidateQueries({ queryKey: ['jobs'] });
       queryClient.invalidateQueries({ queryKey: ['clients'] });
       queryClient.invalidateQueries({ queryKey: ['client-stats'] });
       queryClient.invalidateQueries({ queryKey: ['employees'] });
       queryClient.invalidateQueries({ queryKey: ['time-entries'] });
+      
+      // Force refetch of client stats if job was completed
+      if (data.status === 'completed') {
+        console.log('Job completed - forcing client stats refetch');
+        setTimeout(() => {
+          queryClient.refetchQueries({ queryKey: ['client-stats'] });
+          queryClient.refetchQueries({ queryKey: ['clients'] });
+        }, 500); // Small delay to ensure database updates are committed
+      }
       
       toast({
         title: "Job Updated",
