@@ -243,6 +243,7 @@ export type Database = {
           estimated_total: number
           flat_hourly_rate: number | null
           hourly_rate: number
+          hours_worked: number | null
           id: string
           invoice_number: string | null
           is_paid: boolean
@@ -281,6 +282,7 @@ export type Database = {
           estimated_total: number
           flat_hourly_rate?: number | null
           hourly_rate: number
+          hours_worked?: number | null
           id?: string
           invoice_number?: string | null
           is_paid?: boolean
@@ -319,6 +321,7 @@ export type Database = {
           estimated_total?: number
           flat_hourly_rate?: number | null
           hourly_rate?: number
+          hours_worked?: number | null
           id?: string
           invoice_number?: string | null
           is_paid?: boolean
