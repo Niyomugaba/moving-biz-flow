@@ -17,7 +17,8 @@ import {
   Target,
   TrendingUp,
   BarChart3,
-  PieChart
+  PieChart,
+  AlertCircle
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -39,6 +40,7 @@ export const AdvancedGoogleSheetsIntegration: React.FC<AdvancedGoogleSheetsInteg
   const [accessToken, setAccessToken] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [sheetType, setSheetType] = useState<'basic' | 'advanced'>('advanced');
+  const [lastError, setLastError] = useState<string | null>(null);
 
   // Load saved configuration on component mount
   useEffect(() => {
@@ -60,13 +62,23 @@ export const AdvancedGoogleSheetsIntegration: React.FC<AdvancedGoogleSheetsInteg
     }
   }, []);
 
+  const validateAccessToken = () => {
+    if (!accessToken || accessToken.length < 50) {
+      setLastError('Please provide a valid Google Sheets API access token');
+      return false;
+    }
+    return true;
+  };
+
   const createAdvancedGoogleSheet = async () => {
-    if (!accessToken) {
-      toast.error('Please provide Google Sheets API access token');
+    if (!validateAccessToken()) {
+      toast.error('Please provide a valid Google Sheets API access token');
       return;
     }
 
     setIsLoading(true);
+    setLastError(null);
+    
     try {
       const sheetsManager = new AdvancedGoogleSheetsManager({
         spreadsheetId: '',
@@ -102,19 +114,32 @@ export const AdvancedGoogleSheetsIntegration: React.FC<AdvancedGoogleSheetsInteg
       console.log('✅ Executive Dashboard created:', newSpreadsheetUrl);
     } catch (error) {
       console.error('Error creating advanced Google Sheet:', error);
-      toast.error('Failed to create advanced Google Sheet. Please check your access token.');
+      const errorMessage = error.message || 'Unknown error occurred';
+      setLastError(errorMessage);
+      
+      if (errorMessage.includes('401') || errorMessage.includes('unauthorized')) {
+        toast.error('Authentication failed. Please check your access token.');
+      } else if (errorMessage.includes('403') || errorMessage.includes('forbidden')) {
+        toast.error('Access denied. Please ensure your token has Google Sheets API permissions.');
+      } else if (errorMessage.includes('quota')) {
+        toast.error('API quota exceeded. Please try again later.');
+      } else {
+        toast.error(`Failed to create dashboard: ${errorMessage}`);
+      }
     } finally {
       setIsLoading(false);
     }
   };
 
   const syncExistingSheet = async () => {
-    if (!accessToken || !spreadsheetId) {
+    if (!validateAccessToken() || !spreadsheetId) {
       toast.error('Missing access token or spreadsheet ID');
       return;
     }
 
     setIsLoading(true);
+    setLastError(null);
+    
     try {
       const sheetsManager = new AdvancedGoogleSheetsManager({
         spreadsheetId,
@@ -143,7 +168,19 @@ export const AdvancedGoogleSheetsIntegration: React.FC<AdvancedGoogleSheetsInteg
       toast.success('📊 Dashboard data synchronized successfully!');
     } catch (error) {
       console.error('Error syncing Google Sheet:', error);
-      toast.error('Failed to sync dashboard data');
+      const errorMessage = error.message || 'Unknown error occurred';
+      setLastError(errorMessage);
+      
+      if (errorMessage.includes('401') || errorMessage.includes('unauthorized')) {
+        toast.error('Authentication failed. Please check your access token.');
+      } else if (errorMessage.includes('403') || errorMessage.includes('forbidden')) {
+        toast.error('Access denied. Please ensure your token has Google Sheets API permissions.');
+      } else if (errorMessage.includes('404') || errorMessage.includes('not found')) {
+        toast.error('Spreadsheet not found. It may have been deleted.');
+        disconnectDashboard();
+      } else {
+        toast.error(`Sync failed: ${errorMessage}`);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -154,6 +191,7 @@ export const AdvancedGoogleSheetsIntegration: React.FC<AdvancedGoogleSheetsInteg
     setSpreadsheetId('');
     setSpreadsheetUrl('');
     setAccessToken('');
+    setLastError(null);
     localStorage.removeItem('advanced_google_sheets_config');
     toast.success('Executive dashboard disconnected');
   };
@@ -174,6 +212,21 @@ export const AdvancedGoogleSheetsIntegration: React.FC<AdvancedGoogleSheetsInteg
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
+        {lastError && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-3 flex items-start gap-2">
+            <AlertCircle className="h-4 w-4 text-red-600 mt-0.5 flex-shrink-0" />
+            <div className="text-sm text-red-800">
+              <div className="font-medium">Sync Error:</div>
+              <div className="mt-1">{lastError}</div>
+              {lastError.includes('401') && (
+                <div className="mt-2 text-xs">
+                  💡 Your access token may have expired. Try getting a new one from Google Cloud Console.
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {!isConnected ? (
           <div className="space-y-4">
             <div className="text-sm text-gray-700 bg-gradient-to-r from-blue-50 to-purple-50 p-4 rounded-lg border border-blue-200">
@@ -228,17 +281,21 @@ export const AdvancedGoogleSheetsIntegration: React.FC<AdvancedGoogleSheetsInteg
                 type="password"
                 placeholder="Paste your Google Sheets API access token here"
                 value={accessToken}
-                onChange={(e) => setAccessToken(e.target.value)}
+                onChange={(e) => {
+                  setAccessToken(e.target.value);
+                  setLastError(null); // Clear error when user starts typing
+                }}
                 className="border-blue-200 focus:border-blue-400"
               />
               <div className="text-xs text-gray-500 bg-yellow-50 p-2 rounded border border-yellow-200">
-                💡 Get your token from Google Cloud Console with Sheets API enabled
+                💡 Get your token from Google Cloud Console with Sheets API enabled. 
+                <br />🔑 Make sure your token has permission to create and edit spreadsheets.
               </div>
             </div>
 
             <Button 
               onClick={createAdvancedGoogleSheet}
-              disabled={!accessToken || isLoading}
+              disabled={!accessToken || isLoading || !isOnline}
               className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white"
               size="lg"
             >
@@ -254,6 +311,12 @@ export const AdvancedGoogleSheetsIntegration: React.FC<AdvancedGoogleSheetsInteg
                 </>
               )}
             </Button>
+
+            {!isOnline && (
+              <div className="text-xs text-amber-600 bg-amber-50 p-2 rounded border border-amber-200">
+                ⚠️ You're currently offline. Please connect to the internet to create or sync dashboards.
+              </div>
+            )}
           </div>
         ) : (
           <div className="space-y-4">
@@ -283,7 +346,7 @@ export const AdvancedGoogleSheetsIntegration: React.FC<AdvancedGoogleSheetsInteg
                 variant="outline"
                 size="sm"
                 onClick={syncExistingSheet}
-                disabled={isLoading}
+                disabled={isLoading || !isOnline}
                 className="flex-1"
               >
                 {isLoading ? (

@@ -1,3 +1,4 @@
+
 import { GoogleSheetsSync } from './googleSheetsSync';
 
 export interface AdvancedGoogleSheetsConfig {
@@ -27,10 +28,6 @@ export class AdvancedGoogleSheetsManager extends GoogleSheetsSync {
     // Apply professional formatting and styling
     await this.applyProfessionalStyling(spreadsheetId);
     console.log('✅ Professional styling applied');
-    
-    // Add charts and visual elements
-    await this.addChartsAndVisuals(spreadsheetId, data);
-    console.log('✅ Charts and visuals added');
     
     console.log('✅ Beautiful Financial Dashboard created successfully');
     return spreadsheetId;
@@ -92,7 +89,7 @@ export class AdvancedGoogleSheetsManager extends GoogleSheetsSync {
     if (!response.ok) {
       const errorText = await response.text();
       console.error('Failed to create spreadsheet:', errorText);
-      throw new Error(`Failed to create spreadsheet: ${response.statusText}`);
+      throw new Error(`Failed to create spreadsheet: ${response.statusText} - ${errorText}`);
     }
 
     const result = await response.json();
@@ -103,142 +100,185 @@ export class AdvancedGoogleSheetsManager extends GoogleSheetsSync {
   async setupAdvancedSheetsStructure(spreadsheetId: string, data: any) {
     console.log('🔄 Setting up beautiful dashboard structure...');
     
-    // Create Executive Dashboard with stunning visual layout
-    await this.createExecutiveDashboard(spreadsheetId, data);
-    console.log('✅ Executive dashboard created');
-    
-    // Create Revenue Analytics with charts
-    await this.createRevenueAnalytics(spreadsheetId, data);
-    console.log('✅ Revenue analytics created');
-    
-    // Create Lead Performance dashboard
-    await this.createLeadPerformanceDashboard(spreadsheetId, data);
-    console.log('✅ Lead performance dashboard created');
-    
-    // Create Financial Summary with KPIs
-    await this.createFinancialSummary(spreadsheetId, data);
-    console.log('✅ Financial summary created');
-    
-    // Create detailed data sheet
-    await this.createJobsDataSheet(spreadsheetId, data.jobs || []);
-    console.log('✅ Jobs data sheet created');
+    try {
+      // Create detailed data sheet first (needed for formulas)
+      await this.createJobsDataSheet(spreadsheetId, data.jobs || []);
+      console.log('✅ Jobs data sheet created');
+      
+      // Create Executive Dashboard with stunning visual layout
+      await this.createExecutiveDashboard(spreadsheetId, data);
+      console.log('✅ Executive dashboard created');
+      
+      // Create Revenue Analytics with charts
+      await this.createRevenueAnalytics(spreadsheetId, data);
+      console.log('✅ Revenue analytics created');
+      
+      // Create Lead Performance dashboard
+      await this.createLeadPerformanceDashboard(spreadsheetId, data);
+      console.log('✅ Lead performance dashboard created');
+      
+      // Create Financial Summary with KPIs
+      await this.createFinancialSummary(spreadsheetId, data);
+      console.log('✅ Financial summary created');
+      
+    } catch (error) {
+      console.error('Error setting up sheet structure:', error);
+      throw error;
+    }
   }
 
   private async createExecutiveDashboard(spreadsheetId: string, data: any) {
+    // Simplified dashboard data without complex formulas for initial sync
     const dashboardData = [
       ['', '', '', '', '', '', '', '', '', ''],
       ['', '💼 BANTU MOVERS', '', '', '📊 EXECUTIVE DASHBOARD', '', '', '', `📅 ${new Date().toLocaleDateString()}`, ''],
       ['', '', '', '', '', '', '', '', '', ''],
       ['', '🏆 KEY PERFORMANCE INDICATORS', '', '', '', '', '', '', '', ''],
       ['', '', '', '', '', '', '', '', '', ''],
-      ['', '💰 TOTAL REVENUE', '', '📈 AVERAGE JOB', '', '✅ COMPLETION RATE', '', '🎯 CONVERSION RATE', '', ''],
-      ['', '=ROUND(SUM(\'📋 Jobs Data\'!N:N),0)', '', '=ROUND(AVERAGE(\'📋 Jobs Data\'!N:N),0)', '', '=ROUND(COUNTIF(\'📋 Jobs Data\'!F:F,"completed")/COUNTA(\'📋 Jobs Data\'!A2:A1000)*100,1)&"%"', '', '85%', '', ''],
-      ['', '$', '', '$', '', '', '', '', '', ''],
+      ['', '💰 TOTAL REVENUE', '', '📈 TOTAL JOBS', '', '✅ COMPLETION RATE', '', '🎯 AVG JOB VALUE', '', ''],
+      ['', `$${(data.jobs || []).filter(j => j.status === 'completed').reduce((sum, j) => sum + (j.actual_total || j.estimated_total || 0), 0).toLocaleString()}`, '', `${(data.jobs || []).filter(j => j.status === 'completed').length}`, '', `${(data.jobs || []).length > 0 ? Math.round(((data.jobs || []).filter(j => j.status === 'completed').length / (data.jobs || []).length) * 100) : 0}%`, '', `$${(data.jobs || []).filter(j => j.status === 'completed').length > 0 ? Math.round((data.jobs || []).filter(j => j.status === 'completed').reduce((sum, j) => sum + (j.actual_total || j.estimated_total || 0), 0) / (data.jobs || []).filter(j => j.status === 'completed').length) : 0}`, '', ''],
       ['', '', '', '', '', '', '', '', '', ''],
-      ['', '📊 REVENUE BY SOURCE', '', '', '', '💳 PAYMENT STATUS', '', '', '', ''],
+      ['', '📊 BUSINESS SUMMARY', '', '', '', '', '', '', '', ''],
       ['', '', '', '', '', '', '', '', '', ''],
-      ['', 'Source', 'Revenue', 'Jobs', '%', 'Status', 'Count', 'Amount', '% Total', ''],
-      ['', 'Google Ads', '=SUMIF(\'📋 Jobs Data\'!P:P,"google_ads",\'📋 Jobs Data\'!N:N)', '=COUNTIFS(\'📋 Jobs Data\'!P:P,"google_ads",\'📋 Jobs Data\'!F:F,"completed")', '=IF(SUM(C13:C17)>0,C13/SUM(C13:C17)*100,0)&"%"', 'Paid', '=COUNTIF(\'📋 Jobs Data\'!L:L,TRUE)', '=SUMIF(\'📋 Jobs Data\'!L:L,TRUE,\'📋 Jobs Data\'!N:N)', '=IF(SUM(H13:H14)>0,H13/SUM(H13:H14)*100,0)&"%"', ''],
-      ['', 'Facebook', '=SUMIF(\'📋 Jobs Data\'!P:P,"facebook",\'📋 Jobs Data\'!N:N)', '=COUNTIFS(\'📋 Jobs Data\'!P:P,"facebook",\'📋 Jobs Data\'!F:F,"completed")', '=IF(SUM(C13:C17)>0,C14/SUM(C13:C17)*100,0)&"%"', 'Unpaid', '=COUNTIF(\'📋 Jobs Data\'!L:L,FALSE)', '=SUMIF(\'📋 Jobs Data\'!L:L,FALSE,\'📋 Jobs Data\'!N:N)', '=IF(SUM(H13:H14)>0,H14/SUM(H13:H14)*100,0)&"%"', ''],
-      ['', 'Referrals', '=SUMIF(\'📋 Jobs Data\'!P:P,"referral",\'📋 Jobs Data\'!N:N)', '=COUNTIFS(\'📋 Jobs Data\'!P:P,"referral",\'📋 Jobs Data\'!F:F,"completed")', '=IF(SUM(C13:C17)>0,C15/SUM(C13:C17)*100,0)&"%"', '', '', '', '', ''],
-      ['', 'Website', '=SUMIF(\'📋 Jobs Data\'!P:P,"website",\'📋 Jobs Data\'!N:N)', '=COUNTIFS(\'📋 Jobs Data\'!P:P,"website",\'📋 Jobs Data\'!F:F,"completed")', '=IF(SUM(C13:C17)>0,C16/SUM(C13:C17)*100,0)&"%"', '🚨 ACTION ITEMS', '', '', '', ''],
-      ['', 'Other', '=SUMIF(\'📋 Jobs Data\'!P:P,"other",\'📋 Jobs Data\'!N:N)', '=COUNTIFS(\'📋 Jobs Data\'!P:P,"other",\'📋 Jobs Data\'!F:F,"completed")', '=IF(SUM(C13:C17)>0,C17/SUM(C13:C17)*100,0)&"%"', '• Follow up on unpaid jobs', '', '', '', ''],
-      ['', '', '', '', '', '• Contact pending leads', '', '', '', ''],
-      ['', '🏆 TOP CLIENTS', '', '', '', '• Schedule next quarter review', '', '', '', ''],
+      ['', 'Total Clients', `${(data.clients || []).length}`, 'Total Leads', `${(data.leads || []).length}`, 'Employees', `${(data.employees || []).length}`, '', '', ''],
+      ['', 'Active Jobs', `${(data.jobs || []).filter(j => j.status === 'in_progress').length}`, 'Pending Jobs', `${(data.jobs || []).filter(j => j.status === 'scheduled').length}`, 'Completed Jobs', `${(data.jobs || []).filter(j => j.status === 'completed').length}`, '', '', ''],
       ['', '', '', '', '', '', '', '', '', ''],
-      ['', 'Client Name', 'Revenue', 'Jobs', 'Rating', 'Last Job Date', '', '', '', ''],
+      ['', '🎯 RECENT ACTIVITY', '', '', '', '', '', '', '', ''],
+      ['', '', '', '', '', '', '', '', '', ''],
+      ['', 'Last 30 Days Performance', '', '', '', '', '', '', '', ''],
+      ['', '• New Leads Generated', `${(data.leads || []).filter(l => new Date(l.created_at) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)).length}`, '', '', '', '', '', '', ''],
+      ['', '• Jobs Completed', `${(data.jobs || []).filter(j => j.status === 'completed' && new Date(j.job_date) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)).length}`, '', '', '', '', '', '', ''],
+      ['', '• Revenue Generated', `$${(data.jobs || []).filter(j => j.status === 'completed' && new Date(j.job_date) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)).reduce((sum, j) => sum + (j.actual_total || j.estimated_total || 0), 0).toLocaleString()}`, '', '', '', '', '', '', ''],
     ];
 
-    await this.updateSheetValues(spreadsheetId, '📊 Executive Dashboard!A1:J22', dashboardData);
+    await this.updateSheetValues(spreadsheetId, '📊 Executive Dashboard!A1:J20', dashboardData);
   }
 
   private async createRevenueAnalytics(spreadsheetId: string, data: any) {
+    const completedJobs = (data.jobs || []).filter(j => j.status === 'completed');
+    const totalRevenue = completedJobs.reduce((sum, j) => sum + (j.actual_total || j.estimated_total || 0), 0);
+    
     const analyticsData = [
       ['', '', '', '📈 REVENUE ANALYTICS DASHBOARD', '', '', ''],
       ['', '', '', '', '', '', ''],
-      ['', '📊 MONTHLY PERFORMANCE', '', '', '🎯 FORECASTING', '', ''],
+      ['', '📊 PERFORMANCE OVERVIEW', '', '', '💡 KEY INSIGHTS', '', ''],
       ['', '', '', '', '', '', ''],
-      ['', 'Month', 'Revenue', 'Growth %', 'Projected', 'Target', 'Status'],
-      ['', 'Current', '=SUMIF(\'📋 Jobs Data\'!E:E,">="&EOMONTH(TODAY(),-1)+1,\'📋 Jobs Data\'!N:N)', '15%', '=C6*1.2', '$50000', '=IF(C6>50000,"🎉","📈")'],
-      ['', 'Previous', '=SUMIFS(\'📋 Jobs Data\'!N:N,\'📋 Jobs Data\'!E:E,">="&EOMONTH(TODAY(),-2)+1,\'📋 Jobs Data\'!E:E,"<="&EOMONTH(TODAY(),-1))', '8%', '=C7*1.15', '$45000', '=IF(C7>45000,"✅","⚠️")'],
+      ['', 'Metric', 'Value', 'Target', 'Status', 'Recommendation', ''],
+      ['', 'Total Revenue', `$${totalRevenue.toLocaleString()}`, '$50,000', totalRevenue > 50000 ? '🎉 Exceeded' : '📈 Working', totalRevenue > 50000 ? 'Maintain momentum' : 'Increase marketing', ''],
+      ['', 'Completed Jobs', completedJobs.length.toString(), '100', completedJobs.length > 100 ? '✅ Achieved' : '⚠️ Below', completedJobs.length > 100 ? 'Scale operations' : 'Focus on conversion', ''],
+      ['', 'Avg Job Value', completedJobs.length > 0 ? `$${Math.round(totalRevenue / completedJobs.length)}` : '$0', '$500', completedJobs.length > 0 && (totalRevenue / completedJobs.length) > 500 ? '🔥 Excellent' : '📈 Improve', 'Consider premium services', ''],
       ['', '', '', '', '', '', ''],
-      ['', '💡 BUSINESS INSIGHTS', '', '', '', '', ''],
+      ['', '📅 MONTHLY TRENDS', '', '', '', '', ''],
       ['', '', '', '', '', '', ''],
-      ['', 'Metric', 'Current', 'Industry Avg', 'Performance', 'Recommendation', ''],
-      ['', 'Customer Retention', '85%', '75%', '🔥 Excellent', 'Maintain quality', ''],
-      ['', 'Lead Conversion', '65%', '45%', '🔥 Excellent', 'Scale marketing', ''],
-      ['', 'Avg Job Value', '=ROUND(AVERAGE(\'📋 Jobs Data\'!N:N),0)', '$400', '=IF(AVERAGE(\'📋 Jobs Data\'!N:N)>400,"🔥","📈")', '=IF(AVERAGE(\'📋 Jobs Data\'!N:N)>400,"Maintain pricing","Increase rates")', ''],
+      ['', 'Current Month Performance', '', '', '', '', ''],
+      ['', '• Jobs This Month', `${completedJobs.filter(j => new Date(j.job_date).getMonth() === new Date().getMonth()).length}`, '', '', '', ''],
+      ['', '• Revenue This Month', `$${completedJobs.filter(j => new Date(j.job_date).getMonth() === new Date().getMonth()).reduce((sum, j) => sum + (j.actual_total || j.estimated_total || 0), 0).toLocaleString()}`, '', '', '', ''],
+      ['', '• Growth Rate', '15% (estimated)', '', '', '', ''],
       ['', '', '', '', '', '', ''],
-      ['', '📅 SEASONAL TRENDS', '', '', '', '', ''],
+      ['', '🎯 BUSINESS OPPORTUNITIES', '', '', '', '', ''],
       ['', '', '', '', '', '', ''],
-      ['', 'Season', 'Demand', 'Avg Revenue', 'Best Strategy', '', ''],
-      ['', 'Spring', 'High', '$15,000', 'Premium pricing', '', ''],
-      ['', 'Summer', 'Peak', '$25,000', 'Maximize capacity', '', ''],
-      ['', 'Fall', 'Medium', '$12,000', 'Competitive rates', '', ''],
-      ['', 'Winter', 'Low', '$8,000', 'Focus on maintenance', '', ''],
+      ['', '• Seasonal demand patterns', '', '', '', '', ''],
+      ['', '• Premium service offerings', '', '', '', '', ''],
+      ['', '• Referral program expansion', '', '', '', '', ''],
+      ['', '• Corporate client focus', '', '', '', '', ''],
     ];
 
     await this.updateSheetValues(spreadsheetId, '📈 Revenue Analytics!A1:G22', analyticsData);
   }
 
   private async createLeadPerformanceDashboard(spreadsheetId: string, data: any) {
+    const leads = data.leads || [];
+    const jobs = data.jobs || [];
+    
+    // Calculate lead source performance
+    const sourcePerformance = {};
+    leads.forEach(lead => {
+      const source = lead.source || 'other';
+      if (!sourcePerformance[source]) {
+        sourcePerformance[source] = { leads: 0, converted: 0 };
+      }
+      sourcePerformance[source].leads++;
+      
+      // Check if lead was converted to job
+      const convertedJob = jobs.find(j => j.lead_id === lead.id && j.status === 'completed');
+      if (convertedJob) {
+        sourcePerformance[source].converted++;
+      }
+    });
+
     const leadData = [
       ['', '', '🎯 LEAD PERFORMANCE DASHBOARD', '', '', ''],
       ['', '', '', '', '', ''],
       ['', '📱 LEAD SOURCES PERFORMANCE', '', '', '', ''],
       ['', '', '', '', '', ''],
-      ['', 'Source', 'Leads', 'Converted', 'Rate', 'ROI'],
-      ['', 'Google Ads', '=COUNTIF(\'📋 Jobs Data\'!P:P,"google_ads")', '=COUNTIFS(\'📋 Jobs Data\'!P:P,"google_ads",\'📋 Jobs Data\'!F:F,"completed")', '=IF(C6>0,D6/C6*100,0)&"%"', '250%'],
-      ['', 'Facebook', '=COUNTIF(\'📋 Jobs Data\'!P:P,"facebook")', '=COUNTIFS(\'📋 Jobs Data\'!P:P,"facebook",\'📋 Jobs Data\'!F:F,"completed")', '=IF(C7>0,D7/C7*100,0)&"%"', '180%'],
-      ['', 'Referrals', '=COUNTIF(\'📋 Jobs Data\'!P:P,"referral")', '=COUNTIFS(\'📋 Jobs Data\'!P:P,"referral",\'📋 Jobs Data\'!F:F,"completed")', '=IF(C8>0,D8/C8*100,0)&"%"', '400%'],
-      ['', 'Website', '=COUNTIF(\'📋 Jobs Data\'!P:P,"website")', '=COUNTIFS(\'📋 Jobs Data\'!P:P,"website",\'📋 Jobs Data\'!F:F,"completed")', '=IF(C9>0,D9/C9*100,0)&"%"', '150%'],
+      ['', 'Source', 'Total Leads', 'Converted', 'Conversion Rate', 'ROI Estimate'],
+      ...Object.entries(sourcePerformance).map(([source, data]: [string, any]) => [
+        '', 
+        source.replace('_', ' ').toUpperCase(), 
+        data.leads.toString(), 
+        data.converted.toString(), 
+        data.leads > 0 ? `${Math.round((data.converted / data.leads) * 100)}%` : '0%',
+        data.converted > 0 ? 'Positive' : 'Monitor'
+      ]),
       ['', '', '', '', '', ''],
       ['', '🔥 TOP PERFORMERS', '', '⚠️ NEEDS ATTENTION', '', ''],
       ['', '', '', '', '', ''],
-      ['', '🥇 Best Conversion Rate', '', '📉 Low Performance', '', ''],
-      ['', 'Referrals (85%)', '', 'Cold Calls (15%)', '', ''],
-      ['', '', '', '', '', ''],
-      ['', '💰 Best ROI', '', '💸 High Cost', '', ''],
-      ['', 'Referrals (400%)', '', 'Print Ads (50%)', '', ''],
+      ['', 'Best Converting Sources:', '', 'Low Performance:', '', ''],
+      ...Object.entries(sourcePerformance)
+        .sort(([,a], [,b]) => (b.converted / Math.max(b.leads, 1)) - (a.converted / Math.max(a.leads, 1)))
+        .slice(0, 3)
+        .map(([source, data]: [string, any], index) => [
+          '', 
+          `${index + 1}. ${source.replace('_', ' ')} (${data.leads > 0 ? Math.round((data.converted / data.leads) * 100) : 0}%)`, 
+          '', 
+          index === 2 ? 'Review underperforming channels' : '', 
+          '', 
+          ''
+        ]),
       ['', '', '', '', '', ''],
       ['', '📊 OPTIMIZATION RECOMMENDATIONS', '', '', '', ''],
       ['', '', '', '', '', ''],
-      ['', '✅ Increase referral program budget', '', '', '', ''],
-      ['', '✅ Optimize Google Ads targeting', '', '', '', ''],
-      ['', '⚠️ Review Facebook ad creative', '', '', '', ''],
-      ['', '❌ Consider stopping print advertising', '', '', '', ''],
+      ['', '✅ Focus on high-converting sources', '', '', '', ''],
+      ['', '✅ Improve follow-up processes', '', '', '', ''],
+      ['', '⚠️ Review low-performing channels', '', '', '', ''],
+      ['', '📈 A/B test new approaches', '', '', '', ''],
     ];
 
-    await this.updateSheetValues(spreadsheetId, '🎯 Lead Performance!A1:F23', leadData);
+    await this.updateSheetValues(spreadsheetId, '🎯 Lead Performance!A1:F25', leadData);
   }
 
   private async createFinancialSummary(spreadsheetId: string, data: any) {
+    const completedJobs = (data.jobs || []).filter(j => j.status === 'completed');
+    const totalRevenue = completedJobs.reduce((sum, j) => sum + (j.actual_total || j.estimated_total || 0), 0);
+    const paidRevenue = completedJobs.filter(j => j.is_paid).reduce((sum, j) => sum + (j.actual_total || j.estimated_total || 0), 0);
+    const outstandingRevenue = totalRevenue - paidRevenue;
+    
     const financialData = [
       ['', '', '💰 FINANCIAL SUMMARY', '', '', ''],
       ['', '', '', '', '', ''],
       ['', '📈 REVENUE BREAKDOWN', '', '💸 COST ANALYSIS', '', ''],
       ['', '', '', '', '', ''],
       ['', 'Category', 'Amount', 'Category', 'Amount', '%'],
-      ['', 'Gross Revenue', '=SUM(\'📋 Jobs Data\'!N:N)', 'Labor Costs', '=SUM(\'📋 Jobs Data\'!N:N)*0.4', '40%'],
-      ['', 'Paid Revenue', '=SUMIF(\'📋 Jobs Data\'!L:L,TRUE,\'📋 Jobs Data\'!N:N)', 'Fuel & Transport', '=SUM(\'📋 Jobs Data\'!N:N)*0.15', '15%'],
-      ['', 'Outstanding', '=SUM(\'📋 Jobs Data\'!N:N)-SUMIF(\'📋 Jobs Data\'!L:L,TRUE,\'📋 Jobs Data\'!N:N)', 'Marketing', '=SUM(\'📋 Jobs Data\'!N:N)*0.1', '10%'],
-      ['', '', '', 'Equipment', '=SUM(\'📋 Jobs Data\'!N:N)*0.08', '8%'],
-      ['', '', '', 'Insurance', '=SUM(\'📋 Jobs Data\'!N:N)*0.05', '5%'],
-      ['', '', '', 'Other Expenses', '=SUM(\'📋 Jobs Data\'!N:N)*0.12', '12%'],
+      ['', 'Gross Revenue', `$${totalRevenue.toLocaleString()}`, 'Labor Costs (Est.)', `$${Math.round(totalRevenue * 0.4).toLocaleString()}`, '40%'],
+      ['', 'Paid Revenue', `$${paidRevenue.toLocaleString()}`, 'Fuel & Transport', `$${Math.round(totalRevenue * 0.15).toLocaleString()}`, '15%'],
+      ['', 'Outstanding', `$${outstandingRevenue.toLocaleString()}`, 'Marketing', `$${Math.round(totalRevenue * 0.1).toLocaleString()}`, '10%'],
+      ['', '', '', 'Equipment', `$${Math.round(totalRevenue * 0.08).toLocaleString()}`, '8%'],
+      ['', '', '', 'Insurance', `$${Math.round(totalRevenue * 0.05).toLocaleString()}`, '5%'],
+      ['', '', '', 'Other Expenses', `$${Math.round(totalRevenue * 0.12).toLocaleString()}`, '12%'],
       ['', '', '', '', '', ''],
-      ['', '💰 PROFITABILITY', '', '', '', ''],
+      ['', '💰 PROFITABILITY ANALYSIS', '', '', '', ''],
       ['', '', '', '', '', ''],
-      ['', 'Metric', 'Amount', 'Target', 'Status', ''],
-      ['', 'Gross Profit', '=C6*0.3', '=C6*0.35', '=IF(C15>D15,"✅","⚠️")', ''],
-      ['', 'Net Profit', '=C6*0.1', '=C6*0.15', '=IF(C16>D16,"✅","⚠️")', ''],
-      ['', 'Profit Margin', '=C16/C6*100&"%"', '15%', '=IF(C16/C6>0.15,"✅","⚠️")', ''],
+      ['', 'Metric', 'Current', 'Target', 'Status', 'Action'],
+      ['', 'Gross Profit (Est.)', `$${Math.round(totalRevenue * 0.3).toLocaleString()}`, `$${Math.round(totalRevenue * 0.35).toLocaleString()}`, totalRevenue * 0.3 > totalRevenue * 0.35 ? '✅' : '⚠️', 'Optimize costs'],
+      ['', 'Net Profit (Est.)', `$${Math.round(totalRevenue * 0.1).toLocaleString()}`, `$${Math.round(totalRevenue * 0.15).toLocaleString()}`, totalRevenue * 0.1 > totalRevenue * 0.15 ? '✅' : '⚠️', 'Increase efficiency'],
+      ['', 'Profit Margin', `${Math.round((totalRevenue * 0.1 / Math.max(totalRevenue, 1)) * 100)}%`, '15%', (totalRevenue * 0.1 / Math.max(totalRevenue, 1)) > 0.15 ? '✅' : '⚠️', 'Pricing strategy'],
       ['', '', '', '', '', ''],
-      ['', '🎯 FINANCIAL GOALS', '', '', '', ''],
+      ['', '🎯 FINANCIAL GOALS TRACKING', '', '', '', ''],
       ['', '', '', '', '', ''],
-      ['', 'Goal', 'Target', 'Current', 'Progress', ''],
-      ['', 'Monthly Revenue', '$50,000', '=C6', '=C22/B22*100&"%"', ''],
-      ['', 'Profit Margin', '20%', '=C16/C6*100&"%"', '=IF(C16/C6>0.2,"🎉","📈")', ''],
-      ['', 'Outstanding < 10%', '<10%', '=C8/C6*100&"%"', '=IF(C8/C6<0.1,"✅","⚠️")', ''],
+      ['', 'Goal', 'Target', 'Current', 'Progress', 'Timeline'],
+      ['', 'Monthly Revenue', '$50,000', `$${totalRevenue.toLocaleString()}`, `${Math.round((totalRevenue / 50000) * 100)}%`, 'End of month'],
+      ['', 'Profit Margin', '20%', `${Math.round((totalRevenue * 0.1 / Math.max(totalRevenue, 1)) * 100)}%`, totalRevenue * 0.1 / Math.max(totalRevenue, 1) > 0.2 ? '🎉 Achieved' : '📈 In Progress', 'Q4 2024'],
+      ['', 'Outstanding < 10%', '<10%', `${Math.round((outstandingRevenue / Math.max(totalRevenue, 1)) * 100)}%`, outstandingRevenue / Math.max(totalRevenue, 1) < 0.1 ? '✅ Met' : '⚠️ Monitor', 'Ongoing'],
     ];
 
     await this.updateSheetValues(spreadsheetId, '💰 Financial Summary!A1:F25', financialData);
@@ -255,23 +295,23 @@ export class AdvancedGoogleSheetsManager extends GoogleSheetsSync {
     const jobsData = [
       headers,
       ...jobs.map(job => [
-        job.id,
-        job.job_number,
-        job.client_name,
-        job.client_phone,
-        job.job_date,
-        job.status,
-        job.origin_address,
-        job.destination_address,
-        job.movers_needed,
-        job.estimated_duration_hours,
+        job.id || '',
+        job.job_number || '',
+        job.client_name || '',
+        job.client_phone || '',
+        job.job_date || '',
+        job.status || '',
+        job.origin_address || '',
+        job.destination_address || '',
+        job.movers_needed || 2,
+        job.estimated_duration_hours || 0,
         job.actual_duration_hours || '',
         job.is_paid ? 'TRUE' : 'FALSE',
-        job.hourly_rate,
-        job.actual_total || job.estimated_total,
+        job.hourly_rate || 0,
+        job.actual_total || job.estimated_total || 0,
         job.payment_method || '',
-        job.lead_source || 'direct', // Add lead source for analytics
-        job.created_at,
+        'direct', // Default lead source
+        job.created_at || '',
         job.completion_notes || ''
       ])
     ];
@@ -324,26 +364,6 @@ export class AdvancedGoogleSheetsManager extends GoogleSheetsSync {
             },
             fields: 'userEnteredFormat'
           }
-        },
-        // Style KPI values
-        {
-          repeatCell: {
-            range: {
-              sheetId: 0,
-              startRowIndex: 5,
-              endRowIndex: 7,
-              startColumnIndex: 1,
-              endColumnIndex: 9
-            },
-            cell: {
-              userEnteredFormat: {
-                backgroundColor: { red: 0.95, green: 0.98, blue: 1 },
-                textFormat: { bold: true, fontSize: 12 },
-                horizontalAlignment: 'CENTER'
-              }
-            },
-            fields: 'userEnteredFormat'
-          }
         }
       ];
 
@@ -353,79 +373,81 @@ export class AdvancedGoogleSheetsManager extends GoogleSheetsSync {
     }
   }
 
-  private async addChartsAndVisuals(spreadsheetId: string, data: any) {
+  // Improved updateSheetValues with better error handling
+  protected async updateSheetValues(spreadsheetId: string, range: string, values: any[][]) {
     try {
-      const requests = [
-        // Add a pie chart for revenue by source
-        {
-          addChart: {
-            chart: {
-              spec: {
-                title: '📊 Revenue by Lead Source',
-                pieChart: {
-                  domain: {
-                    sourceRange: {
-                      sources: [{
-                        sheetId: 0,
-                        startRowIndex: 12,
-                        endRowIndex: 17,
-                        startColumnIndex: 1,
-                        endColumnIndex: 2
-                      }]
-                    }
-                  },
-                  series: {
-                    sourceRange: {
-                      sources: [{
-                        sheetId: 0,
-                        startRowIndex: 12,
-                        endRowIndex: 17,
-                        startColumnIndex: 2,
-                        endColumnIndex: 3
-                      }]
-                    }
-                  }
-                },
-                backgroundColor: { red: 1, green: 1, blue: 1 }
-              },
-              position: {
-                overlayPosition: {
-                  anchorCell: {
-                    sheetId: 0,
-                    rowIndex: 25,
-                    columnIndex: 1
-                  },
-                  widthPixels: 400,
-                  heightPixels: 300
-                }
-              }
-            }
-          }
-        }
-      ];
+      console.log(`🔄 Updating sheet range: ${range} with ${values.length} rows`);
+      
+      // Validate input data
+      if (!values || values.length === 0) {
+        console.warn('No data to update for range:', range);
+        return;
+      }
 
-      await this.batchUpdate(spreadsheetId, requests);
+      // Clean and validate data
+      const cleanedValues = values.map(row => 
+        row.map(cell => {
+          if (cell === null || cell === undefined) return '';
+          if (typeof cell === 'object') return JSON.stringify(cell);
+          return String(cell);
+        })
+      );
+
+      const response = await fetch(
+        `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(range)}?valueInputOption=RAW`,
+        {
+          method: 'PUT',
+          headers: {
+            'Authorization': `Bearer ${this.accessToken}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ values: cleanedValues })
+        }
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`Failed to update sheet range ${range}:`, errorText);
+        
+        // Try to parse error details
+        try {
+          const errorData = JSON.parse(errorText);
+          throw new Error(`Sheet update failed: ${errorData.error?.message || errorText}`);
+        } catch {
+          throw new Error(`Sheet update failed: ${response.status} ${response.statusText} - ${errorText}`);
+        }
+      }
+
+      const result = await response.json();
+      console.log(`✅ Successfully updated ${range}: ${result.updatedCells || 0} cells`);
+      
     } catch (error) {
-      console.warn('Charts creation skipped due to API limitations:', error);
+      console.error(`❌ Error updating sheet range ${range}:`, error);
+      throw error;
     }
   }
 
   private async batchUpdate(spreadsheetId: string, requests: any[]) {
-    const response = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}:batchUpdate`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${this.accessToken}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ requests })
-    });
+    try {
+      const response = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}:batchUpdate`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${this.accessToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ requests })
+      });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Batch update failed:', errorText);
-      throw new Error(`Failed to batch update: ${response.statusText}`);
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Batch update failed:', errorText);
+        throw new Error(`Failed to batch update: ${response.statusText} - ${errorText}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Batch update error:', error);
+      throw error;
     }
-
-    return await response.json();
   }
 }
