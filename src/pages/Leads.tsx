@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Plus, Phone, Mail, Calendar, DollarSign, User, Filter, Search, ArrowRight, MessageSquare, Trash2, Download, Settings } from 'lucide-react';
 import { useLeads } from '@/hooks/useLeads';
 import { useJobs } from '@/hooks/useJobs';
+import { useClients } from '@/hooks/useClients';
 import { AddLeadDialog } from '@/components/AddLeadDialog';
 import { LeadContactCard } from '@/components/LeadContactCard';
 import { LeadNotesDialog } from '@/components/LeadNotesDialog';
@@ -29,6 +30,7 @@ export const Leads = () => {
   } = useLeads();
   
   const { convertLeadToJob, isConvertingLead, jobs } = useJobs();
+  const { clients } = useClients();
   
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isNotesDialogOpen, setIsNotesDialogOpen] = useState(false);
@@ -39,6 +41,8 @@ export const Leads = () => {
   const [sourceFilter, setSourceFilter] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [leadToDelete, setLeadToDelete] = useState<any>(null);
+  const [deleteClientToo, setDeleteClientToo] = useState(false);
 
   const filteredLeads = leads.filter(lead => {
     const matchesSearch = lead.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -109,8 +113,40 @@ export const Leads = () => {
     setIsNotesDialogOpen(true);
   };
 
-  const handleDeleteLead = (leadId: string) => {
-    deleteLead(leadId);
+  const handleDeleteLead = (leadId: string, shouldDeleteClient = false) => {
+    deleteLead({ id: leadId, deleteClient: shouldDeleteClient });
+    setLeadToDelete(null);
+    setDeleteClientToo(false);
+  };
+
+  const getLeadDeletionWarning = (lead: any) => {
+    const associatedClient = clients.find(client => 
+      client.name.toLowerCase() === lead.name.toLowerCase() && 
+      client.phone === lead.phone
+    );
+    
+    const relatedJobs = jobs.filter(job => job.lead_id === lead.id);
+
+    let warningText = `Are you sure you want to delete "${lead.name}"?
+
+This action will:
+• Remove the lead from the leads list
+• Remove lead references from any jobs (${relatedJobs.length} found)`;
+
+    if (associatedClient) {
+      warningText += `
+
+⚠️  This lead has an associated client record. You can choose to:
+• Delete ONLY the lead (client record remains)
+• Delete BOTH the lead AND the client record
+
+If you delete the client too, this will also:
+• Remove the client from the client list
+• Remove client references from all jobs
+• This action cannot be undone`;
+    }
+
+    return warningText;
   };
 
   const exportLeadsToCSV = () => {
@@ -392,35 +428,15 @@ export const Leads = () => {
                         </div>
                       )}
                       
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button 
-                            variant="outline"
-                            className="text-xs px-3 py-2 text-red-600 border-red-200 hover:bg-red-50"
-                            disabled={isDeletingLead}
-                          >
-                            <Trash2 className="h-3 w-3 mr-1" />
-                            Delete
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Delete Lead</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              Are you sure you want to delete "{lead.name}"? This action cannot be undone.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction 
-                              onClick={() => handleDeleteLead(lead.id)}
-                              className="bg-red-600 hover:bg-red-700"
-                            >
-                              Delete
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
+                      <Button 
+                        onClick={() => setLeadToDelete(lead)}
+                        variant="outline"
+                        className="text-xs px-3 py-2 text-red-600 border-red-200 hover:bg-red-50"
+                        disabled={isDeletingLead}
+                      >
+                        <Trash2 className="h-3 w-3 mr-1" />
+                        Delete
+                      </Button>
                     </div>
                   </div>
                 </div>
@@ -482,6 +498,55 @@ export const Leads = () => {
           jobData={jobs.find(job => job.lead_id === selectedLead.id)}
         />
       )}
+
+      {/* Enhanced Delete Confirmation Dialog */}
+      <AlertDialog open={!!leadToDelete} onOpenChange={() => {
+        setLeadToDelete(null);
+        setDeleteClientToo(false);
+      }}>
+        <AlertDialogContent className="max-w-lg">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-red-600 flex items-center gap-2">
+              ⚠️ Delete Lead
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-sm whitespace-pre-line leading-relaxed">
+              {leadToDelete && getLeadDeletionWarning(leadToDelete)}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          
+          {leadToDelete && clients.find(client => 
+            client.name.toLowerCase() === leadToDelete.name.toLowerCase() && 
+            client.phone === leadToDelete.phone
+          ) && (
+            <div className="my-4 p-3 bg-yellow-50 border border-yellow-200 rounded">
+              <label className="flex items-center space-x-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={deleteClientToo}
+                  onChange={(e) => setDeleteClientToo(e.target.checked)}
+                  className="rounded border-gray-300"
+                />
+                <span className="text-sm text-yellow-800 font-medium">
+                  Also delete the associated client record
+                </span>
+              </label>
+              <p className="text-xs text-yellow-700 mt-1">
+                This will remove the client from all parts of the system
+              </p>
+            </div>
+          )}
+          
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => leadToDelete && handleDeleteLead(leadToDelete.id, deleteClientToo)}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {deleteClientToo ? 'Delete Lead & Client' : 'Delete Lead Only'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

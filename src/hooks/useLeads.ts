@@ -148,10 +148,57 @@ export const useLeads = () => {
   });
 
   const deleteLeadMutation = useMutation({
-    mutationFn: async (id: string) => {
-      console.log('Deleting lead:', id);
+    mutationFn: async ({ id, deleteClient = false }: { id: string; deleteClient?: boolean }) => {
+      console.log('Deleting lead:', id, 'and client:', deleteClient);
       
-      // First, check if this lead has been converted to jobs
+      if (deleteClient) {
+        // Get lead info first to find associated client
+        const { data: leadData, error: leadError } = await supabase
+          .from('leads')
+          .select('name, phone')
+          .eq('id', id)
+          .single();
+
+        if (leadError) throw leadError;
+
+        if (leadData) {
+          // Find and delete the associated client
+          const { data: clientData, error: clientError } = await supabase
+            .from('clients')
+            .select('id')
+            .eq('phone', leadData.phone)
+            .eq('name', leadData.name)
+            .single();
+
+          if (!clientError && clientData) {
+            console.log('Deleting associated client:', clientData.id);
+            
+            // Update jobs to remove client reference
+            const { error: updateJobsError } = await supabase
+              .from('jobs')
+              .update({ client_id: null })
+              .eq('client_id', clientData.id);
+
+            if (updateJobsError) {
+              console.error('Error updating related jobs:', updateJobsError);
+              throw updateJobsError;
+            }
+
+            // Delete the client
+            const { error: deleteClientError } = await supabase
+              .from('clients')
+              .delete()
+              .eq('id', clientData.id);
+
+            if (deleteClientError) {
+              console.error('Error deleting client:', deleteClientError);
+              throw deleteClientError;
+            }
+          }
+        }
+      }
+
+      // Check if this lead has been converted to jobs
       const { data: relatedJobs, error: jobsError } = await supabase
         .from('jobs')
         .select('id, job_number')
@@ -177,7 +224,7 @@ export const useLeads = () => {
         }
       }
 
-      // Now delete the lead
+      // Finally delete the lead
       const { error } = await supabase
         .from('leads')
         .delete()
@@ -185,12 +232,18 @@ export const useLeads = () => {
 
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['leads'] });
-      queryClient.invalidateQueries({ queryKey: ['jobs'] }); // Also invalidate jobs since we may have updated them
+      queryClient.invalidateQueries({ queryKey: ['jobs'] });
+      if (variables.deleteClient) {
+        queryClient.invalidateQueries({ queryKey: ['clients'] });
+      }
+      
       toast({
         title: "Lead Deleted",
-        description: "Lead has been successfully deleted. Any related jobs will remain but no longer reference this lead.",
+        description: variables.deleteClient 
+          ? "Lead and associated client have been successfully deleted."
+          : "Lead has been successfully deleted. Any related jobs will remain but no longer reference this lead.",
       });
     },
     onError: (error: any) => {
