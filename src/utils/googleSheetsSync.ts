@@ -1,4 +1,3 @@
-
 export interface GoogleSheetsConfig {
   spreadsheetId: string;
   clientSheetName: string;
@@ -14,7 +13,7 @@ export interface SyncResult {
 
 export class GoogleSheetsSync {
   private config: GoogleSheetsConfig;
-  private accessToken: string;
+  protected accessToken: string;
 
   constructor(config: GoogleSheetsConfig, accessToken: string) {
     this.config = config;
@@ -330,7 +329,7 @@ export class GoogleSheetsSync {
     })).filter(lead => lead.id && lead.name);
   }
 
-  private async updateSheetValues(spreadsheetId: string, range: string, values: any[][]) {
+  protected async updateSheetValues(spreadsheetId: string, range: string, values: any[][]) {
     const response = await fetch(
       `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${range}?valueInputOption=RAW`,
       {

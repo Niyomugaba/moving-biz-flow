@@ -355,22 +355,4 @@ export class AdvancedGoogleSheetsManager extends GoogleSheetsSync {
       throw new Error(`Failed to batch update: ${response.statusText}`);
     }
   }
-
-  private async updateSheetValues(spreadsheetId: string, range: string, values: any[][]) {
-    const response = await fetch(
-      `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${range}?valueInputOption=USER_ENTERED`,
-      {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${this.accessToken}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ values })
-      }
-    );
-
-    if (!response.ok) {
-      throw new Error(`Failed to update sheet: ${response.statusText}`);
-    }
-  }
 }
