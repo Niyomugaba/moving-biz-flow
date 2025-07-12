@@ -115,7 +115,7 @@ export const useJobs = () => {
       
       // Log if this is a status change to completed
       if (updates.status === 'completed') {
-        console.log('Job being marked as completed - this should trigger client stats update');
+        console.log('Job being marked as completed - this will trigger client stats update');
       }
       
       // First update the job
@@ -136,7 +136,6 @@ export const useJobs = () => {
         
         console.log('Creating dummy employees for negotiated job');
         
-        // Create dummy employees directly here
         const dummyEmployees = [];
         const firstNames = ['Alex', 'Jordan', 'Casey', 'Morgan', 'Taylor', 'Riley', 'Avery', 'Quinn', 'Sage', 'River'];
         
@@ -232,13 +231,13 @@ export const useJobs = () => {
       queryClient.invalidateQueries({ queryKey: ['employees'] });
       queryClient.invalidateQueries({ queryKey: ['time-entries'] });
       
-      // Force refetch of client stats if job was completed
+      // Force immediate refetch of client stats if job was completed
       if (data.status === 'completed') {
-        console.log('Job completed - forcing client stats refetch');
+        console.log('Job completed - forcing immediate client stats refetch');
         setTimeout(() => {
           queryClient.refetchQueries({ queryKey: ['client-stats'] });
           queryClient.refetchQueries({ queryKey: ['clients'] });
-        }, 500); // Small delay to ensure database updates are committed
+        }, 100); // Very small delay to ensure database updates are committed
       }
       
       toast({

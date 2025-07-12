@@ -28,25 +28,22 @@ export const useClientStats = () => {
         
         const stats = clientStatsMap.get(clientId);
         
-        // Count completed jobs
+        // Count completed jobs and calculate revenue
         if (job.status === 'completed') {
           stats.total_jobs_completed += 1;
           console.log(`Job ${job.job_number} is completed for client ${clientName}`);
           
-          // Add revenue from completed jobs (regardless of payment status for job count)
-          // but only add to revenue if actually paid
-          if (job.is_paid) {
-            const revenueAmount = job.actual_total || job.estimated_total || 0;
-            stats.total_revenue += revenueAmount;
-            console.log(`Adding revenue ${revenueAmount} from paid job ${job.job_number} for client ${clientName}`);
-          }
+          // Add revenue from completed jobs (use actual_total if available, otherwise estimated_total)
+          const revenueAmount = job.actual_total || job.estimated_total || 0;
+          stats.total_revenue += revenueAmount;
+          console.log(`Adding revenue ${revenueAmount} from completed job ${job.job_number} for client ${clientName}`);
         }
       });
       
       const statsArray = Array.from(clientStatsMap.values());
       console.log('Calculated client stats:', statsArray);
       
-      // Update client records in database with better error handling
+      // Update client records in database with calculated stats
       for (const stats of statsArray) {
         if (stats.client_id) {
           try {
@@ -80,7 +77,7 @@ export const useClientStats = () => {
     enabled: jobs.length > 0,
     staleTime: 0, // Always refetch to ensure fresh data
     refetchOnWindowFocus: true, // Refetch when window gains focus
-    refetchInterval: 30000, // Refetch every 30 seconds to ensure data stays fresh
+    refetchInterval: 5000, // Refetch every 5 seconds to ensure data stays fresh
   });
 
   return {

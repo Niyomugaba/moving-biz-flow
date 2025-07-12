@@ -28,7 +28,7 @@ export const useClients = () => {
   const { data: clients = [], isLoading, refetch } = useQuery({
     queryKey: ['clients', clientStats],
     queryFn: async () => {
-      console.log('Fetching clients...');
+      console.log('Fetching clients with updated stats...');
       const { data, error } = await supabase
         .from('clients')
         .select('*')
@@ -41,24 +41,26 @@ export const useClients = () => {
       
       console.log('Clients fetched:', data?.length);
       
-      // Merge with calculated stats - prioritize calculated stats over database values
+      // Always use the calculated stats from clientStats to ensure accuracy
       const updatedClients = data?.map(client => {
         const stats = clientStats.find(s => s.client_id === client.id);
         if (stats) {
-          console.log(`Merging stats for client ${client.name}: ${stats.total_jobs_completed} jobs, $${stats.total_revenue} revenue`);
+          console.log(`Using calculated stats for client ${client.name}: ${stats.total_jobs_completed} jobs, $${stats.total_revenue} revenue`);
           return {
             ...client,
             total_jobs_completed: stats.total_jobs_completed,
             total_revenue: stats.total_revenue
           };
         }
+        console.log(`No calculated stats found for client ${client.name}, using database values: ${client.total_jobs_completed} jobs, $${client.total_revenue} revenue`);
         return client;
       }) || [];
       
       console.log('Clients with updated stats:', updatedClients);
       return updatedClients as Client[];
     },
-    staleTime: 0,
+    staleTime: 0, // Always refetch to ensure fresh data
+    refetchOnWindowFocus: true,
   });
 
   const addClientMutation = useMutation({
@@ -92,6 +94,7 @@ export const useClients = () => {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['clients'] });
+      queryClient.invalidateQueries({ queryKey: ['client-stats'] });
       toast({
         title: "Client Added",
         description: `${data.name} has been added as a new client.`,
@@ -130,6 +133,7 @@ export const useClients = () => {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['clients'] });
+      queryClient.invalidateQueries({ queryKey: ['client-stats'] });
       toast({
         title: "Client Updated",
         description: `${data.name} has been updated successfully.`,
@@ -166,6 +170,7 @@ export const useClients = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['clients'] });
+      queryClient.invalidateQueries({ queryKey: ['client-stats'] });
       toast({
         title: "Client Deleted",
         description: "The client has been successfully deleted.",
