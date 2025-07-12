@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -40,6 +40,26 @@ export const AdvancedGoogleSheetsIntegration: React.FC<AdvancedGoogleSheetsInteg
   const [isLoading, setIsLoading] = useState(false);
   const [sheetType, setSheetType] = useState<'basic' | 'advanced'>('advanced');
 
+  // Load saved configuration on component mount
+  useEffect(() => {
+    const savedConfig = localStorage.getItem('advanced_google_sheets_config');
+    if (savedConfig) {
+      try {
+        const config = JSON.parse(savedConfig);
+        if (config.spreadsheetId && config.spreadsheetUrl && config.accessToken) {
+          setSpreadsheetId(config.spreadsheetId);
+          setSpreadsheetUrl(config.spreadsheetUrl);
+          setAccessToken(config.accessToken);
+          setIsConnected(true);
+          console.log('✅ Restored Google Sheets configuration from localStorage');
+        }
+      } catch (error) {
+        console.error('Failed to parse saved Google Sheets config:', error);
+        localStorage.removeItem('advanced_google_sheets_config');
+      }
+    }
+  }, []);
+
   const createAdvancedGoogleSheet = async () => {
     if (!accessToken) {
       toast.error('Please provide Google Sheets API access token');
@@ -61,6 +81,7 @@ export const AdvancedGoogleSheetsIntegration: React.FC<AdvancedGoogleSheetsInteg
         employees
       };
 
+      console.log('🔄 Creating beautiful executive dashboard...');
       const newSpreadsheetId = await sheetsManager.createFinancialReportsSheet(exportData);
       const newSpreadsheetUrl = `https://docs.google.com/spreadsheets/d/${newSpreadsheetId}/edit`;
       
@@ -68,21 +89,73 @@ export const AdvancedGoogleSheetsIntegration: React.FC<AdvancedGoogleSheetsInteg
       setSpreadsheetUrl(newSpreadsheetUrl);
       setIsConnected(true);
 
-      // Save config
-      localStorage.setItem('advanced_google_sheets_config', JSON.stringify({ 
+      // Save config to localStorage
+      const configToSave = { 
         spreadsheetId: newSpreadsheetId, 
         spreadsheetUrl: newSpreadsheetUrl,
         accessToken,
         lastSync: new Date().toISOString()
-      }));
+      };
+      localStorage.setItem('advanced_google_sheets_config', JSON.stringify(configToSave));
 
       toast.success('🎉 Beautiful Executive Dashboard created successfully!');
+      console.log('✅ Executive Dashboard created:', newSpreadsheetUrl);
     } catch (error) {
       console.error('Error creating advanced Google Sheet:', error);
-      toast.error('Failed to create advanced Google Sheet');
+      toast.error('Failed to create advanced Google Sheet. Please check your access token.');
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const syncExistingSheet = async () => {
+    if (!accessToken || !spreadsheetId) {
+      toast.error('Missing access token or spreadsheet ID');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const sheetsManager = new AdvancedGoogleSheetsManager({
+        spreadsheetId,
+        accessToken
+      });
+
+      const exportData = {
+        jobs,
+        leads,
+        clients,
+        timeEntries,
+        employees
+      };
+
+      console.log('🔄 Syncing data to existing dashboard...');
+      await sheetsManager.setupAdvancedSheetsStructure(spreadsheetId, exportData);
+      
+      // Update last sync time
+      const savedConfig = localStorage.getItem('advanced_google_sheets_config');
+      if (savedConfig) {
+        const config = JSON.parse(savedConfig);
+        config.lastSync = new Date().toISOString();
+        localStorage.setItem('advanced_google_sheets_config', JSON.stringify(config));
+      }
+
+      toast.success('📊 Dashboard data synchronized successfully!');
+    } catch (error) {
+      console.error('Error syncing Google Sheet:', error);
+      toast.error('Failed to sync dashboard data');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const disconnectDashboard = () => {
+    setIsConnected(false);
+    setSpreadsheetId('');
+    setSpreadsheetUrl('');
+    setAccessToken('');
+    localStorage.removeItem('advanced_google_sheets_config');
+    toast.success('Executive dashboard disconnected');
   };
 
   return (
@@ -205,6 +278,38 @@ export const AdvancedGoogleSheetsIntegration: React.FC<AdvancedGoogleSheetsInteg
               </Button>
             </div>
 
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={syncExistingSheet}
+                disabled={isLoading}
+                className="flex-1"
+              >
+                {isLoading ? (
+                  <>
+                    <RefreshCw className="h-3 w-3 mr-1 animate-spin" />
+                    Syncing...
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="h-3 w-3 mr-1" />
+                    Sync Data
+                  </>
+                )}
+              </Button>
+              
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={disconnectDashboard}
+                className="flex-1"
+              >
+                <Settings className="h-3 w-3 mr-1" />
+                Disconnect Dashboard
+              </Button>
+            </div>
+
             <div className="text-xs text-gray-600 bg-gradient-to-r from-purple-50 to-blue-50 p-3 rounded border border-purple-200">
               <div className="font-semibold mb-2 text-purple-800">🎨 Your Beautiful Dashboard Includes:</div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
@@ -220,22 +325,6 @@ export const AdvancedGoogleSheetsIntegration: React.FC<AdvancedGoogleSheetsInteg
                 </ul>
               </div>
             </div>
-
-            <Button
-              variant="destructive"
-              size="sm"
-              onClick={() => {
-                setIsConnected(false);
-                setSpreadsheetId('');
-                setSpreadsheetUrl('');
-                localStorage.removeItem('advanced_google_sheets_config');
-                toast.success('Executive dashboard disconnected');
-              }}
-              className="w-full"
-            >
-              <Settings className="h-3 w-3 mr-1" />
-              Disconnect Dashboard
-            </Button>
           </div>
         )}
       </CardContent>
