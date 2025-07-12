@@ -43,6 +43,37 @@ export const Jobs = () => {
   const [showAddLeadCostDialog, setShowAddLeadCostDialog] = useState(false);
   const [selectedJobForLeadCost, setSelectedJobForLeadCost] = useState<any>(null);
 
+  // Debug: Log jobs data to see client_id values
+  React.useEffect(() => {
+    if (jobs.length > 0) {
+      console.log('All jobs data with client_id info:');
+      jobs.forEach(job => {
+        console.log(`Job ${job.job_number}:`, {
+          client_name: job.client_name,
+          client_phone: job.client_phone,
+          client_id: job.client_id,
+          status: job.status,
+          estimated_total: job.estimated_total,
+          actual_total: job.actual_total
+        });
+        
+        // Special focus on Natalie's job
+        if (job.client_name === 'Natalie' || job.client_phone === '+1 (412) 273-5545') {
+          console.log('🔍 NATALIE\'S JOB DETAILS:', {
+            job_number: job.job_number,
+            client_id: job.client_id,
+            client_name: job.client_name,
+            client_phone: job.client_phone,
+            status: job.status,
+            estimated_total: job.estimated_total,
+            actual_total: job.actual_total,
+            is_paid: job.is_paid
+          });
+        }
+      });
+    }
+  }, [jobs]);
+
   const filteredJobs = useMemo(() => {
     return jobs.filter(job =>
       job.job_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
