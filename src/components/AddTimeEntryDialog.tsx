@@ -365,7 +365,7 @@ export const AddTimeEntryDialog = ({ open, onOpenChange }: AddTimeEntryDialogPro
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
               <DollarSign className="h-4 w-4" />
-              Tip Amount (Optional)
+              Your Bonus Tip to Employee (Optional)
             </label>
             <Input
               type="number"
@@ -375,6 +375,7 @@ export const AddTimeEntryDialog = ({ open, onOpenChange }: AddTimeEntryDialogPro
               onChange={(e) => setTipAmount(e.target.value)}
               placeholder="0.00"
             />
+            <p className="text-xs text-gray-500 mt-1">This is YOUR bonus tip to the employee (comes from your revenue as an expense)</p>
           </div>
 
           {/* Time and Pay Summary */}
@@ -388,7 +389,7 @@ export const AddTimeEntryDialog = ({ open, onOpenChange }: AddTimeEntryDialogPro
                   <div>Overtime Hours: {overtimeHours.toFixed(2)} × ${(payPreview.hourlyRate * 1.5).toFixed(2)} = ${payPreview.overtimePay.toFixed(2)}</div>
                 )}
                 {payPreview.tipAmountNum > 0 && (
-                  <div className="text-green-600">Tip: ${payPreview.tipAmountNum.toFixed(2)}</div>
+                  <div className="text-green-600">Your Bonus Tip: ${payPreview.tipAmountNum.toFixed(2)}</div>
                 )}
                 <div className="font-medium border-t pt-1">
                   <strong>Total Pay: ${payPreview.totalPay.toFixed(2)}</strong>

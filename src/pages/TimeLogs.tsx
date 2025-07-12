@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import {
   Card,
@@ -134,7 +135,7 @@ export const TimeLogs = () => {
     const csvRows = [];
     const headers = [
       'Date', 'Employee', 'Job', 'Clock In', 'Clock Out', 
-      'Regular Hours', 'Overtime Hours', 'Total Pay', 'Status', 'Paid'
+      'Regular Hours', 'Overtime Hours', 'Your Bonus Tips', 'Total Pay', 'Status', 'Paid'
     ];
     csvRows.push(headers.join(','));
 
@@ -150,6 +151,7 @@ export const TimeLogs = () => {
         entry.clock_out_time ? new Date(entry.clock_out_time).toLocaleTimeString() : 'N/A',
         entry.regular_hours || 0,
         entry.overtime_hours || 0,
+        entry.tip_amount || 0,
         entry.total_pay || 0,
         entry.status,
         entry.is_paid ? 'Yes' : 'No'
@@ -196,7 +198,7 @@ export const TimeLogs = () => {
           </div>
         </div>
         <CardDescription>
-          Review, approve, and manage employee time entries and payments.
+          Review, approve, and manage employee time entries and payments. Note: "Your Bonus Tips" are additional tips you give employees from your revenue.
         </CardDescription>
       </div>
 
