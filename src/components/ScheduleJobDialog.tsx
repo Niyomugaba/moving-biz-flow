@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import { Button } from './ui/button';
@@ -89,7 +90,11 @@ export const ScheduleJobDialog = ({ open, onOpenChange, leadData, jobData }: Sch
         payment_method: jobData?.payment_method || '',
         paid_at: jobData?.paid_at || null,
         lead_cost: 0,
-        is_lead: false
+        is_lead: false,
+        // Include the missing pricing fields
+        pricing_model: 'per_person' as 'per_person' | 'flat_rate',
+        flat_hourly_rate: 90,
+        worker_hourly_rate: 20
       });
     }
   }, [open, leadData, jobData]);
