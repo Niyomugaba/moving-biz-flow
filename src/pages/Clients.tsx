@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -26,7 +27,6 @@ import {
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { OfflineFinancialManager } from "@/components/OfflineFinancialManager";
-import { GoogleSheetsIntegration } from "@/components/GoogleSheetsIntegration";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 
 export const Clients = () => {
@@ -164,14 +164,6 @@ export const Clients = () => {
           <p className="text-gray-600 text-sm mt-1">Manage your customer relationships</p>
         </div>
 
-        {/* Google Sheets Integration for Mobile */}
-        <GoogleSheetsIntegration 
-          clients={clientsWithStatus} 
-          jobs={[]} 
-          leads={leads}
-          isOnline={isOnline}
-        />
-
         {/* Mobile Search */}
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
@@ -255,7 +247,7 @@ export const Clients = () => {
             Client Management
           </h1>
           <p className="text-gray-600 mt-2">
-            Manage your customer relationships and sync with Google Sheets
+            Manage your customer relationships
           </p>
         </div>
         <div className="flex gap-3">
@@ -272,14 +264,6 @@ export const Clients = () => {
           </Button>
         </div>
       </div>
-
-      {/* Google Sheets Integration */}
-      <GoogleSheetsIntegration 
-        clients={clientsWithStatus} 
-        jobs={[]} 
-        leads={leads}
-        isOnline={isOnline}
-      />
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
