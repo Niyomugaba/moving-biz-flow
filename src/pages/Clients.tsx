@@ -25,6 +25,9 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
+import { OfflineFinancialManager } from "@/components/OfflineFinancialManager";
+import { GoogleSheetsIntegration } from "@/components/GoogleSheetsIntegration";
+import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 
 export const Clients = () => {
   const { clients, isLoading, deleteClient } = useClients();
@@ -35,6 +38,7 @@ export const Clients = () => {
   const [clientToDelete, setClientToDelete] = useState<string | null>(null);
   const [clientToEdit, setClientToEdit] = useState<any>(null);
   const isMobile = useIsMobile();
+  const isOnline = useOnlineStatus();
 
   // Merge clients with lead status information
   const clientsWithStatus = useMemo(() => {
@@ -160,6 +164,14 @@ export const Clients = () => {
           <p className="text-gray-600 text-sm mt-1">Manage your customer relationships</p>
         </div>
 
+        {/* Google Sheets Integration for Mobile */}
+        <GoogleSheetsIntegration 
+          clients={clientsWithStatus} 
+          jobs={[]} 
+          leads={leads}
+          isOnline={isOnline}
+        />
+
         {/* Mobile Search */}
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
@@ -243,13 +255,13 @@ export const Clients = () => {
             Client Management
           </h1>
           <p className="text-gray-600 mt-2">
-            Manage your customer relationships and track their journey
+            Manage your customer relationships and sync with Google Sheets
           </p>
         </div>
         <div className="flex gap-3">
           <Button variant="outline" onClick={handleExportData} className="flex items-center gap-2">
             <Download className="h-4 w-4" />
-            Export
+            Export CSV
           </Button>
           <Button 
             onClick={() => setShowAddDialog(true)}
@@ -260,6 +272,14 @@ export const Clients = () => {
           </Button>
         </div>
       </div>
+
+      {/* Google Sheets Integration */}
+      <GoogleSheetsIntegration 
+        clients={clientsWithStatus} 
+        jobs={[]} 
+        leads={leads}
+        isOnline={isOnline}
+      />
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
