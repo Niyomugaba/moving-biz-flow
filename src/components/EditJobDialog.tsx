@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import { Button } from './ui/button';
@@ -54,6 +55,9 @@ export const EditJobDialog = ({ open, onOpenChange, job }: EditJobDialogProps) =
         lead.phone === job.client_phone
       );
 
+      // Calculate hours_worked from actual_duration_hours or estimated_duration_hours
+      const calculatedHours = job.actual_duration_hours || job.estimated_duration_hours || 4;
+
       setFormData({
         client_name: job.client_name || '',
         client_phone: job.client_phone || '',
@@ -77,7 +81,7 @@ export const EditJobDialog = ({ open, onOpenChange, job }: EditJobDialogProps) =
         pricing_model: job.pricing_model || 'per_person',
         flat_hourly_rate: job.flat_hourly_rate || 90,
         worker_hourly_rate: job.worker_hourly_rate || 20,
-        hours_worked: job.hours_worked || 4
+        hours_worked: calculatedHours
       });
     }
   }, [job, open, leads]);

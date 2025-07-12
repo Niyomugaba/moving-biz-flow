@@ -241,6 +241,7 @@ export type Database = {
           destination_address: string
           estimated_duration_hours: number
           estimated_total: number
+          flat_hourly_rate: number | null
           hourly_rate: number
           id: string
           invoice_number: string | null
@@ -253,6 +254,7 @@ export type Database = {
           paid_at: string | null
           payment_due_date: string | null
           payment_method: string | null
+          pricing_model: string | null
           special_requirements: string | null
           start_time: string
           status: Database["public"]["Enums"]["job_status"]
@@ -262,6 +264,7 @@ export type Database = {
           truck_service_fee: number | null
           truck_size: string | null
           updated_at: string
+          worker_hourly_rate: number | null
         }
         Insert: {
           actual_duration_hours?: number | null
@@ -276,6 +279,7 @@ export type Database = {
           destination_address: string
           estimated_duration_hours: number
           estimated_total: number
+          flat_hourly_rate?: number | null
           hourly_rate: number
           id?: string
           invoice_number?: string | null
@@ -288,6 +292,7 @@ export type Database = {
           paid_at?: string | null
           payment_due_date?: string | null
           payment_method?: string | null
+          pricing_model?: string | null
           special_requirements?: string | null
           start_time: string
           status?: Database["public"]["Enums"]["job_status"]
@@ -297,6 +302,7 @@ export type Database = {
           truck_service_fee?: number | null
           truck_size?: string | null
           updated_at?: string
+          worker_hourly_rate?: number | null
         }
         Update: {
           actual_duration_hours?: number | null
@@ -311,6 +317,7 @@ export type Database = {
           destination_address?: string
           estimated_duration_hours?: number
           estimated_total?: number
+          flat_hourly_rate?: number | null
           hourly_rate?: number
           id?: string
           invoice_number?: string | null
@@ -323,6 +330,7 @@ export type Database = {
           paid_at?: string | null
           payment_due_date?: string | null
           payment_method?: string | null
+          pricing_model?: string | null
           special_requirements?: string | null
           start_time?: string
           status?: Database["public"]["Enums"]["job_status"]
@@ -332,6 +340,7 @@ export type Database = {
           truck_service_fee?: number | null
           truck_size?: string | null
           updated_at?: string
+          worker_hourly_rate?: number | null
         }
         Relationships: [
           {

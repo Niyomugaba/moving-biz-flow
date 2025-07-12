@@ -37,10 +37,12 @@ export interface Job {
   lead_cost?: number;
   created_at: string;
   updated_at: string;
-  // New pricing fields
+  // Pricing fields
   pricing_model?: 'per_person' | 'flat_rate';
   flat_hourly_rate?: number;
   worker_hourly_rate?: number;
+  // Add hours_worked as a calculated field for the form
+  hours_worked?: number;
 }
 
 export interface CreateJobData {
