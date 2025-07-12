@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -7,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { useEmployees } from '@/hooks/useEmployees';
 import { useJobs } from '@/hooks/useJobs';
 import { useTimeEntries } from '@/hooks/useTimeEntries';
-import { Clock } from 'lucide-react';
+import { Clock, Zap } from 'lucide-react';
 
 interface AddTimeEntryDialogProps {
   open: boolean;
@@ -28,6 +29,44 @@ export const AddTimeEntryDialog = ({ open, onOpenChange }: AddTimeEntryDialogPro
   const [notes, setNotes] = useState('');
 
   const selectedEmployee = employees.find(emp => emp.id === selectedEmployeeId);
+  const selectedJob = jobs.find(job => job.id === selectedJobId);
+  
+  // Auto-populate job data when job is selected
+  useEffect(() => {
+    if (selectedJob && selectedJob.id !== 'no-job') {
+      // Set job date
+      setEntryDate(selectedJob.job_date);
+      
+      // Set start time from job
+      setClockInTime(selectedJob.start_time);
+      
+      // Auto-calculate end time if hours_worked is available
+      if (selectedJob.hours_worked && selectedJob.start_time) {
+        const [hours, minutes] = selectedJob.start_time.split(':');
+        const startTime = new Date();
+        startTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+        
+        const endTime = new Date(startTime);
+        endTime.setHours(endTime.getHours() + selectedJob.hours_worked);
+        
+        const endTimeString = endTime.toTimeString().slice(0, 5);
+        setClockOutTime(endTimeString);
+      }
+      
+      // Add helpful note about the job
+      setNotes(`Work completed for job ${selectedJob.job_number} - ${selectedJob.client_name}`);
+    }
+  }, [selectedJob]);
+
+  // Filter employees based on job assignment or show all for completed jobs
+  const availableEmployees = selectedJob && selectedJob.status === 'completed' 
+    ? employees // Show all employees for completed jobs
+    : employees; // For now, show all employees - you can add job assignment filtering later
+
+  // Filter jobs to prioritize completed ones
+  const completedJobs = jobs.filter(job => job.status === 'completed');
+  const otherJobs = jobs.filter(job => job.status !== 'completed');
+  const sortedJobs = [...completedJobs, ...otherJobs];
   
   const calculateHours = () => {
     if (!clockInTime || !clockOutTime) return 0;
@@ -53,6 +92,9 @@ export const AddTimeEntryDialog = ({ open, onOpenChange }: AddTimeEntryDialogPro
     const clockInDateTime = `${entryDate}T${clockInTime}:00`;
     const clockOutDateTime = `${entryDate}T${clockOutTime}:00`;
 
+    // Use job's worker hourly rate if available, otherwise employee's wage
+    const hourlyRate = selectedJob?.worker_hourly_rate || selectedEmployee.hourly_wage;
+
     addTimeEntry({
       employee_id: selectedEmployeeId,
       job_id: selectedJobId === 'no-job' ? undefined : selectedJobId,
@@ -62,8 +104,8 @@ export const AddTimeEntryDialog = ({ open, onOpenChange }: AddTimeEntryDialogPro
       regular_hours: regularHours,
       overtime_hours: overtimeHours > 0 ? overtimeHours : undefined,
       break_duration_minutes: parseInt(breakMinutes) || 0,
-      hourly_rate: selectedEmployee.hourly_wage,
-      overtime_rate: overtimeHours > 0 ? selectedEmployee.hourly_wage * 1.5 : undefined,
+      hourly_rate: hourlyRate,
+      overtime_rate: overtimeHours > 0 ? hourlyRate * 1.5 : undefined,
       notes: notes || undefined
     });
 
@@ -76,6 +118,23 @@ export const AddTimeEntryDialog = ({ open, onOpenChange }: AddTimeEntryDialogPro
     setBreakMinutes('30');
     setNotes('');
     onOpenChange(false);
+  };
+
+  const handleQuickFill = () => {
+    if (selectedJob && selectedJob.hours_worked) {
+      const defaultStartTime = selectedJob.start_time || '08:00';
+      setClockInTime(defaultStartTime);
+      
+      const [hours, minutes] = defaultStartTime.split(':');
+      const startTime = new Date();
+      startTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+      
+      const endTime = new Date(startTime);
+      endTime.setHours(endTime.getHours() + selectedJob.hours_worked);
+      
+      const endTimeString = endTime.toTimeString().slice(0, 5);
+      setClockOutTime(endTimeString);
+    }
   };
 
   return (
@@ -91,6 +150,51 @@ export const AddTimeEntryDialog = ({ open, onOpenChange }: AddTimeEntryDialogPro
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
+              Job (Optional) *
+            </label>
+            <Select value={selectedJobId} onValueChange={setSelectedJobId}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select job (recommended)" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="no-job">No job assigned</SelectItem>
+                {completedJobs.length > 0 && (
+                  <>
+                    <div className="px-2 py-1 text-xs font-medium text-green-600 bg-green-50">
+                      ✅ Completed Jobs (Recommended)
+                    </div>
+                    {completedJobs.map((job) => (
+                      <SelectItem key={job.id} value={job.id}>
+                        <div className="flex items-center gap-2">
+                          <span>{job.job_number} - {job.client_name}</span>
+                          {job.hours_worked && (
+                            <span className="text-xs text-green-600">
+                              ({job.hours_worked}h @ ${job.worker_hourly_rate || job.hourly_rate}/hr)
+                            </span>
+                          )}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </>
+                )}
+                {otherJobs.length > 0 && (
+                  <>
+                    <div className="px-2 py-1 text-xs font-medium text-gray-500">
+                      Other Jobs
+                    </div>
+                    {otherJobs.map((job) => (
+                      <SelectItem key={job.id} value={job.id}>
+                        {job.job_number} - {job.client_name} ({job.status})
+                      </SelectItem>
+                    ))}
+                  </>
+                )}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
               Employee *
             </label>
             <Select value={selectedEmployeeId} onValueChange={setSelectedEmployeeId}>
@@ -98,28 +202,14 @@ export const AddTimeEntryDialog = ({ open, onOpenChange }: AddTimeEntryDialogPro
                 <SelectValue placeholder="Select employee" />
               </SelectTrigger>
               <SelectContent>
-                {employees.map((employee) => (
+                {availableEmployees.map((employee) => (
                   <SelectItem key={employee.id} value={employee.id}>
-                    {employee.name} (${employee.hourly_wage}/hr)
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Job (Optional)
-            </label>
-            <Select value={selectedJobId} onValueChange={setSelectedJobId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select job (optional)" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="no-job">No job assigned</SelectItem>
-                {jobs.map((job) => (
-                  <SelectItem key={job.id} value={job.id}>
-                    {job.client_name} - {job.job_date}
+                    <div className="flex items-center gap-2">
+                      <span>{employee.name}</span>
+                      <span className="text-xs text-gray-500">
+                        (${selectedJob?.worker_hourly_rate || employee.hourly_wage}/hr)
+                      </span>
+                    </div>
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -160,6 +250,29 @@ export const AddTimeEntryDialog = ({ open, onOpenChange }: AddTimeEntryDialogPro
             </div>
           </div>
 
+          {selectedJob && selectedJob.hours_worked && (
+            <div className="bg-blue-50 p-3 rounded-lg">
+              <div className="flex items-center justify-between">
+                <div className="text-sm text-blue-700">
+                  <strong>Job Info:</strong> {selectedJob.hours_worked} hours scheduled
+                  {selectedJob.worker_hourly_rate && (
+                    <span> @ ${selectedJob.worker_hourly_rate}/hr</span>
+                  )}
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleQuickFill}
+                  className="text-xs"
+                >
+                  <Zap className="h-3 w-3 mr-1" />
+                  Quick Fill
+                </Button>
+              </div>
+            </div>
+          )}
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Break Duration (minutes)
@@ -184,8 +297,8 @@ export const AddTimeEntryDialog = ({ open, onOpenChange }: AddTimeEntryDialogPro
                 )}
                 {selectedEmployee && (
                   <div className="font-medium">
-                    Total Pay: ${((regularHours * selectedEmployee.hourly_wage) + 
-                    (overtimeHours * selectedEmployee.hourly_wage * 1.5)).toFixed(2)}
+                    Total Pay: ${((regularHours * (selectedJob?.worker_hourly_rate || selectedEmployee.hourly_wage)) + 
+                    (overtimeHours * (selectedJob?.worker_hourly_rate || selectedEmployee.hourly_wage) * 1.5)).toFixed(2)}
                   </div>
                 )}
               </div>
