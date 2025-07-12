@@ -38,24 +38,30 @@ export const Clients = () => {
   const [clientToEdit, setClientToEdit] = useState<any>(null);
   const isMobile = useIsMobile();
 
-  // Merge clients with lead status information and updated stats
+  // Merge clients with lead status information - stats are already merged in useClients
   const clientsWithStatus = useMemo(() => {
+    console.log('Processing clients for display:', clients);
+    console.log('Available client stats:', clientStats);
+    
     return clients.map(client => {
       const associatedLead = leads.find(lead => 
         lead.name.toLowerCase() === client.name.toLowerCase() && 
         lead.phone === client.phone
       );
       
-      // Use calculated stats if available
-      const stats = clientStats.find(s => s.client_id === client.id);
-      
-      return {
+      const result = {
         ...client,
         leadStatus: associatedLead?.status || 'direct',
         leadCost: associatedLead?.lead_cost || 0,
-        total_jobs_completed: stats?.total_jobs_completed || client.total_jobs_completed || 0,
-        total_revenue: stats?.total_revenue || client.total_revenue || 0
       };
+      
+      console.log(`Client ${client.name} display data:`, {
+        jobs_completed: result.total_jobs_completed,
+        revenue: result.total_revenue,
+        leadStatus: result.leadStatus
+      });
+      
+      return result;
     });
   }, [clients, leads, clientStats]);
 

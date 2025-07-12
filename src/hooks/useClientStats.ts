@@ -7,7 +7,7 @@ export const useClientStats = () => {
   const { jobs } = useJobs();
 
   const { data: clientStats = [], isLoading, refetch } = useQuery({
-    queryKey: ['client-stats', jobs],
+    queryKey: ['client-stats'],
     queryFn: async () => {
       console.log('Calculating client statistics from jobs:', jobs);
       
@@ -41,43 +41,12 @@ export const useClientStats = () => {
       });
       
       const statsArray = Array.from(clientStatsMap.values());
-      console.log('Calculated client stats:', statsArray);
-      
-      // Update client records in database with calculated stats
-      for (const stats of statsArray) {
-        if (stats.client_id) {
-          try {
-            console.log(`Updating client ${stats.client_name} with stats:`, {
-              jobs: stats.total_jobs_completed,
-              revenue: stats.total_revenue
-            });
-            
-            const { error } = await supabase
-              .from('clients')
-              .update({
-                total_jobs_completed: stats.total_jobs_completed,
-                total_revenue: stats.total_revenue,
-                updated_at: new Date().toISOString()
-              })
-              .eq('id', stats.client_id);
-              
-            if (error) {
-              console.error(`Error updating client ${stats.client_name} stats:`, error);
-            } else {
-              console.log(`Successfully updated stats for client ${stats.client_name}: ${stats.total_jobs_completed} jobs, $${stats.total_revenue} revenue`);
-            }
-          } catch (error) {
-            console.error(`Exception updating client ${stats.client_name} stats:`, error);
-          }
-        }
-      }
+      console.log('Final calculated client stats:', statsArray);
       
       return statsArray;
     },
     enabled: jobs.length > 0,
-    staleTime: 0, // Always refetch to ensure fresh data
-    refetchOnWindowFocus: true, // Refetch when window gains focus
-    refetchInterval: 5000, // Refetch every 5 seconds to ensure data stays fresh
+    staleTime: 0,
   });
 
   return {
