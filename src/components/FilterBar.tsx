@@ -43,7 +43,7 @@ export const FilterBar = ({
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="all">All Status</SelectItem>
-          {statusOptions.map((option) => (
+          {statusOptions.filter(option => option.value && option.value.trim() !== '').map((option) => (
             <SelectItem key={option.value} value={option.value}>
               {option.label}
             </SelectItem>

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -50,6 +49,9 @@ export const TimeEntryCard = ({
 
   const employee = employees.find(emp => emp.id === entry.employee_id);
   const job = jobs.find(j => j.id === entry.job_id);
+
+  // Filter jobs to ensure no empty values
+  const validJobs = jobs.filter(job => job.id && job.id.trim() !== '');
 
   // Calculate totals for display
   const calculatePreviewTotals = () => {
@@ -285,15 +287,15 @@ export const TimeEntryCard = ({
                 <div>
                   <Label htmlFor="job_assignment">Assign to Job</Label>
                   <Select 
-                    value={editedEntry.job_id || ''} 
-                    onValueChange={(value) => setEditedEntry({...editedEntry, job_id: value || null})}
+                    value={editedEntry.job_id || 'unassigned'} 
+                    onValueChange={(value) => setEditedEntry({...editedEntry, job_id: value === 'unassigned' ? null : value})}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select job (optional)" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">No Job Assignment</SelectItem>
-                      {jobs.map((job) => (
+                      <SelectItem value="unassigned">No Job Assignment</SelectItem>
+                      {validJobs.map((job) => (
                         <SelectItem key={job.id} value={job.id}>
                           {job.job_number} - {job.client_name}
                         </SelectItem>

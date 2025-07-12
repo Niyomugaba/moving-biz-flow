@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import { Button } from './ui/button';
@@ -63,9 +62,10 @@ export const AddTimeEntryDialog = ({ open, onOpenChange }: AddTimeEntryDialogPro
     }
   }, [selectedJob]);
 
-  // Filter jobs to prioritize completed ones
-  const completedJobs = jobs.filter(job => job.status === 'completed');
-  const otherJobs = jobs.filter(job => job.status !== 'completed');
+  // Filter jobs to prioritize completed ones and ensure they have valid IDs
+  const validJobs = jobs.filter(job => job.id && job.id.trim() !== '');
+  const completedJobs = validJobs.filter(job => job.status === 'completed');
+  const otherJobs = validJobs.filter(job => job.status !== 'completed');
   const sortedJobs = [...completedJobs, ...otherJobs];
   
   const calculateHours = () => {
@@ -291,7 +291,7 @@ export const AddTimeEntryDialog = ({ open, onOpenChange }: AddTimeEntryDialogPro
                 <SelectValue placeholder="Select employee" />
               </SelectTrigger>
               <SelectContent>
-                {employees.map((employee) => (
+                {employees.filter(emp => emp.id && emp.id.trim() !== '').map((employee) => (
                   <SelectItem key={employee.id} value={employee.id}>
                     <div className="flex items-center gap-2">
                       <span>{employee.name}</span>
