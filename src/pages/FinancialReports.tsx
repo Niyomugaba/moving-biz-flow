@@ -12,6 +12,7 @@ import { exportFinancialDataToExcel } from '@/utils/excelExport';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { format, parseISO, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
 import { toast } from 'sonner';
+import { AdvancedGoogleSheetsIntegration } from '@/components/AdvancedGoogleSheetsIntegration';
 
 export const FinancialReports = () => {
   const { jobs } = useJobs();

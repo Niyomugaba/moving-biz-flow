@@ -1,4 +1,3 @@
-
 import { GoogleSheetsSync } from './googleSheetsSync';
 
 export interface AdvancedGoogleSheetsConfig {
@@ -7,8 +6,6 @@ export interface AdvancedGoogleSheetsConfig {
 }
 
 export class AdvancedGoogleSheetsManager extends GoogleSheetsSync {
-  private accessToken: string;
-
   constructor(config: AdvancedGoogleSheetsConfig) {
     super({
       spreadsheetId: config.spreadsheetId,
@@ -16,7 +13,6 @@ export class AdvancedGoogleSheetsManager extends GoogleSheetsSync {
       jobsSheetName: 'Jobs', 
       leadsSheetName: 'Leads'
     }, config.accessToken);
-    this.accessToken = config.accessToken;
   }
 
   // Create a comprehensive Financial Reports sheet that mirrors the UI
