@@ -97,7 +97,6 @@ export const AddTimeEntryDialog = ({ open, onOpenChange }: AddTimeEntryDialogPro
       clock_out_time: clockOutDateTime,
       regular_hours: regularHours,
       overtime_hours: overtimeHours > 0 ? overtimeHours : undefined,
-      break_duration_minutes: 0, // Keep for backwards compatibility
       tip_amount: parseFloat(tipAmount) || 0,
       hourly_rate: hourlyRate,
       overtime_rate: overtimeHours > 0 ? hourlyRate * 1.5 : undefined,

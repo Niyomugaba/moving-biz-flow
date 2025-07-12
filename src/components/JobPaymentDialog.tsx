@@ -62,7 +62,7 @@ export const JobPaymentDialog = ({ open, onOpenChange, job }: JobPaymentDialogPr
             hourly_rate: job.worker_hourly_rate,
             overtime_rate: job.worker_hourly_rate * 1.5,
             notes: `Auto-generated payment for job ${job.job_number}`,
-            break_duration_minutes: 30
+            tip_amount: 0
           });
           setTimeout(resolve, 500); // Small delay between entries
         });
