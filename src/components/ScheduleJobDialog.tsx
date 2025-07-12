@@ -59,17 +59,16 @@ export const ScheduleJobDialog = ({ open, onOpenChange, leadData, jobData }: Sch
     paid_at: jobData?.paid_at || null as string | null,
     lead_cost: 0,
     is_lead: false,
-    // Pricing fields
     pricing_model: 'per_person' as 'per_person' | 'flat_rate',
     flat_hourly_rate: 90,
     worker_hourly_rate: 20,
-    hours_worked: 4
+    hours_worked: 4,
+    total_amount_received: 0
   });
 
   const { addJob, updateJob, isAddingJob, isUpdatingJob } = useJobs();
   const { clients } = useClients();
 
-  // Reset form when dialog opens with new data
   useEffect(() => {
     if (open) {
       setFormData({
@@ -91,11 +90,11 @@ export const ScheduleJobDialog = ({ open, onOpenChange, leadData, jobData }: Sch
         paid_at: jobData?.paid_at || null,
         lead_cost: 0,
         is_lead: false,
-        // Include the missing pricing fields
         pricing_model: 'per_person' as 'per_person' | 'flat_rate',
         flat_hourly_rate: 90,
         worker_hourly_rate: 20,
-        hours_worked: 4
+        hours_worked: 4,
+        total_amount_received: 0
       });
     }
   }, [open, leadData, jobData]);
@@ -109,6 +108,7 @@ export const ScheduleJobDialog = ({ open, onOpenChange, leadData, jobData }: Sch
       estimated_total: Number(formData.estimated_total),
       hourly_rate: Number(formData.hourly_rate),
       movers_needed: Number(formData.movers_needed),
+      total_amount_received: Number(formData.total_amount_received),
       truck_size: formData.truck_size || null,
       special_requirements: formData.special_requirements || null,
       paid_at: formData.is_paid && formData.paid_at ? formData.paid_at : null,
@@ -118,10 +118,8 @@ export const ScheduleJobDialog = ({ open, onOpenChange, leadData, jobData }: Sch
     console.log('Submitting job data:', submissionData);
     
     if (jobData) {
-      // Update existing job
       updateJob({ id: jobData.id, updates: submissionData });
     } else {
-      // Create new job
       addJob(submissionData);
     }
     
@@ -155,7 +153,6 @@ export const ScheduleJobDialog = ({ open, onOpenChange, leadData, jobData }: Sch
       }));
     }
 
-    // Reset lead cost if is_lead is set to false
     if (field === 'is_lead' && value === false) {
       setFormData(prev => ({
         ...prev,
@@ -174,8 +171,8 @@ export const ScheduleJobDialog = ({ open, onOpenChange, leadData, jobData }: Sch
         client_name: client.name,
         client_phone: client.phone,
         client_email: client.email || '',
-        is_lead: false, // Reset lead status when selecting existing client
-        lead_cost: 0    // Reset lead cost when selecting existing client
+        is_lead: false,
+        lead_cost: 0
       }));
     }
   };
@@ -241,7 +238,6 @@ export const ScheduleJobDialog = ({ open, onOpenChange, leadData, jobData }: Sch
             />
           </div>
 
-          {/* Lead Information Section - Only show for new manually entered clients */}
           {isNewClient && (
             <div className="border p-4 rounded-md bg-gray-50">
               <div className="flex items-center space-x-2 mb-3">
@@ -459,6 +455,24 @@ export const ScheduleJobDialog = ({ open, onOpenChange, leadData, jobData }: Sch
               <p className="text-sm text-gray-500">Auto-calculated based on flat rate and hours</p>
             )}
           </div>
+
+          {formData.pricing_model === 'flat_rate' && (
+            <div className="space-y-2">
+              <Label htmlFor="total_amount_received">Total Amount Received (Including Tips) ($)</Label>
+              <Input
+                id="total_amount_received"
+                type="number"
+                value={formData.total_amount_received}
+                onChange={(e) => handleInputChange('total_amount_received', e.target.value)}
+                min="0"
+                step="0.01"
+                placeholder="Enter actual amount received from client"
+              />
+              <p className="text-sm text-gray-500">
+                Enter the full amount you received from the client, including any tips or bonuses
+              </p>
+            </div>
+          )}
 
           <div className="space-y-2">
             <Label htmlFor="truck_size">Truck Size</Label>

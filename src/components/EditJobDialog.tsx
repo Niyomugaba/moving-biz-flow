@@ -41,7 +41,8 @@ export const EditJobDialog = ({ open, onOpenChange, job }: EditJobDialogProps) =
     pricing_model: 'per_person' as 'per_person' | 'flat_rate',
     flat_hourly_rate: 90,
     worker_hourly_rate: 20,
-    hours_worked: 4
+    hours_worked: 4,
+    total_amount_received: 0
   });
 
   const { updateJob, isUpdatingJob } = useJobs();
@@ -50,13 +51,11 @@ export const EditJobDialog = ({ open, onOpenChange, job }: EditJobDialogProps) =
 
   useEffect(() => {
     if (job && open) {
-      // Check if this job already has a lead_id or check if there's a matching lead
       const hasExistingLead = job.lead_id || leads.find(lead => 
         lead.name.toLowerCase() === job.client_name.toLowerCase() && 
         lead.phone === job.client_phone
       );
 
-      // Calculate hours_worked from actual_duration_hours or estimated_duration_hours
       const calculatedHours = job.actual_duration_hours || job.estimated_duration_hours || 4;
 
       setFormData({
@@ -82,7 +81,8 @@ export const EditJobDialog = ({ open, onOpenChange, job }: EditJobDialogProps) =
         pricing_model: job.pricing_model || 'per_person',
         flat_hourly_rate: job.flat_hourly_rate || 90,
         worker_hourly_rate: job.worker_hourly_rate || 20,
-        hours_worked: calculatedHours
+        hours_worked: calculatedHours,
+        total_amount_received: job.total_amount_received || 0
       });
     }
   }, [job, open, leads]);
@@ -93,7 +93,6 @@ export const EditJobDialog = ({ open, onOpenChange, job }: EditJobDialogProps) =
     if (!job) return;
 
     try {
-      // If marked as lead and no existing lead_id, create a lead entry
       let leadId = job.lead_id;
       
       if (formData.is_lead && !leadId) {
@@ -130,12 +129,12 @@ export const EditJobDialog = ({ open, onOpenChange, job }: EditJobDialogProps) =
         movers_needed: Number(formData.movers_needed),
         flat_hourly_rate: Number(formData.flat_hourly_rate),
         worker_hourly_rate: Number(formData.worker_hourly_rate),
+        total_amount_received: Number(formData.total_amount_received),
         truck_size: formData.truck_size || null,
         special_requirements: formData.special_requirements || null,
         paid_at: formData.is_paid && formData.paid_at ? formData.paid_at : null,
         payment_method: formData.is_paid ? formData.payment_method : null,
         lead_id: formData.is_lead ? leadId : null,
-        // Add hours_worked to updates for time entry creation
         hours_worked: formData.hours_worked
       };
 
@@ -143,17 +142,15 @@ export const EditJobDialog = ({ open, onOpenChange, job }: EditJobDialogProps) =
 
       console.log('Updating job with data:', jobUpdates);
       
-      // Check if this is switching to flat_rate pricing and we need dummy employees
       const wasNotFlatRate = job.pricing_model !== 'flat_rate';
       const isNowFlatRate = formData.pricing_model === 'flat_rate';
       const needsDummyEmployees = wasNotFlatRate && isNowFlatRate;
 
-      // Pass shouldCreateDummyEmployees flag to updateJob
       updateJob({ 
         id: job.id, 
         updates: {
           ...jobUpdates,
-          hours_worked: formData.hours_worked // Include hours_worked in the update
+          hours_worked: formData.hours_worked
         },
         shouldCreateDummyEmployees: needsDummyEmployees
       });
@@ -167,7 +164,6 @@ export const EditJobDialog = ({ open, onOpenChange, job }: EditJobDialogProps) =
   const handleInputChange = (field: string, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     
-    // Auto-calculate estimated total based on pricing model
     if (['hourly_rate', 'movers_needed', 'pricing_model', 'flat_hourly_rate', 'hours_worked'].includes(field)) {
       const pricingModel = field === 'pricing_model' ? value : formData.pricing_model;
       const rate = field === 'hourly_rate' ? Number(value) : formData.hourly_rate;
@@ -191,7 +187,6 @@ export const EditJobDialog = ({ open, onOpenChange, job }: EditJobDialogProps) =
       }));
     }
 
-    // Reset lead cost if is_lead is set to false
     if (field === 'is_lead' && value === false) {
       setFormData(prev => ({
         ...prev,
@@ -283,7 +278,6 @@ export const EditJobDialog = ({ open, onOpenChange, job }: EditJobDialogProps) =
             </div>
           </div>
 
-          {/* Simplified Pricing Model Section */}
           <div className="border p-4 rounded-md bg-gray-50">
             <Label className="font-medium text-gray-800 mb-3 block">Pricing Model</Label>
             
@@ -419,6 +413,24 @@ export const EditJobDialog = ({ open, onOpenChange, job }: EditJobDialogProps) =
             )}
           </div>
 
+          {formData.pricing_model === 'flat_rate' && (
+            <div className="space-y-2">
+              <Label htmlFor="total_amount_received">Total Amount Received (Including Tips) ($)</Label>
+              <Input
+                id="total_amount_received"
+                type="number"
+                value={formData.total_amount_received}
+                onChange={(e) => handleInputChange('total_amount_received', e.target.value)}
+                min="0"
+                step="0.01"
+                placeholder="Enter actual amount received from client"
+              />
+              <p className="text-sm text-gray-500">
+                Enter the full amount you received from the client, including any tips or bonuses
+              </p>
+            </div>
+          )}
+
           <div className="space-y-2">
             <Label htmlFor="actual_total">Actual Total ($)</Label>
             <Input
@@ -473,7 +485,6 @@ export const EditJobDialog = ({ open, onOpenChange, job }: EditJobDialogProps) =
             />
           </div>
 
-          {/* Lead Information Section */}
           <div className="border p-4 rounded-md bg-gray-50">
             <div className="flex items-center space-x-2 mb-3">
               <Checkbox
