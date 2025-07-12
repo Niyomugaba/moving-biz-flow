@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import { Button } from './ui/button';
@@ -60,10 +59,11 @@ export const ScheduleJobDialog = ({ open, onOpenChange, leadData, jobData }: Sch
     paid_at: jobData?.paid_at || null as string | null,
     lead_cost: 0,
     is_lead: false,
-    // New pricing fields
+    // Pricing fields
     pricing_model: 'per_person' as 'per_person' | 'flat_rate',
     flat_hourly_rate: 90,
-    worker_hourly_rate: 20
+    worker_hourly_rate: 20,
+    hours_worked: 4
   });
 
   const { addJob, updateJob, isAddingJob, isUpdatingJob } = useJobs();
@@ -94,7 +94,8 @@ export const ScheduleJobDialog = ({ open, onOpenChange, leadData, jobData }: Sch
         // Include the missing pricing fields
         pricing_model: 'per_person' as 'per_person' | 'flat_rate',
         flat_hourly_rate: 90,
-        worker_hourly_rate: 20
+        worker_hourly_rate: 20,
+        hours_worked: 4
       });
     }
   }, [open, leadData, jobData]);
@@ -131,17 +132,18 @@ export const ScheduleJobDialog = ({ open, onOpenChange, leadData, jobData }: Sch
     setFormData(prev => ({ ...prev, [field]: value }));
     
     // Auto-calculate estimated total based on pricing model
-    if (field === 'hourly_rate' || field === 'movers_needed' || field === 'pricing_model' || field === 'flat_hourly_rate') {
+    if (['hourly_rate', 'movers_needed', 'pricing_model', 'flat_hourly_rate', 'hours_worked'].includes(field)) {
       const pricingModel = field === 'pricing_model' ? value : formData.pricing_model;
       const rate = field === 'hourly_rate' ? Number(value) : formData.hourly_rate;
       const movers = field === 'movers_needed' ? Number(value) : formData.movers_needed;
       const flatRate = field === 'flat_hourly_rate' ? Number(value) : formData.flat_hourly_rate;
+      const hours = field === 'hours_worked' ? Number(value) : formData.hours_worked;
       
       let calculatedTotal;
       if (pricingModel === 'flat_rate') {
-        calculatedTotal = flatRate * 2; // Assume 2 hours minimum
+        calculatedTotal = flatRate * hours;
       } else {
-        calculatedTotal = rate * movers * 2; // Assume 2 hours minimum
+        calculatedTotal = rate * movers * 2; // Standard 2 hours minimum
       }
       
       const maxTotal = 999999.99;
@@ -322,7 +324,7 @@ export const ScheduleJobDialog = ({ open, onOpenChange, leadData, jobData }: Sch
             </div>
           </div>
 
-          {/* New Pricing Model Section */}
+          {/* Simplified Pricing Model Section */}
           <div className="border p-4 rounded-md bg-gray-50">
             <Label className="font-medium text-gray-800 mb-3 block">Pricing Model</Label>
             
@@ -334,8 +336,8 @@ export const ScheduleJobDialog = ({ open, onOpenChange, leadData, jobData }: Sch
                     <SelectValue placeholder="Select pricing model..." />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="per_person">Per Hour Per Person (Standard)</SelectItem>
-                    <SelectItem value="flat_rate">Flat Hourly Rate (Negotiated)</SelectItem>
+                    <SelectItem value="per_person">Standard (Per Hour Per Person)</SelectItem>
+                    <SelectItem value="flat_rate">Negotiated (Flat Rate)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -373,9 +375,9 @@ export const ScheduleJobDialog = ({ open, onOpenChange, leadData, jobData }: Sch
                   </div>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="flat_hourly_rate">Total Hourly Rate ($)</Label>
+                    <Label htmlFor="flat_hourly_rate">Client Pays Per Hour ($)</Label>
                     <Input
                       id="flat_hourly_rate"
                       type="number"
@@ -398,9 +400,41 @@ export const ScheduleJobDialog = ({ open, onOpenChange, leadData, jobData }: Sch
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium">Your Profit Per Hour</Label>
-                    <div className="p-2 bg-white border rounded text-sm">
-                      ${(formData.flat_hourly_rate - (formData.worker_hourly_rate * formData.movers_needed)).toFixed(2)}
+                    <Label htmlFor="movers_needed">Number of Workers</Label>
+                    <Input
+                      id="movers_needed"
+                      type="number"
+                      value={formData.movers_needed}
+                      onChange={(e) => handleInputChange('movers_needed', e.target.value)}
+                      required
+                      min="1"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="hours_worked">Hours Worked</Label>
+                    <Input
+                      id="hours_worked"
+                      type="number"
+                      value={formData.hours_worked}
+                      onChange={(e) => handleInputChange('hours_worked', e.target.value)}
+                      min="0"
+                      step="0.5"
+                    />
+                  </div>
+                  <div className="space-y-2 col-span-2">
+                    <div className="grid grid-cols-2 gap-4 p-3 bg-white border rounded">
+                      <div>
+                        <Label className="text-sm font-medium text-gray-600">Total Worker Cost</Label>
+                        <div className="text-lg font-semibold text-red-600">
+                          ${(formData.worker_hourly_rate * formData.movers_needed * formData.hours_worked).toFixed(2)}
+                        </div>
+                      </div>
+                      <div>
+                        <Label className="text-sm font-medium text-gray-600">Your Profit</Label>
+                        <div className="text-lg font-semibold text-green-600">
+                          ${((formData.flat_hourly_rate * formData.hours_worked) - (formData.worker_hourly_rate * formData.movers_needed * formData.hours_worked)).toFixed(2)}
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -409,7 +443,7 @@ export const ScheduleJobDialog = ({ open, onOpenChange, leadData, jobData }: Sch
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="estimated_total">Estimated Total ($) *</Label>
+            <Label htmlFor="estimated_total">Total Job Amount ($) *</Label>
             <Input
               id="estimated_total"
               type="number"
@@ -418,7 +452,12 @@ export const ScheduleJobDialog = ({ open, onOpenChange, leadData, jobData }: Sch
               required
               min="0"
               step="0.01"
+              readOnly={formData.pricing_model === 'flat_rate'}
+              className={formData.pricing_model === 'flat_rate' ? 'bg-gray-100' : ''}
             />
+            {formData.pricing_model === 'flat_rate' && (
+              <p className="text-sm text-gray-500">Auto-calculated based on flat rate and hours</p>
+            )}
           </div>
 
           <div className="space-y-2">
