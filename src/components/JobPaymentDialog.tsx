@@ -129,7 +129,7 @@ export const JobPaymentDialog = ({ open, onOpenChange, job }: JobPaymentDialogPr
           hourly_rate: job.worker_hourly_rate,
           overtime_rate: paymentDetails.overtimeHours > 0 ? job.worker_hourly_rate * 1.5 : undefined,
           notes: `Auto-generated payment for job ${job.job_number}`,
-          tip_amount: 0
+          tip_amount: 0 // Default to 0 - you can add YOUR tips to employees later
         };
 
         console.log(`Creating time entry ${index + 1}/${dummyEmployees.length} for employee:`, employee.name, timeEntryData);
@@ -253,7 +253,7 @@ export const JobPaymentDialog = ({ open, onOpenChange, job }: JobPaymentDialogPr
               <CardContent className="p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <Clock className="h-4 w-4 text-blue-600" />
-                  <span className="font-medium text-blue-900">Payment Summary</span>
+                  <span className="font-medium text-blue-900">Payment Summary (Base Pay Only)</span>
                 </div>
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
@@ -269,11 +269,14 @@ export const JobPaymentDialog = ({ open, onOpenChange, job }: JobPaymentDialogPr
                     <strong>Overtime Pay (per employee):</strong> ${paymentDetails.overtimePay.toFixed(2)}
                   </div>
                   <div>
-                    <strong>Total per Employee:</strong> ${paymentDetails.totalPayPerEmployee.toFixed(2)}
+                    <strong>Base Pay per Employee:</strong> ${paymentDetails.totalPayPerEmployee.toFixed(2)}
                   </div>
                   <div>
-                    <strong>Grand Total:</strong> ${paymentDetails.totalPayAllEmployees.toFixed(2)}
+                    <strong>Total Base Pay:</strong> ${paymentDetails.totalPayAllEmployees.toFixed(2)}
                   </div>
+                </div>
+                <div className="mt-2 p-2 bg-blue-100 rounded text-xs text-blue-700">
+                  <strong>Note:</strong> You can add your own tips to employees later in the time entries section. This creates base pay entries only.
                 </div>
               </CardContent>
             </Card>
@@ -287,7 +290,7 @@ export const JobPaymentDialog = ({ open, onOpenChange, job }: JobPaymentDialogPr
               className="flex-1"
             >
               <CheckCircle className="h-4 w-4 mr-2" />
-              {isProcessing ? 'Creating Entries...' : 'Create Time Entries'}
+              {isProcessing ? 'Creating Entries...' : 'Create Base Pay Entries'}
             </Button>
             <Button variant="outline" onClick={() => onOpenChange(false)}>
               Cancel

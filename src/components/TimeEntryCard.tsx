@@ -57,13 +57,13 @@ export const TimeEntryCard = ({
   const calculatePreviewTotals = () => {
     const regularPay = (editedEntry.regular_hours || 0) * (editedEntry.hourly_rate || 0);
     const overtimePay = (editedEntry.overtime_hours || 0) * (editedEntry.overtime_rate || editedEntry.hourly_rate || 0);
-    const tipAmount = editedEntry.tip_amount || 0;
-    const totalPay = regularPay + overtimePay + tipAmount;
+    const yourTipToEmployee = editedEntry.tip_amount || 0; // YOUR tip to the employee
+    const totalPay = regularPay + overtimePay + yourTipToEmployee;
     
     return {
       regularPay,
       overtimePay,
-      tipAmount,
+      yourTipToEmployee,
       totalPay
     };
   };
@@ -200,7 +200,7 @@ export const TimeEntryCard = ({
               {entry.total_pay && (
                 <>
                   {' • '}
-                  <strong>Pay:</strong> ${entry.total_pay.toFixed(2)}
+                  <strong>Total Pay:</strong> ${entry.total_pay.toFixed(2)}
                 </>
               )}
             </span>
@@ -208,9 +208,9 @@ export const TimeEntryCard = ({
 
           {entry.tip_amount && entry.tip_amount > 0 && (
             <div className="flex items-center gap-2">
-              <Gift className="h-4 w-4 text-green-500" />
-              <span className="text-green-600">
-                <strong>Tip:</strong> ${entry.tip_amount.toFixed(2)}
+              <Gift className="h-4 w-4 text-blue-500" />
+              <span className="text-blue-600">
+                <strong>Your Tip to Employee:</strong> ${entry.tip_amount.toFixed(2)}
               </span>
             </div>
           )}
@@ -272,7 +272,7 @@ export const TimeEntryCard = ({
                   </div>
                 </div>
                 <div>
-                  <Label htmlFor="tip_amount">Tip Amount ($)</Label>
+                  <Label htmlFor="tip_amount">Your Tip to Employee ($)</Label>
                   <Input
                     id="tip_amount"
                     type="number"
@@ -282,7 +282,7 @@ export const TimeEntryCard = ({
                     onChange={(e) => setEditedEntry({...editedEntry, tip_amount: parseFloat(e.target.value) || 0})}
                     placeholder="0.00"
                   />
-                  <p className="text-xs text-gray-500 mt-1">Enter any tip amount received for this job</p>
+                  <p className="text-xs text-gray-500 mt-1">This is YOUR tip to the employee (comes from your revenue)</p>
                 </div>
                 <div>
                   <Label htmlFor="job_assignment">Assign to Job</Label>
@@ -324,7 +324,7 @@ export const TimeEntryCard = ({
                         <div>Overtime: {editedEntry.overtime_hours}h × ${editedEntry.overtime_rate || editedEntry.hourly_rate} = ${calculatePreviewTotals().overtimePay.toFixed(2)}</div>
                       )}
                       {editedEntry.tip_amount > 0 && (
-                        <div className="text-green-600">Tip: ${editedEntry.tip_amount.toFixed(2)}</div>
+                        <div className="text-blue-600">Your Tip: ${editedEntry.tip_amount.toFixed(2)}</div>
                       )}
                       <div className="font-bold border-t pt-1">
                         Total Pay: ${calculatePreviewTotals().totalPay.toFixed(2)}

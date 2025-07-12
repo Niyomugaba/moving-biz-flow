@@ -22,7 +22,7 @@ export interface TimeEntry {
   approved_at?: string;
   is_paid: boolean;
   paid_at?: string;
-  tip_amount?: number; // This is employee tip (expense) - deducted from revenue
+  tip_amount?: number; // This is YOUR tip to employees (expense) - separate from customer tip
   created_at: string;
   updated_at: string;
 }
@@ -38,15 +38,15 @@ export interface CreateTimeEntryData {
   hourly_rate: number;
   overtime_rate?: number;
   notes?: string;
-  tip_amount?: number; // Employee tip (expense)
+  tip_amount?: number; // YOUR tip to employees (expense)
 }
 
 // Helper function to calculate total pay (for client-side display only)
 const calculateTotalPay = (entry: Partial<TimeEntry>): number => {
   const regularPay = (entry.regular_hours || 0) * (entry.hourly_rate || 0);
   const overtimePay = (entry.overtime_hours || 0) * (entry.overtime_rate || entry.hourly_rate || 0);
-  const tipAmount = entry.tip_amount || 0;
-  return regularPay + overtimePay + tipAmount;
+  const yourTipToEmployee = entry.tip_amount || 0; // This is YOUR tip to the employee
+  return regularPay + overtimePay + yourTipToEmployee;
 };
 
 export const useTimeEntries = () => {
@@ -105,7 +105,7 @@ export const useTimeEntries = () => {
         hourly_rate: sanitizedData.hourly_rate,
         overtime_rate: sanitizedData.overtime_rate,
         notes: sanitizedData.notes,
-        tip_amount: sanitizedData.tip_amount || 0,
+        tip_amount: sanitizedData.tip_amount || 0, // YOUR tip to employees (expense)
         total_pay: totalPay,
         status: 'pending' as const
       };
@@ -123,7 +123,6 @@ export const useTimeEntries = () => {
         throw error;
       }
 
-      // NOTE: Employee tips do NOT get added to job totals as they are expenses, not revenue
       console.log('Time entry created successfully:', data);
       return data as TimeEntry;
     },
@@ -178,7 +177,6 @@ export const useTimeEntries = () => {
         throw error;
       }
 
-      // Employee tips are expenses, not revenue - they don't affect job totals
       console.log('Time entry updated successfully:', data);
       return data as TimeEntry;
     },
@@ -204,17 +202,6 @@ export const useTimeEntries = () => {
     mutationFn: async (id: string) => {
       console.log('Deleting time entry:', id);
       
-      // Get the time entry before deleting to adjust job total if needed
-      const { data: timeEntry, error: fetchError } = await supabase
-        .from('time_entries')
-        .select('*')
-        .eq('id', id)
-        .single();
-
-      if (fetchError) {
-        console.error('Error fetching time entry for deletion:', fetchError);
-      }
-
       const { error } = await supabase
         .from('time_entries')
         .delete()
@@ -223,12 +210,6 @@ export const useTimeEntries = () => {
       if (error) {
         console.error('Error deleting time entry:', error);
         throw error;
-      }
-
-      // If there was a tip and job_id, subtract from job total
-      if (timeEntry && timeEntry.job_id && timeEntry.tip_amount && timeEntry.tip_amount > 0) {
-        console.log('Adjusting job total after time entry deletion:', -timeEntry.tip_amount);
-        await updateJobTotalWithTip(timeEntry.job_id, -timeEntry.tip_amount);
       }
     },
     onSuccess: () => {
