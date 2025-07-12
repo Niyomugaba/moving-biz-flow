@@ -31,11 +31,14 @@ export const useClientStats = () => {
         // Count completed jobs
         if (job.status === 'completed') {
           stats.total_jobs_completed += 1;
+          console.log(`Job ${job.job_number} is completed for client ${clientName}`);
         }
         
-        // Add revenue from paid jobs
-        if (job.status === 'completed' && job.is_paid && job.actual_total) {
-          stats.total_revenue += job.actual_total;
+        // Add revenue from completed AND paid jobs
+        if (job.status === 'completed' && job.is_paid) {
+          const revenueAmount = job.actual_total || job.estimated_total || 0;
+          stats.total_revenue += revenueAmount;
+          console.log(`Adding revenue ${revenueAmount} from job ${job.job_number} for client ${clientName}`);
         }
       });
       
@@ -46,6 +49,11 @@ export const useClientStats = () => {
       for (const stats of statsArray) {
         if (stats.client_id) {
           try {
+            console.log(`Updating client ${stats.client_name} with stats:`, {
+              jobs: stats.total_jobs_completed,
+              revenue: stats.total_revenue
+            });
+            
             const { error } = await supabase
               .from('clients')
               .update({
@@ -58,10 +66,7 @@ export const useClientStats = () => {
             if (error) {
               console.error('Error updating client stats:', error);
             } else {
-              console.log(`Updated stats for client ${stats.client_name}:`, {
-                jobs: stats.total_jobs_completed,
-                revenue: stats.total_revenue
-              });
+              console.log(`Successfully updated stats for client ${stats.client_name}`);
             }
           } catch (error) {
             console.error('Error updating client stats:', error);

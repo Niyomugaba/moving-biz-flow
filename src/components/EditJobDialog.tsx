@@ -134,7 +134,9 @@ export const EditJobDialog = ({ open, onOpenChange, job }: EditJobDialogProps) =
         special_requirements: formData.special_requirements || null,
         paid_at: formData.is_paid && formData.paid_at ? formData.paid_at : null,
         payment_method: formData.is_paid ? formData.payment_method : null,
-        lead_id: formData.is_lead ? leadId : null
+        lead_id: formData.is_lead ? leadId : null,
+        // Add hours_worked to updates for time entry creation
+        hours_worked: formData.hours_worked
       };
 
       const { is_lead, lead_cost, hours_worked, ...jobUpdates } = updates;
@@ -146,17 +148,16 @@ export const EditJobDialog = ({ open, onOpenChange, job }: EditJobDialogProps) =
       const isNowFlatRate = formData.pricing_model === 'flat_rate';
       const needsDummyEmployees = wasNotFlatRate && isNowFlatRate;
 
-      if (needsDummyEmployees && formData.worker_hourly_rate && formData.movers_needed) {
-        // Create dummy employees first
-        console.log('Creating dummy employees for negotiated pricing job');
-        createDummyEmployees({
-          count: formData.movers_needed,
-          hourlyRate: formData.worker_hourly_rate,
-          jobId: job.id
-        });
-      }
+      // Pass shouldCreateDummyEmployees flag to updateJob
+      updateJob({ 
+        id: job.id, 
+        updates: {
+          ...jobUpdates,
+          hours_worked: formData.hours_worked // Include hours_worked in the update
+        },
+        shouldCreateDummyEmployees: needsDummyEmployees
+      });
       
-      updateJob({ id: job.id, updates: jobUpdates });
       onOpenChange(false);
     } catch (error) {
       console.error('Error updating job:', error);

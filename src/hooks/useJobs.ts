@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -174,6 +173,42 @@ export const useJobs = () => {
             console.error('Error creating dummy employee:', employeeError);
           } else {
             dummyEmployees.push(employeeData2);
+            
+            // Create time entry for this dummy employee
+            const jobDate = new Date(data.job_date);
+            const [hours, minutes] = data.start_time.split(':');
+            const clockInTime = new Date(jobDate);
+            clockInTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+            
+            const hoursWorked = updates.hours_worked || 8; // Default to 8 hours if not specified
+            const clockOutTime = new Date(clockInTime);
+            clockOutTime.setHours(clockOutTime.getHours() + hoursWorked);
+
+            console.log('Creating time entry for dummy employee:', employeeData2.name);
+            
+            const { error: timeEntryError } = await supabase
+              .from('time_entries')
+              .insert({
+                employee_id: employeeData2.id,
+                job_id: id,
+                entry_date: data.job_date,
+                clock_in_time: clockInTime.toISOString(),
+                clock_out_time: clockOutTime.toISOString(),
+                regular_hours: Math.min(hoursWorked, 8),
+                overtime_hours: Math.max(0, hoursWorked - 8),
+                hourly_rate: updates.worker_hourly_rate,
+                overtime_rate: updates.worker_hourly_rate * 1.5,
+                status: 'approved',
+                notes: `Auto-generated for dummy employee on negotiated job ${data.job_number}`,
+                approved_at: new Date().toISOString(),
+                break_duration_minutes: 30
+              });
+
+            if (timeEntryError) {
+              console.error('Error creating time entry for dummy employee:', timeEntryError);
+            } else {
+              console.log('Time entry created successfully for dummy employee:', employeeData2.name);
+            }
           }
         }
 
@@ -187,6 +222,7 @@ export const useJobs = () => {
       queryClient.invalidateQueries({ queryKey: ['clients'] });
       queryClient.invalidateQueries({ queryKey: ['client-stats'] });
       queryClient.invalidateQueries({ queryKey: ['employees'] });
+      queryClient.invalidateQueries({ queryKey: ['time-entries'] });
       
       toast({
         title: "Job Updated",
