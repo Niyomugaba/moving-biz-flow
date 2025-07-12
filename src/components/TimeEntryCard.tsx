@@ -206,7 +206,9 @@ export const TimeEntryCard = ({
                     min="0"
                     value={editedEntry.tip_amount || 0}
                     onChange={(e) => setEditedEntry({...editedEntry, tip_amount: parseFloat(e.target.value) || 0})}
+                    placeholder="0.00"
                   />
+                  <p className="text-xs text-gray-500 mt-1">Enter any tip amount received for this job</p>
                 </div>
                 <div>
                   <Label htmlFor="job_assignment">Assign to Job</Label>
