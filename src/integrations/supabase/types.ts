@@ -260,6 +260,7 @@ export type Database = {
           start_time: string
           status: Database["public"]["Enums"]["job_status"]
           tax_amount: number | null
+          total_amount_received: number | null
           truck_gas_cost: number | null
           truck_rental_cost: number | null
           truck_service_fee: number | null
@@ -299,6 +300,7 @@ export type Database = {
           start_time: string
           status?: Database["public"]["Enums"]["job_status"]
           tax_amount?: number | null
+          total_amount_received?: number | null
           truck_gas_cost?: number | null
           truck_rental_cost?: number | null
           truck_service_fee?: number | null
@@ -338,6 +340,7 @@ export type Database = {
           start_time?: string
           status?: Database["public"]["Enums"]["job_status"]
           tax_amount?: number | null
+          total_amount_received?: number | null
           truck_gas_cost?: number | null
           truck_rental_cost?: number | null
           truck_service_fee?: number | null
