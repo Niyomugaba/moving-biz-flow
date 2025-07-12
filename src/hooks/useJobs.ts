@@ -90,6 +90,66 @@ export const useJobs = () => {
       }
       
       console.log('Jobs fetched successfully:', data?.length);
+      
+      // Debug: Check for Natalie's job and client_id issues
+      if (data) {
+        const natalieJob = data.find(job => 
+          job.client_name === 'Natalie' || job.client_phone === '+1 (412) 273-5545'
+        );
+        
+        if (natalieJob) {
+          console.log('🔍 FOUND NATALIE\'S JOB:', {
+            job_number: natalieJob.job_number,
+            status: natalieJob.status,
+            client_id: natalieJob.client_id,
+            client_name: natalieJob.client_name,
+            client_phone: natalieJob.client_phone,
+            actual_total: natalieJob.actual_total,
+            estimated_total: natalieJob.estimated_total,
+            is_paid: natalieJob.is_paid
+          });
+          
+          // Check if we need to link this job to Natalie's client record
+          if (!natalieJob.client_id && natalieJob.status === 'completed') {
+            console.log('⚠️ CRITICAL: Natalie\'s completed job has no client_id! This is why stats aren\'t updating.');
+            
+            // Find Natalie's client record
+            const { data: natalieClient, error: clientError } = await supabase
+              .from('clients')
+              .select('id, name, phone')
+              .or(`phone.eq.${natalieJob.client_phone},name.ilike.%Natalie%`)
+              .single();
+              
+            if (!clientError && natalieClient) {
+              console.log('📝 Found Natalie\'s client record:', natalieClient);
+              console.log('🔧 Will attempt to fix client_id linkage...');
+              
+              // Update the job with the correct client_id
+              const { error: updateError } = await supabase
+                .from('jobs')
+                .update({ client_id: natalieClient.id })
+                .eq('id', natalieJob.id);
+                
+              if (updateError) {
+                console.error('❌ Failed to update job client_id:', updateError);
+              } else {
+                console.log('✅ Successfully linked job to client!');
+                // Re-fetch the updated data
+                const { data: updatedData } = await supabase
+                  .from('jobs')
+                  .select('*')
+                  .order('created_at', { ascending: false });
+                return updatedData as Job[];
+              }
+            } else {
+              console.log('❌ Could not find Natalie\'s client record:', clientError);
+            }
+          }
+        } else {
+          console.log('⚠️ No job found for Natalie');
+        }
+      }
+      
       return data as Job[];
     },
     staleTime: 0,

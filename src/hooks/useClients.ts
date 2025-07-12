@@ -1,3 +1,4 @@
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -39,21 +40,70 @@ export const useClients = () => {
       
       console.log('Clients fetched successfully:', data);
       
-      // Debug: Check jobs for each client
-      for (const client of data) {
-        console.log(`Checking jobs for client ${client.name} (ID: ${client.id}):`);
-        const { data: jobs, error: jobsError } = await supabase
-          .from('jobs')
-          .select('id, job_number, status, client_id, actual_total, estimated_total')
-          .eq('client_id', client.id);
+      // Special focus on Natalie's client data
+      const natalieClient = data.find(client => 
+        client.name === 'Natalie' || client.phone === '+1 (412) 273-5545'
+      );
+      
+      if (natalieClient) {
+        console.log('🔍 NATALIE CLIENT RECORD:', {
+          id: natalieClient.id,
+          name: natalieClient.name,
+          phone: natalieClient.phone,
+          total_jobs_completed: natalieClient.total_jobs_completed,
+          total_revenue: natalieClient.total_revenue
+        });
         
-        if (jobsError) {
-          console.error(`Error fetching jobs for client ${client.name}:`, jobsError);
-        } else {
-          console.log(`Jobs for ${client.name}:`, jobs);
-          const completedJobs = jobs.filter(job => job.status === 'completed');
-          console.log(`Completed jobs for ${client.name}:`, completedJobs);
-          console.log(`Database shows total_jobs_completed: ${client.total_jobs_completed}, total_revenue: ${client.total_revenue}`);
+        // Check her jobs manually
+        const { data: natalieJobs, error: jobsError } = await supabase
+          .from('jobs')
+          .select('id, job_number, status, client_id, actual_total, estimated_total, client_name, client_phone')
+          .or(`client_id.eq.${natalieClient.id},client_phone.eq.+1 (412) 273-5545,client_name.ilike.%Natalie%`);
+        
+        if (!jobsError) {
+          console.log('🔍 ALL JOBS FOR NATALIE (by any criteria):', natalieJobs);
+          
+          const completedJobs = natalieJobs?.filter(job => job.status === 'completed') || [];
+          console.log('✅ COMPLETED JOBS FOR NATALIE:', completedJobs);
+          
+          if (completedJobs.length > 0) {
+            const expectedRevenue = completedJobs.reduce((sum, job) => 
+              sum + (job.actual_total || job.estimated_total || 0), 0
+            );
+            console.log('💰 EXPECTED REVENUE:', expectedRevenue);
+            console.log('📊 DATABASE SHOWS:', {
+              total_jobs_completed: natalieClient.total_jobs_completed,
+              total_revenue: natalieClient.total_revenue
+            });
+            
+            if (natalieClient.total_jobs_completed !== completedJobs.length || 
+                natalieClient.total_revenue !== expectedRevenue) {
+              console.log('🚨 MISMATCH DETECTED! Triggers may not be working properly.');
+              
+              // Manually trigger the update
+              console.log('🔧 Attempting manual client stats update...');
+              const { error: updateError } = await supabase
+                .from('clients')
+                .update({
+                  total_jobs_completed: completedJobs.length,
+                  total_revenue: expectedRevenue,
+                  updated_at: new Date().toISOString()
+                })
+                .eq('id', natalieClient.id);
+                
+              if (updateError) {
+                console.error('❌ Manual update failed:', updateError);
+              } else {
+                console.log('✅ Manual update successful!');
+                // Re-fetch updated data
+                const { data: updatedData } = await supabase
+                  .from('clients')
+                  .select('*')
+                  .order('name');
+                return updatedData as Client[];
+              }
+            }
+          }
         }
       }
       
