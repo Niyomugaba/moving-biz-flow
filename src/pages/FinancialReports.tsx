@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -12,7 +13,6 @@ import { exportFinancialDataToExcel } from '@/utils/excelExport';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { format, parseISO, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
 import { toast } from 'sonner';
-import { AdvancedGoogleSheetsIntegration } from '@/components/AdvancedGoogleSheetsIntegration';
 
 export const FinancialReports = () => {
   const { jobs } = useJobs();
@@ -201,16 +201,6 @@ export const FinancialReports = () => {
           </Button>
         </div>
       </div>
-
-      {/* Advanced Google Sheets Integration */}
-      <AdvancedGoogleSheetsIntegration
-        jobs={filteredJobs}
-        leads={leads}
-        clients={clients}
-        timeEntries={timeEntries}
-        employees={employees}
-        isOnline={true}
-      />
 
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-4">
