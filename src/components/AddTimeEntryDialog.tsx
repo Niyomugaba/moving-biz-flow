@@ -81,14 +81,14 @@ export const AddTimeEntryDialog = ({ open, onOpenChange }: AddTimeEntryDialogPro
       return;
     }
 
-    // Create proper datetime strings - fix the timestamp format issue
+    // Create proper datetime strings - fixed timestamp format
     const clockInDateTime = `${entryDate}T${clockInTime}:00`;
     const clockOutDateTime = `${entryDate}T${clockOutTime}:00`;
 
     // Use job's worker hourly rate if available, otherwise employee's wage
     const hourlyRate = selectedJob?.worker_hourly_rate || selectedEmployee.hourly_wage;
 
-    console.log('Creating time entry with properly formatted timestamps:', {
+    console.log('Creating time entry with corrected timestamp format:', {
       clock_in_time: clockInDateTime,
       clock_out_time: clockOutDateTime
     });
