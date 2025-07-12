@@ -84,7 +84,7 @@ export const JobSelectionDialog = ({ open, onOpenChange, onJobSelected }: JobSel
                     <CardContent className="p-4">
                       <div className="flex justify-between items-start">
                         <div className="space-y-2">
-                          <div class="flex items-center gap-2">
+                          <div className="flex items-center gap-2">
                             <span className="font-medium text-lg">{job.job_number}</span>
                             <Badge variant="outline" className="bg-green-50 text-green-700">
                               {job.status}
