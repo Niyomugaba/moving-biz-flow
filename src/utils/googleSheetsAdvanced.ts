@@ -1,4 +1,3 @@
-
 import { GoogleSheetsSync } from './googleSheetsSync';
 
 export interface AdvancedGoogleSheetsConfig {
@@ -191,8 +190,8 @@ export class AdvancedGoogleSheetsManager extends GoogleSheetsSync {
     const jobs = data.jobs || [];
     
     // Calculate lead source performance
-    const sourcePerformance = {};
-    leads.forEach(lead => {
+    const sourcePerformance: Record<string, { leads: number; converted: number }> = {};
+    leads.forEach((lead: any) => {
       const source = lead.source || 'other';
       if (!sourcePerformance[source]) {
         sourcePerformance[source] = { leads: 0, converted: 0 };
@@ -200,7 +199,7 @@ export class AdvancedGoogleSheetsManager extends GoogleSheetsSync {
       sourcePerformance[source].leads++;
       
       // Check if lead was converted to job
-      const convertedJob = jobs.find(j => j.lead_id === lead.id && j.status === 'completed');
+      const convertedJob = jobs.find((j: any) => j.lead_id === lead.id && j.status === 'completed');
       if (convertedJob) {
         sourcePerformance[source].converted++;
       }
@@ -212,13 +211,13 @@ export class AdvancedGoogleSheetsManager extends GoogleSheetsSync {
       ['', '📱 LEAD SOURCES PERFORMANCE', '', '', '', ''],
       ['', '', '', '', '', ''],
       ['', 'Source', 'Total Leads', 'Converted', 'Conversion Rate', 'ROI Estimate'],
-      ...Object.entries(sourcePerformance).map(([source, data]: [string, any]) => [
+      ...Object.entries(sourcePerformance).map(([source, performance]) => [
         '', 
         source.replace('_', ' ').toUpperCase(), 
-        data.leads.toString(), 
-        data.converted.toString(), 
-        data.leads > 0 ? `${Math.round((data.converted / data.leads) * 100)}%` : '0%',
-        data.converted > 0 ? 'Positive' : 'Monitor'
+        performance.leads.toString(), 
+        performance.converted.toString(), 
+        performance.leads > 0 ? `${Math.round((performance.converted / performance.leads) * 100)}%` : '0%',
+        performance.converted > 0 ? 'Positive' : 'Monitor'
       ]),
       ['', '', '', '', '', ''],
       ['', '🔥 TOP PERFORMERS', '', '⚠️ NEEDS ATTENTION', '', ''],
@@ -227,9 +226,9 @@ export class AdvancedGoogleSheetsManager extends GoogleSheetsSync {
       ...Object.entries(sourcePerformance)
         .sort(([,a], [,b]) => (b.converted / Math.max(b.leads, 1)) - (a.converted / Math.max(a.leads, 1)))
         .slice(0, 3)
-        .map(([source, data]: [string, any], index) => [
+        .map(([source, performance], index) => [
           '', 
-          `${index + 1}. ${source.replace('_', ' ')} (${data.leads > 0 ? Math.round((data.converted / data.leads) * 100) : 0}%)`, 
+          `${index + 1}. ${source.replace('_', ' ')} (${performance.leads > 0 ? Math.round((performance.converted / performance.leads) * 100) : 0}%)`, 
           '', 
           index === 2 ? 'Review underperforming channels' : '', 
           '', 
