@@ -1,19 +1,26 @@
-
 import React, { useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { DateRangeFilter, DateRange } from "@/components/DateRangeFilter";
 import { filterDataByDateRange, useDateFilter } from "@/hooks/useDateFilter";
 import { useJobs } from "@/hooks/useJobs";
 import { useLeads } from "@/hooks/useLeads";
 import { useTimeEntries } from "@/hooks/useTimeEntries";
 import { useEmployees } from "@/hooks/useEmployees";
-import { DollarSign, TrendingUp, TrendingDown, Users, Calendar, Target, Minus } from "lucide-react";
+import { useClients } from "@/hooks/useClients";
+import { useOnlineStatus } from "@/hooks/useOnlineStatus";
+import { exportFinancialDataToExcel } from "@/utils/excelExport";
+import { OfflineFinancialManager } from "@/components/OfflineFinancialManager";
+import { DollarSign, TrendingUp, TrendingDown, Users, Calendar, Target, Minus, FileSpreadsheet } from "lucide-react";
+import { toast } from "sonner";
 
 export const Financials = () => {
   const { jobs } = useJobs();
   const { leads } = useLeads();
   const { timeEntries } = useTimeEntries();
   const { employees } = useEmployees();
+  const { clients } = useClients();
+  const isOnline = useOnlineStatus();
   
   const [selectedDateRange, setSelectedDateRange] = useState<DateRange>('this_month');
   const { startDate, endDate } = useDateFilter(selectedDateRange);
@@ -27,7 +34,6 @@ export const Financials = () => {
   }, [jobs, leads, timeEntries, startDate, endDate]);
 
   const financialMetrics = useMemo(() => {
-    // Calculate real revenue (only paid jobs) - this includes customer tips/extras
     const paidRevenue = filteredData.jobs
       .filter(job => job.status === 'completed' && job.is_paid)
       .reduce((sum, job) => {
@@ -35,7 +41,6 @@ export const Financials = () => {
         return sum + jobRevenue;
       }, 0);
 
-    // Calculate unpaid revenue - this includes customer tips/extras
     const unpaidRevenue = filteredData.jobs
       .filter(job => job.status === 'completed' && !job.is_paid)
       .reduce((sum, job) => {
@@ -43,35 +48,24 @@ export const Financials = () => {
         return sum + jobRevenue;
       }, 0);
 
-    // Calculate total lead costs (marketing expenses)
     const totalLeadCosts = filteredData.leads.reduce((sum, lead) => sum + (lead.lead_cost || 0), 0);
 
-    // Calculate payroll costs (wages paid to employees)
     const totalPayroll = filteredData.timeEntries
       .filter(entry => entry.is_paid)
       .reduce((sum, entry) => {
-        // Only count wages, not employee tips
         const regularPay = (entry.regular_hours || 0) * (entry.hourly_rate || 0);
         const overtimePay = (entry.overtime_hours || 0) * (entry.overtime_rate || entry.hourly_rate || 0);
         return sum + regularPay + overtimePay;
       }, 0);
 
-    // Calculate employee tips (expenses - money given to employees from revenue)
     const totalEmployeeTips = filteredData.timeEntries
       .filter(entry => entry.is_paid)
       .reduce((sum, entry) => sum + (entry.tip_amount || 0), 0);
 
-    // Calculate total expenses
     const totalExpenses = totalPayroll + totalEmployeeTips + totalLeadCosts;
-
-    // Calculate gross profit (revenue minus all expenses)
     const grossProfit = paidRevenue - totalExpenses;
     const profitMargin = paidRevenue > 0 ? (grossProfit / paidRevenue) * 100 : 0;
-
-    // Calculate ROI on marketing spend
     const roi = totalLeadCosts > 0 ? ((grossProfit / totalLeadCosts) * 100) : 0;
-
-    // Lead conversion metrics
     const convertedLeads = filteredData.leads.filter(lead => lead.status === 'converted').length;
     const conversionRate = filteredData.leads.length > 0 ? (convertedLeads / filteredData.leads.length) * 100 : 0;
 
@@ -90,6 +84,25 @@ export const Financials = () => {
       convertedLeads
     };
   }, [filteredData]);
+
+  const handleExcelExport = () => {
+    try {
+      const exportData = {
+        jobs: filteredData.jobs,
+        leads: filteredData.leads,
+        clients: clients,
+        timeEntries: filteredData.timeEntries,
+        employees: employees,
+        dateRange: getRangeDisplayText()
+      };
+      
+      const filename = exportFinancialDataToExcel(exportData);
+      toast.success(`Financial report exported successfully as ${filename}`);
+    } catch (error) {
+      console.error('Export failed:', error);
+      toast.error('Failed to export financial report');
+    }
+  };
 
   const getRangeDisplayText = () => {
     const rangeLabels = {
@@ -115,7 +128,25 @@ export const Financials = () => {
             Comprehensive financial analysis and business performance metrics - {getRangeDisplayText()}
           </p>
         </div>
+        <Button 
+          onClick={handleExcelExport}
+          className="bg-green-600 hover:bg-green-700 text-white"
+          disabled={!isOnline && (!jobs.length || !clients.length)}
+        >
+          <FileSpreadsheet className="w-4 h-4 mr-2" />
+          Export to Excel
+        </Button>
       </div>
+
+      {/* Offline Manager */}
+      <OfflineFinancialManager
+        jobs={jobs}
+        leads={leads}
+        clients={clients}
+        timeEntries={timeEntries}
+        employees={employees}
+        isOnline={isOnline}
+      />
 
       {/* Date Range Filter */}
       <DateRangeFilter

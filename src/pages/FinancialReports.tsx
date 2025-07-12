@@ -1,21 +1,25 @@
-
 import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Download, TrendingUp, DollarSign, Users, Calendar } from 'lucide-react';
+import { Download, TrendingUp, DollarSign, Users, Calendar, FileSpreadsheet } from 'lucide-react';
 import { useJobs } from '@/hooks/useJobs';
 import { useLeads } from '@/hooks/useLeads';
 import { useClients } from '@/hooks/useClients';
+import { useTimeEntries } from '@/hooks/useTimeEntries';
+import { useEmployees } from '@/hooks/useEmployees';
+import { exportFinancialDataToExcel } from '@/utils/excelExport';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { format, parseISO, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
+import { toast } from 'sonner';
 
 export const FinancialReports = () => {
   const { jobs } = useJobs();
   const { leads } = useLeads();
   const { clients } = useClients();
+  const { timeEntries } = useTimeEntries();
+  const { employees } = useEmployees();
   const [timeFilter, setTimeFilter] = useState('all');
-  const [sourceFilter, setSourceFilter] = useState('all');
 
   const getDateRange = () => {
     const now = new Date();
@@ -45,6 +49,34 @@ export const FinancialReports = () => {
 
     return filtered;
   }, [jobs, timeFilter]);
+
+  const handleExcelExport = () => {
+    try {
+      const exportData = {
+        jobs: filteredJobs,
+        leads: leads,
+        clients: clients,
+        timeEntries: timeEntries,
+        employees: employees,
+        dateRange: getTimeFilterLabel()
+      };
+      
+      const filename = exportFinancialDataToExcel(exportData);
+      toast.success(`Comprehensive financial report exported as ${filename}`);
+    } catch (error) {
+      console.error('Export failed:', error);
+      toast.error('Failed to export financial report');
+    }
+  };
+
+  const getTimeFilterLabel = () => {
+    switch (timeFilter) {
+      case 'thisMonth': return 'This Month';
+      case 'last3Months': return 'Last 3 Months';
+      case 'thisYear': return 'This Year';
+      default: return 'All Time';
+    }
+  };
 
   const profitAnalysis = useMemo(() => {
     const analysis = {
@@ -157,10 +189,16 @@ export const FinancialReports = () => {
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Financial Reports</h1>
           <p className="text-gray-600">Track your profit sources and business performance</p>
         </div>
-        <Button onClick={exportFinancialReport} className="w-full sm:w-auto">
-          <Download className="w-4 h-4 mr-2" />
-          Export Report
-        </Button>
+        <div className="flex gap-2">
+          <Button onClick={exportFinancialReport} variant="outline" className="w-full sm:w-auto">
+            <Download className="w-4 h-4 mr-2" />
+            Export CSV
+          </Button>
+          <Button onClick={handleExcelExport} className="w-full sm:w-auto bg-green-600 hover:bg-green-700">
+            <FileSpreadsheet className="w-4 h-4 mr-2" />
+            Export Excel
+          </Button>
+        </div>
       </div>
 
       {/* Filters */}
