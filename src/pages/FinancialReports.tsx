@@ -201,6 +201,16 @@ export const FinancialReports = () => {
         </div>
       </div>
 
+      {/* Advanced Google Sheets Integration */}
+      <AdvancedGoogleSheetsIntegration
+        jobs={filteredJobs}
+        leads={leads}
+        clients={clients}
+        timeEntries={timeEntries}
+        employees={employees}
+        isOnline={true}
+      />
+
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-4">
         <Select value={timeFilter} onValueChange={setTimeFilter}>
