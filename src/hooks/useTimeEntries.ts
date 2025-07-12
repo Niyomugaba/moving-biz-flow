@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -42,7 +41,7 @@ export interface CreateTimeEntryData {
   tip_amount?: number;
 }
 
-// Helper function to calculate total pay
+// Helper function to calculate total pay (for client-side display only)
 const calculateTotalPay = (entry: Partial<TimeEntry>): number => {
   const regularPay = (entry.regular_hours || 0) * (entry.hourly_rate || 0);
   const overtimePay = (entry.overtime_hours || 0) * (entry.overtime_rate || entry.hourly_rate || 0);
@@ -86,7 +85,7 @@ export const useTimeEntries = () => {
       
       const sanitizedData = sanitizeDataForDatabase(entryData);
       
-      // Calculate total pay on the client side to ensure accuracy
+      // Calculate total pay on the client side for the initial insert
       const totalPay = calculateTotalPay({
         regular_hours: sanitizedData.regular_hours,
         overtime_hours: sanitizedData.overtime_hours,
@@ -183,7 +182,7 @@ export const useTimeEntries = () => {
     mutationFn: async ({ id, updates }: { id: string; updates: Partial<TimeEntry> }) => {
       console.log('Updating time entry:', id, updates);
       
-      // Get the original time entry first
+      // Get the original time entry first for tip amount tracking
       const { data: originalEntry, error: fetchError } = await supabase
         .from('time_entries')
         .select('*')
@@ -195,21 +194,14 @@ export const useTimeEntries = () => {
         throw fetchError;
       }
 
-      // Recalculate total_pay if any relevant fields are updated
-      const updatedEntry = { ...originalEntry, ...updates };
-      if (updates.regular_hours !== undefined || 
-          updates.overtime_hours !== undefined || 
-          updates.hourly_rate !== undefined || 
-          updates.overtime_rate !== undefined || 
-          updates.tip_amount !== undefined) {
-        
-        updates.total_pay = calculateTotalPay(updatedEntry);
-        console.log('Recalculated total pay:', updates.total_pay);
-      }
+      // Remove total_pay from updates as the database trigger will handle it
+      const { total_pay, ...updatesWithoutTotalPay } = updates;
+      
+      console.log('Updates without total_pay:', updatesWithoutTotalPay);
 
       const { data, error } = await supabase
         .from('time_entries')
-        .update(updates)
+        .update(updatesWithoutTotalPay)
         .eq('id', id)
         .select()
         .single();
@@ -221,7 +213,7 @@ export const useTimeEntries = () => {
 
       // Handle tip amount changes for job totals
       const originalTip = originalEntry.tip_amount || 0;
-      const newTip = updates.tip_amount !== undefined ? updates.tip_amount : originalTip;
+      const newTip = updatesWithoutTotalPay.tip_amount !== undefined ? updatesWithoutTotalPay.tip_amount : originalTip;
       const tipDifference = newTip - originalTip;
 
       if (data.job_id && tipDifference !== 0) {
