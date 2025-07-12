@@ -1,4 +1,3 @@
-
 import { GoogleSheetsSync } from './googleSheetsSync';
 
 export interface AdvancedGoogleSheetsConfig {
@@ -100,7 +99,8 @@ export class AdvancedGoogleSheetsManager extends GoogleSheetsSync {
     return result.spreadsheetId;
   }
 
-  private async setupAdvancedSheetsStructure(spreadsheetId: string, data: any) {
+  // Make this method public so it can be called from the component
+  async setupAdvancedSheetsStructure(spreadsheetId: string, data: any) {
     console.log('🔄 Setting up beautiful dashboard structure...');
     
     // Create Executive Dashboard with stunning visual layout
