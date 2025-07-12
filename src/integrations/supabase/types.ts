@@ -141,6 +141,7 @@ export type Database = {
           notes: string | null
           overtime_rate: number | null
           phone: string
+          pin: string | null
           position: string | null
           status: Database["public"]["Enums"]["employee_status"]
           updated_at: string
@@ -160,6 +161,7 @@ export type Database = {
           notes?: string | null
           overtime_rate?: number | null
           phone: string
+          pin?: string | null
           position?: string | null
           status?: Database["public"]["Enums"]["employee_status"]
           updated_at?: string
@@ -179,6 +181,7 @@ export type Database = {
           notes?: string | null
           overtime_rate?: number | null
           phone?: string
+          pin?: string | null
           position?: string | null
           status?: Database["public"]["Enums"]["employee_status"]
           updated_at?: string

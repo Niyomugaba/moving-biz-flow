@@ -12,7 +12,8 @@ import {
   Download,
   Plus,
   Filter,
-  Archive
+  Archive,
+  DollarSign
 } from 'lucide-react';
 import { useEmployees } from '@/hooks/useEmployees';
 import { useJobs } from '@/hooks/useJobs';
@@ -21,6 +22,8 @@ import { AddTimeEntryDialog } from '@/components/AddTimeEntryDialog';
 import { TimeEntryCard } from '@/components/TimeEntryCard';
 import { FilterBar } from '@/components/FilterBar';
 import { PaginationControls } from '@/components/PaginationControls';
+import { JobSelectionDialog } from '@/components/JobSelectionDialog';
+import { JobPaymentDialog } from '@/components/JobPaymentDialog';
 
 export const TimeLogs = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -28,6 +31,9 @@ export const TimeLogs = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [showAddDialog, setShowAddDialog] = useState(false);
+  const [showJobSelectionDialog, setShowJobSelectionDialog] = useState(false);
+  const [showJobPaymentDialog, setShowJobPaymentDialog] = useState(false);
+  const [selectedJob, setSelectedJob] = useState<any>(null);
   
   const { employees } = useEmployees();
   const { jobs } = useJobs();
@@ -117,6 +123,11 @@ export const TimeLogs = () => {
     setCurrentPage(1);
   };
 
+  const handleJobSelected = (job: any) => {
+    setSelectedJob(job);
+    setShowJobPaymentDialog(true);
+  };
+
   const exportToCSV = () => {
     if (!timeEntries.length) return;
     
@@ -156,7 +167,6 @@ export const TimeLogs = () => {
     a.click();
   };
 
-
   if (isLoading) {
     return <div className="flex justify-center items-center h-64">Loading time entries...</div>;
   }
@@ -171,6 +181,10 @@ export const TimeLogs = () => {
             Time Logs Management
           </CardTitle>
           <div className="flex gap-2">
+            <Button onClick={() => setShowJobSelectionDialog(true)} variant="outline" size="sm">
+              <DollarSign className="h-4 w-4 mr-2" />
+              Process Job Payment
+            </Button>
             <Button onClick={exportToCSV} variant="outline" size="sm">
               <Download className="h-4 w-4 mr-2" />
               Export CSV
@@ -285,6 +299,20 @@ export const TimeLogs = () => {
       <AddTimeEntryDialog 
         open={showAddDialog}
         onOpenChange={setShowAddDialog}
+      />
+
+      {/* Job Selection Dialog */}
+      <JobSelectionDialog 
+        open={showJobSelectionDialog}
+        onOpenChange={setShowJobSelectionDialog}
+        onJobSelected={handleJobSelected}
+      />
+
+      {/* Job Payment Dialog */}
+      <JobPaymentDialog 
+        open={showJobPaymentDialog}
+        onOpenChange={setShowJobPaymentDialog}
+        job={selectedJob}
       />
     </div>
   );
