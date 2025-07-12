@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import { Button } from './ui/button';
@@ -10,6 +9,7 @@ import { Checkbox } from './ui/checkbox';
 import { useJobs } from '@/hooks/useJobs';
 import { useLeads } from '@/hooks/useLeads';
 import { AlertCircle } from 'lucide-react';
+import { useEmployees } from '@/hooks/useEmployees';
 
 interface EditJobDialogProps {
   open: boolean;
@@ -46,6 +46,7 @@ export const EditJobDialog = ({ open, onOpenChange, job }: EditJobDialogProps) =
 
   const { updateJob, isUpdatingJob } = useJobs();
   const { addLead, leads } = useLeads();
+  const { createDummyEmployees, isCreatingDummyEmployees } = useEmployees();
 
   useEffect(() => {
     if (job && open) {
@@ -98,7 +99,6 @@ export const EditJobDialog = ({ open, onOpenChange, job }: EditJobDialogProps) =
       if (formData.is_lead && !leadId) {
         console.log('Creating lead entry for existing job:', formData.client_name);
         
-        // Check if lead already exists
         const existingLead = leads.find(lead => 
           lead.name.toLowerCase() === formData.client_name.toLowerCase() && 
           lead.phone === formData.client_phone
@@ -128,6 +128,8 @@ export const EditJobDialog = ({ open, onOpenChange, job }: EditJobDialogProps) =
         actual_total: Number(formData.actual_total),
         hourly_rate: Number(formData.hourly_rate),
         movers_needed: Number(formData.movers_needed),
+        flat_hourly_rate: Number(formData.flat_hourly_rate),
+        worker_hourly_rate: Number(formData.worker_hourly_rate),
         truck_size: formData.truck_size || null,
         special_requirements: formData.special_requirements || null,
         paid_at: formData.is_paid && formData.paid_at ? formData.paid_at : null,
@@ -135,10 +137,24 @@ export const EditJobDialog = ({ open, onOpenChange, job }: EditJobDialogProps) =
         lead_id: formData.is_lead ? leadId : null
       };
 
-      // Remove is_lead and lead_cost from the updates since they're not database fields
       const { is_lead, lead_cost, hours_worked, ...jobUpdates } = updates;
 
       console.log('Updating job with data:', jobUpdates);
+      
+      // Check if this is switching to flat_rate pricing and we need dummy employees
+      const wasNotFlatRate = job.pricing_model !== 'flat_rate';
+      const isNowFlatRate = formData.pricing_model === 'flat_rate';
+      const needsDummyEmployees = wasNotFlatRate && isNowFlatRate;
+
+      if (needsDummyEmployees && formData.worker_hourly_rate && formData.movers_needed) {
+        // Create dummy employees first
+        console.log('Creating dummy employees for negotiated pricing job');
+        createDummyEmployees({
+          count: formData.movers_needed,
+          hourlyRate: formData.worker_hourly_rate,
+          jobId: job.id
+        });
+      }
       
       updateJob({ id: job.id, updates: jobUpdates });
       onOpenChange(false);
@@ -531,8 +547,11 @@ export const EditJobDialog = ({ open, onOpenChange, job }: EditJobDialogProps) =
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button type="submit" disabled={isUpdatingJob}>
-              {isUpdatingJob ? 'Updating...' : 'Update Job'}
+            <Button 
+              type="submit" 
+              disabled={isUpdatingJob || isCreatingDummyEmployees}
+            >
+              {isUpdatingJob || isCreatingDummyEmployees ? 'Updating...' : 'Update Job'}
             </Button>
           </div>
         </form>

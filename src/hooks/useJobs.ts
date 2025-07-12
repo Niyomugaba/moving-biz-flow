@@ -106,8 +106,14 @@ export const useJobs = () => {
   });
 
   const updateJobMutation = useMutation({
-    mutationFn: async ({ id, updates }: { id: string; updates: Partial<Job> }) => {
+    mutationFn: async ({ id, updates, shouldCreateDummyEmployees = false }: { 
+      id: string; 
+      updates: Partial<Job>; 
+      shouldCreateDummyEmployees?: boolean 
+    }) => {
       console.log('Updating job:', id, updates);
+      
+      // First update the job
       const { data, error } = await supabase
         .from('jobs')
         .update(updates)
@@ -116,6 +122,19 @@ export const useJobs = () => {
         .single();
 
       if (error) throw error;
+
+      // If this is a flat_rate job and we need to create dummy employees
+      if (shouldCreateDummyEmployees && 
+          updates.pricing_model === 'flat_rate' && 
+          updates.worker_hourly_rate && 
+          updates.movers_needed) {
+        
+        // Create dummy employees
+        const { createDummyEmployees } = await import('@/hooks/useEmployees');
+        // Note: This is a simplified approach - in practice, you'd need to access the mutation directly
+        console.log('Would create dummy employees for negotiated job');
+      }
+
       return data as Job;
     },
     onSuccess: (data) => {
@@ -141,23 +160,21 @@ export const useJobs = () => {
   });
 
   const addJobMutation = useMutation({
-    mutationFn: async (jobData: CreateJobData) => {
+    mutationFn: async (jobData: CreateJobData & { shouldCreateDummyEmployees?: boolean }) => {
       console.log('Creating job with data:', jobData);
       
-      // Extract is_lead flag and remove it from the job data
-      const isLead = jobData.is_lead === true;
-      const { is_lead, ...jobDataWithoutIsLead } = jobData;
+      // Extract flags and process job data
+      const { is_lead, shouldCreateDummyEmployees, ...jobDataWithoutFlags } = jobData;
+      const isLead = is_lead === true;
       
       // Validate job data
-      const validation = SystemValidator.validateJobData(jobDataWithoutIsLead);
+      const validation = SystemValidator.validateJobData(jobDataWithoutFlags);
       if (!validation.isValid) {
         throw new Error(validation.errors.join(', '));
       }
       
-      // Sanitize data for database
-      const sanitizedData = sanitizeDataForDatabase(jobDataWithoutIsLead);
+      const sanitizedData = sanitizeDataForDatabase(jobDataWithoutFlags);
       
-      // If client is marked as a lead OR there's a lead_cost but no lead_id, create a lead entry
       let leadId = sanitizedData.lead_id;
       
       if ((isLead || (sanitizedData.lead_cost && sanitizedData.lead_cost > 0)) && !leadId) {
@@ -180,18 +197,15 @@ export const useJobs = () => {
         
         if (leadError) {
           console.error('Error creating lead:', leadError);
-          // Continue without lead_id if lead creation fails
         } else {
           leadId = leadData.id;
           console.log('Lead created successfully:', leadData);
         }
       }
       
-      // Create or find client record
       let clientId = sanitizedData.client_id;
       
       if (!clientId) {
-        // Check if client already exists with this phone number
         const { data: existingClient, error: clientCheckError } = await supabase
           .from('clients')
           .select('id')
@@ -204,7 +218,6 @@ export const useJobs = () => {
           clientId = existingClient.id;
           console.log('Found existing client:', existingClient.id);
         } else {
-          // Create new client
           const { data: newClient, error: clientError } = await supabase
             .from('clients')
             .insert({
@@ -246,7 +259,10 @@ export const useJobs = () => {
         paid_at: sanitizedData.paid_at,
         lead_id: leadId,
         status: 'scheduled' as const,
-        estimated_duration_hours: 2 // Default 2 hours minimum
+        estimated_duration_hours: 2,
+        pricing_model: sanitizedData.pricing_model || 'per_person',
+        flat_hourly_rate: sanitizedData.flat_hourly_rate,
+        worker_hourly_rate: sanitizedData.worker_hourly_rate
       };
 
       console.log('Inserting job data:', insertData);
