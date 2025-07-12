@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import { Button } from './ui/button';
@@ -81,14 +82,14 @@ export const AddTimeEntryDialog = ({ open, onOpenChange }: AddTimeEntryDialogPro
       return;
     }
 
-    // Create proper datetime strings - fixed timestamp format
-    const clockInDateTime = `${entryDate}T${clockInTime}:00`;
-    const clockOutDateTime = `${entryDate}T${clockOutTime}:00`;
+    // Create ISO timestamp strings for PostgreSQL
+    const clockInDateTime = new Date(`${entryDate}T${clockInTime}:00`).toISOString();
+    const clockOutDateTime = new Date(`${entryDate}T${clockOutTime}:00`).toISOString();
 
     // Use job's worker hourly rate if available, otherwise employee's wage
     const hourlyRate = selectedJob?.worker_hourly_rate || selectedEmployee.hourly_wage;
 
-    console.log('Creating time entry with corrected timestamp format:', {
+    console.log('Creating time entry with ISO timestamps:', {
       clock_in_time: clockInDateTime,
       clock_out_time: clockOutDateTime
     });
