@@ -76,7 +76,8 @@ export const EditJobDialog = ({ open, onOpenChange, job }: EditJobDialogProps) =
         lead_cost: hasExistingLead?.lead_cost || 0,
         pricing_model: job.pricing_model || 'per_person',
         flat_hourly_rate: job.flat_hourly_rate || 90,
-        worker_hourly_rate: job.worker_hourly_rate || 20
+        worker_hourly_rate: job.worker_hourly_rate || 20,
+        hours_worked: job.hours_worked || 4
       });
     }
   }, [job, open, leads]);
