@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Clock, User, Calendar, DollarSign, Edit, CheckCircle, XCircle, CreditCard } from 'lucide-react';
+import { Clock, User, Calendar, DollarSign, Edit, CheckCircle, XCircle, CreditCard, Gift } from 'lucide-react';
 import { TimeEntry } from '@/hooks/useTimeEntries';
 import { useJobs } from '@/hooks/useJobs';
 import { useEmployees } from '@/hooks/useEmployees';
@@ -47,7 +47,6 @@ export const TimeEntryCard = ({
   const [editedEntry, setEditedEntry] = useState(entry);
   const [rejectReason, setRejectReason] = useState('');
 
-  // Find the employee for this entry
   const employee = employees.find(emp => emp.id === entry.employee_id);
 
   const getStatusColor = (status: string) => {
@@ -78,14 +77,7 @@ export const TimeEntryCard = ({
   const totalHours = (entry.regular_hours || 0) + (entry.overtime_hours || 0);
 
   const handleSaveEdit = () => {
-    const regularPay = (editedEntry.regular_hours || 0) * editedEntry.hourly_rate;
-    const overtimePay = (editedEntry.overtime_hours || 0) * (editedEntry.overtime_rate || editedEntry.hourly_rate * 1.5);
-    const totalPay = regularPay + overtimePay;
-
-    onUpdateEntry(entry.id, {
-      ...editedEntry,
-      total_pay: totalPay
-    });
+    onUpdateEntry(entry.id, editedEntry);
     setEditDialogOpen(false);
   };
 
@@ -142,6 +134,15 @@ export const TimeEntryCard = ({
             </span>
           </div>
 
+          {entry.tip_amount && entry.tip_amount > 0 && (
+            <div className="flex items-center gap-2">
+              <Gift className="h-4 w-4 text-green-500" />
+              <span className="text-green-600">
+                <strong>Tip:</strong> ${entry.tip_amount.toFixed(2)}
+              </span>
+            </div>
+          )}
+
           {entry.job_id && (
             <div className="text-gray-600">
               <strong>Job:</strong> {jobs.find(j => j.id === entry.job_id)?.job_number || 'Unknown Job'}
@@ -162,7 +163,6 @@ export const TimeEntryCard = ({
         </div>
 
         <div className="flex gap-2 mt-4 flex-wrap">
-          {/* Edit Button - Always available */}
           <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
             <DialogTrigger asChild>
               <Button size="sm" variant="outline">
@@ -196,6 +196,17 @@ export const TimeEntryCard = ({
                       onChange={(e) => setEditedEntry({...editedEntry, overtime_hours: parseFloat(e.target.value) || 0})}
                     />
                   </div>
+                </div>
+                <div>
+                  <Label htmlFor="tip_amount">Tip Amount ($)</Label>
+                  <Input
+                    id="tip_amount"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={editedEntry.tip_amount || 0}
+                    onChange={(e) => setEditedEntry({...editedEntry, tip_amount: parseFloat(e.target.value) || 0})}
+                  />
                 </div>
                 <div>
                   <Label htmlFor="job_assignment">Assign to Job</Label>
@@ -236,7 +247,6 @@ export const TimeEntryCard = ({
             </DialogContent>
           </Dialog>
 
-          {/* Status-based action buttons */}
           {entry.status === 'pending' && (
             <>
               <Button
