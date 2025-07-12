@@ -22,7 +22,7 @@ export interface TimeEntry {
   approved_at?: string;
   is_paid: boolean;
   paid_at?: string;
-  tip_amount?: number;
+  tip_amount?: number; // This is employee tip (expense) - deducted from revenue
   created_at: string;
   updated_at: string;
 }
@@ -38,7 +38,7 @@ export interface CreateTimeEntryData {
   hourly_rate: number;
   overtime_rate?: number;
   notes?: string;
-  tip_amount?: number;
+  tip_amount?: number; // Employee tip (expense)
 }
 
 // Helper function to calculate total pay (for client-side display only)
@@ -123,12 +123,8 @@ export const useTimeEntries = () => {
         throw error;
       }
 
-      // Update job's actual_total if this time entry has a job_id and tip
-      if (data.job_id && data.tip_amount && data.tip_amount > 0) {
-        console.log('Updating job actual_total with tip amount:', data.tip_amount);
-        await updateJobTotalWithTip(data.job_id, data.tip_amount);
-      }
-
+      // NOTE: Employee tips do NOT get added to job totals as they are expenses, not revenue
+      console.log('Time entry created successfully:', data);
       return data as TimeEntry;
     },
     onSuccess: () => {
@@ -149,40 +145,11 @@ export const useTimeEntries = () => {
     }
   });
 
-  // Helper function to update job totals with tip amounts
-  const updateJobTotalWithTip = async (jobId: string, tipAmount: number) => {
-    try {
-      const { data: jobData, error: jobError } = await supabase
-        .from('jobs')
-        .select('actual_total, estimated_total')
-        .eq('id', jobId)
-        .single();
-
-      if (!jobError && jobData) {
-        const currentTotal = jobData.actual_total || jobData.estimated_total || 0;
-        const newTotal = currentTotal + tipAmount;
-        
-        const { error: updateError } = await supabase
-          .from('jobs')
-          .update({ actual_total: newTotal })
-          .eq('id', jobId);
-
-        if (updateError) {
-          console.error('Error updating job total:', updateError);
-        } else {
-          console.log('Job total updated successfully to:', newTotal);
-        }
-      }
-    } catch (error) {
-      console.error('Error in updateJobTotalWithTip:', error);
-    }
-  };
-
   const updateTimeEntryMutation = useMutation({
     mutationFn: async ({ id, updates }: { id: string; updates: Partial<TimeEntry> }) => {
       console.log('Updating time entry:', id, updates);
       
-      // Get the original time entry first for tip amount tracking
+      // Get the original time entry first for tracking changes
       const { data: originalEntry, error: fetchError } = await supabase
         .from('time_entries')
         .select('*')
@@ -211,16 +178,8 @@ export const useTimeEntries = () => {
         throw error;
       }
 
-      // Handle tip amount changes for job totals
-      const originalTip = originalEntry.tip_amount || 0;
-      const newTip = updatesWithoutTotalPay.tip_amount !== undefined ? updatesWithoutTotalPay.tip_amount : originalTip;
-      const tipDifference = newTip - originalTip;
-
-      if (data.job_id && tipDifference !== 0) {
-        console.log('Updating job total due to tip change:', tipDifference);
-        await updateJobTotalWithTip(data.job_id, tipDifference);
-      }
-
+      // Employee tips are expenses, not revenue - they don't affect job totals
+      console.log('Time entry updated successfully:', data);
       return data as TimeEntry;
     },
     onSuccess: () => {

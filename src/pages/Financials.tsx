@@ -7,7 +7,7 @@ import { useJobs } from "@/hooks/useJobs";
 import { useLeads } from "@/hooks/useLeads";
 import { useTimeEntries } from "@/hooks/useTimeEntries";
 import { useEmployees } from "@/hooks/useEmployees";
-import { DollarSign, TrendingUp, TrendingDown, Users, Calendar, Target } from "lucide-react";
+import { DollarSign, TrendingUp, TrendingDown, Users, Calendar, Target, Minus } from "lucide-react";
 
 export const Financials = () => {
   const { jobs } = useJobs();
@@ -27,7 +27,7 @@ export const Financials = () => {
   }, [jobs, leads, timeEntries, startDate, endDate]);
 
   const financialMetrics = useMemo(() => {
-    // Calculate real revenue (only paid jobs)
+    // Calculate real revenue (only paid jobs) - this includes customer tips/extras
     const paidRevenue = filteredData.jobs
       .filter(job => job.status === 'completed' && job.is_paid)
       .reduce((sum, job) => {
@@ -35,7 +35,7 @@ export const Financials = () => {
         return sum + jobRevenue;
       }, 0);
 
-    // Calculate unpaid revenue
+    // Calculate unpaid revenue - this includes customer tips/extras
     const unpaidRevenue = filteredData.jobs
       .filter(job => job.status === 'completed' && !job.is_paid)
       .reduce((sum, job) => {
@@ -43,19 +43,32 @@ export const Financials = () => {
         return sum + jobRevenue;
       }, 0);
 
-    // Calculate total lead costs
+    // Calculate total lead costs (marketing expenses)
     const totalLeadCosts = filteredData.leads.reduce((sum, lead) => sum + (lead.lead_cost || 0), 0);
 
-    // Calculate payroll costs
+    // Calculate payroll costs (wages paid to employees)
     const totalPayroll = filteredData.timeEntries
       .filter(entry => entry.is_paid)
-      .reduce((sum, entry) => sum + (entry.total_pay || 0), 0);
+      .reduce((sum, entry) => {
+        // Only count wages, not employee tips
+        const regularPay = (entry.regular_hours || 0) * (entry.hourly_rate || 0);
+        const overtimePay = (entry.overtime_hours || 0) * (entry.overtime_rate || entry.hourly_rate || 0);
+        return sum + regularPay + overtimePay;
+      }, 0);
 
-    // Calculate gross profit
-    const grossProfit = paidRevenue - totalPayroll - totalLeadCosts;
+    // Calculate employee tips (expenses - money given to employees from revenue)
+    const totalEmployeeTips = filteredData.timeEntries
+      .filter(entry => entry.is_paid)
+      .reduce((sum, entry) => sum + (entry.tip_amount || 0), 0);
+
+    // Calculate total expenses
+    const totalExpenses = totalPayroll + totalEmployeeTips + totalLeadCosts;
+
+    // Calculate gross profit (revenue minus all expenses)
+    const grossProfit = paidRevenue - totalExpenses;
     const profitMargin = paidRevenue > 0 ? (grossProfit / paidRevenue) * 100 : 0;
 
-    // Calculate ROI
+    // Calculate ROI on marketing spend
     const roi = totalLeadCosts > 0 ? ((grossProfit / totalLeadCosts) * 100) : 0;
 
     // Lead conversion metrics
@@ -68,6 +81,8 @@ export const Financials = () => {
       totalRevenue: paidRevenue + unpaidRevenue,
       totalLeadCosts,
       totalPayroll,
+      totalEmployeeTips,
+      totalExpenses,
       grossProfit,
       profitMargin,
       roi,
@@ -120,7 +135,7 @@ export const Financials = () => {
               ${financialMetrics.paidRevenue.toLocaleString()}
             </div>
             <p className="text-xs text-gray-500 mt-1">
-              Money in the bank
+              Money collected from customers
             </p>
           </CardContent>
         </Card>
@@ -156,8 +171,8 @@ export const Financials = () => {
         </Card>
       </div>
 
-      {/* Cost and Profit Analysis */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      {/* Expense and Profit Analysis */}
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
         <Card className="border-l-4 border-l-red-500 hover:shadow-lg transition-shadow">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-gray-600">Lead Costs</CardTitle>
@@ -168,7 +183,7 @@ export const Financials = () => {
               ${financialMetrics.totalLeadCosts.toLocaleString()}
             </div>
             <p className="text-xs text-gray-500 mt-1">
-              Marketing investment
+              Marketing expenses
             </p>
           </CardContent>
         </Card>
@@ -183,14 +198,29 @@ export const Financials = () => {
               ${financialMetrics.totalPayroll.toLocaleString()}
             </div>
             <p className="text-xs text-gray-500 mt-1">
-              Employee wages paid
+              Employee wages only
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-l-4 border-l-yellow-500 hover:shadow-lg transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-gray-600">Employee Tips</CardTitle>
+            <Minus className="h-5 w-5 text-yellow-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-yellow-700">
+              ${financialMetrics.totalEmployeeTips.toLocaleString()}
+            </div>
+            <p className="text-xs text-gray-500 mt-1">
+              Tips paid to employees
             </p>
           </CardContent>
         </Card>
 
         <Card className={`border-l-4 ${financialMetrics.grossProfit >= 0 ? 'border-l-green-500' : 'border-l-red-500'} hover:shadow-lg transition-shadow`}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">Gross Profit</CardTitle>
+            <CardTitle className="text-sm font-medium text-gray-600">Net Profit</CardTitle>
             {financialMetrics.grossProfit >= 0 ? 
               <TrendingUp className="h-5 w-5 text-green-600" /> : 
               <TrendingDown className="h-5 w-5 text-red-600" />
@@ -208,7 +238,7 @@ export const Financials = () => {
 
         <Card className={`border-l-4 ${financialMetrics.roi >= 0 ? 'border-l-green-500' : 'border-l-red-500'} hover:shadow-lg transition-shadow`}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">ROI</CardTitle>
+            <CardTitle className="text-sm font-medium text-gray-600">Marketing ROI</CardTitle>
             <DollarSign className={`h-5 w-5 ${financialMetrics.roi >= 0 ? 'text-green-600' : 'text-red-600'}`} />
           </CardHeader>
           <CardContent>
@@ -263,30 +293,32 @@ export const Financials = () => {
 
         <Card>
           <CardHeader>
-            <CardTitle>Lead Performance - {getRangeDisplayText()}</CardTitle>
+            <CardTitle>Expense Breakdown - {getRangeDisplayText()}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
               <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600">Total Leads</span>
-                <span className="font-medium">{filteredData.leads.length}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600">Converted Leads</span>
-                <span className="font-medium text-green-600">
-                  {financialMetrics.convertedLeads}
+                <span className="text-sm text-gray-600">Total Expenses</span>
+                <span className="font-medium text-red-600">
+                  ${financialMetrics.totalExpenses.toLocaleString()}
                 </span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600">Conversion Rate</span>
+                <span className="text-sm text-gray-600">Payroll (Wages)</span>
                 <span className="font-medium">
-                  {financialMetrics.conversionRate.toFixed(1)}%
+                  ${financialMetrics.totalPayroll.toLocaleString()}
                 </span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600">Cost Per Lead</span>
+                <span className="text-sm text-gray-600">Employee Tips</span>
                 <span className="font-medium">
-                  ${filteredData.leads.length > 0 ? (financialMetrics.totalLeadCosts / filteredData.leads.length).toFixed(0) : '0'}
+                  ${financialMetrics.totalEmployeeTips.toLocaleString()}
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-gray-600">Marketing Costs</span>
+                <span className="font-medium">
+                  ${financialMetrics.totalLeadCosts.toLocaleString()}
                 </span>
               </div>
             </div>
