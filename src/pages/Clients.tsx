@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -35,7 +34,7 @@ export const Clients = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
-  const [clientToDelete, setClientToDelete] = useState<string | null>(null);
+  const [clientToDelete, setClientToDelete] = useState<any>(null);
   const [clientToEdit, setClientToEdit] = useState<any>(null);
   const isMobile = useIsMobile();
   const isOnline = useOnlineStatus();
@@ -119,11 +118,28 @@ export const Clients = () => {
     try {
       await deleteClient(clientId);
       setClientToDelete(null);
-      toast.success('Client deleted successfully');
+      toast.success('Client and all related records deleted successfully');
     } catch (error) {
       console.error('Error deleting client:', error);
       toast.error('Failed to delete client');
     }
+  };
+
+  const getClientDeletionWarning = (client: any) => {
+    const relatedLeads = leads.filter(lead => 
+      lead.name.toLowerCase() === client.name.toLowerCase() && 
+      lead.phone === client.phone
+    );
+    
+    let warningText = `Are you sure you want to delete "${client.name}"? This action will:
+
+• Remove the client from the client list
+• Delete any related leads (${relatedLeads.length} found)
+• Remove client references from all jobs (jobs will remain but without client link)
+
+This action cannot be undone. The client will be completely removed from the system.`;
+
+    return warningText;
   };
 
   const getStatusColor = (status: string) => {
@@ -197,7 +213,7 @@ export const Clients = () => {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => setClientToDelete(client.id)}
+                    onClick={() => setClientToDelete(client)}
                   >
                     <Trash2 className="h-3 w-3" />
                   </Button>
@@ -216,20 +232,20 @@ export const Clients = () => {
         />
 
         <AlertDialog open={!!clientToDelete} onOpenChange={() => setClientToDelete(null)}>
-          <AlertDialogContent>
+          <AlertDialogContent className="max-w-md">
             <AlertDialogHeader>
-              <AlertDialogTitle>Delete Client</AlertDialogTitle>
-              <AlertDialogDescription>
-                Are you sure you want to delete this client? This action cannot be undone.
+              <AlertDialogTitle className="text-red-600">⚠️ Delete Client</AlertDialogTitle>
+              <AlertDialogDescription className="text-sm whitespace-pre-line">
+                {clientToDelete && getClientDeletionWarning(clientToDelete)}
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>Cancel</AlertDialogCancel>
               <AlertDialogAction
-                onClick={() => clientToDelete && handleDeleteClient(clientToDelete)}
+                onClick={() => clientToDelete && handleDeleteClient(clientToDelete.id)}
                 className="bg-red-600 hover:bg-red-700"
               >
-                Delete
+                Delete Permanently
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
@@ -455,7 +471,7 @@ export const Clients = () => {
                           <Button 
                             variant="outline" 
                             size="sm"
-                            onClick={() => setClientToDelete(client.id)}
+                            onClick={() => setClientToDelete(client)}
                             className="text-red-600 hover:text-red-700 hover:bg-red-50"
                           >
                             <Trash2 className="h-4 w-4" />
@@ -483,20 +499,22 @@ export const Clients = () => {
       />
 
       <AlertDialog open={!!clientToDelete} onOpenChange={() => setClientToDelete(null)}>
-        <AlertDialogContent>
+        <AlertDialogContent className="max-w-lg">
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Client</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete this client? This action cannot be undone.
+            <AlertDialogTitle className="text-red-600 flex items-center gap-2">
+              ⚠️ Delete Client - This Will Remove All Related Data
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-sm whitespace-pre-line leading-relaxed">
+              {clientToDelete && getClientDeletionWarning(clientToDelete)}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => clientToDelete && handleDeleteClient(clientToDelete)}
+              onClick={() => clientToDelete && handleDeleteClient(clientToDelete.id)}
               className="bg-red-600 hover:bg-red-700"
             >
-              Delete
+              Delete Permanently
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

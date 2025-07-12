@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -200,8 +199,66 @@ export const useClients = () => {
 
   const deleteClientMutation = useMutation({
     mutationFn: async (clientId: string) => {
-      console.log('Deleting client with id:', clientId);
+      console.log('Deleting client comprehensively with id:', clientId);
       
+      // Get client info first for logging
+      const { data: clientInfo } = await supabase
+        .from('clients')
+        .select('name, phone')
+        .eq('id', clientId)
+        .single();
+
+      if (clientInfo) {
+        console.log(`Deleting client: ${clientInfo.name} (${clientInfo.phone})`);
+        
+        // Find and delete related leads by matching name and phone
+        const { data: relatedLeads, error: leadsError } = await supabase
+          .from('leads')
+          .select('id, name, phone')
+          .or(`and(name.ilike.%${clientInfo.name}%,phone.eq.${clientInfo.phone})`);
+
+        if (leadsError) {
+          console.error('Error finding related leads:', leadsError);
+        } else if (relatedLeads && relatedLeads.length > 0) {
+          console.log(`Found ${relatedLeads.length} related leads, deleting them...`);
+          
+          const { error: deleteLeadsError } = await supabase
+            .from('leads')
+            .delete()
+            .in('id', relatedLeads.map(lead => lead.id));
+
+          if (deleteLeadsError) {
+            console.error('Error deleting related leads:', deleteLeadsError);
+            throw deleteLeadsError;
+          }
+          console.log('Related leads deleted successfully');
+        }
+
+        // Find and update jobs to remove client reference
+        const { data: relatedJobs, error: jobsError } = await supabase
+          .from('jobs')
+          .select('id, job_number')
+          .eq('client_id', clientId);
+
+        if (jobsError) {
+          console.error('Error finding related jobs:', jobsError);
+        } else if (relatedJobs && relatedJobs.length > 0) {
+          console.log(`Found ${relatedJobs.length} related jobs, removing client reference...`);
+          
+          const { error: updateJobsError } = await supabase
+            .from('jobs')
+            .update({ client_id: null })
+            .eq('client_id', clientId);
+
+          if (updateJobsError) {
+            console.error('Error updating related jobs:', updateJobsError);
+            throw updateJobsError;
+          }
+          console.log('Related jobs updated successfully');
+        }
+      }
+
+      // Finally, delete the client
       const { error } = await supabase
         .from('clients')
         .delete()
@@ -217,19 +274,21 @@ export const useClients = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['clients'] });
+      queryClient.invalidateQueries({ queryKey: ['leads'] });
+      queryClient.invalidateQueries({ queryKey: ['jobs'] });
       toast({
         title: "Client Deleted",
-        description: "The client has been successfully deleted.",
-        duration: 2000
+        description: "The client and all related records (leads, job references) have been successfully removed from the system.",
+        duration: 4000
       });
     },
     onError: (error) => {
       console.error('Error in deleteClientMutation:', error);
       toast({
         title: "Error Deleting Client",
-        description: "There was an error deleting the client. Please try again.",
+        description: "There was an error deleting the client and related records. Please try again.",
         variant: "destructive",
-        duration: 2000
+        duration: 4000
       });
     }
   });

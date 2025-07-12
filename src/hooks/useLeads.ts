@@ -55,23 +55,62 @@ export const useLeads = () => {
 
   const addLeadMutation = useMutation({
     mutationFn: async (leadData: CreateLeadData) => {
-      const { data, error } = await supabase
+      console.log('Adding lead and creating client record:', leadData);
+      
+      // First, create the lead
+      const { data: leadResult, error: leadError } = await supabase
         .from('leads')
         .insert(leadData)
         .select()
         .single();
 
-      if (error) throw error;
-      return data as Lead;
+      if (leadError) throw leadError;
+
+      // Then, automatically create a client record for this lead
+      const clientData = {
+        name: leadData.name,
+        phone: leadData.phone,
+        email: leadData.email || null,
+        primary_address: 'Address needed', // Default placeholder
+        total_jobs_completed: 0,
+        total_revenue: 0
+      };
+
+      // Check if client already exists with same phone number
+      const { data: existingClient } = await supabase
+        .from('clients')
+        .select('id')
+        .eq('phone', leadData.phone)
+        .single();
+
+      if (!existingClient) {
+        console.log('Creating new client record for lead:', clientData);
+        const { error: clientError } = await supabase
+          .from('clients')
+          .insert(clientData);
+
+        if (clientError) {
+          console.error('Error creating client record:', clientError);
+          // Don't throw here - lead creation succeeded, client creation is secondary
+        } else {
+          console.log('Client record created successfully');
+        }
+      } else {
+        console.log('Client already exists, skipping creation');
+      }
+
+      return leadResult as Lead;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['leads'] });
+      queryClient.invalidateQueries({ queryKey: ['clients'] });
       toast({
         title: "Lead Added",
-        description: "Lead has been successfully added.",
+        description: "Lead has been successfully added and client record created.",
       });
     },
     onError: (error: any) => {
+      console.error('Error adding lead:', error);
       toast({
         title: "Error",
         description: error.message || "Failed to add lead.",
