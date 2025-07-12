@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -39,6 +38,25 @@ export const useClients = () => {
       }
       
       console.log('Clients fetched successfully:', data);
+      
+      // Debug: Check jobs for each client
+      for (const client of data) {
+        console.log(`Checking jobs for client ${client.name} (ID: ${client.id}):`);
+        const { data: jobs, error: jobsError } = await supabase
+          .from('jobs')
+          .select('id, job_number, status, client_id, actual_total, estimated_total')
+          .eq('client_id', client.id);
+        
+        if (jobsError) {
+          console.error(`Error fetching jobs for client ${client.name}:`, jobsError);
+        } else {
+          console.log(`Jobs for ${client.name}:`, jobs);
+          const completedJobs = jobs.filter(job => job.status === 'completed');
+          console.log(`Completed jobs for ${client.name}:`, completedJobs);
+          console.log(`Database shows total_jobs_completed: ${client.total_jobs_completed}, total_revenue: ${client.total_revenue}`);
+        }
+      }
+      
       return data as Client[];
     },
     staleTime: 0,
