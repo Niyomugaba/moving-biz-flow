@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import { Button } from './ui/button';
@@ -59,7 +58,11 @@ export const ScheduleJobDialog = ({ open, onOpenChange, leadData, jobData }: Sch
     payment_method: jobData?.payment_method || '',
     paid_at: jobData?.paid_at || null as string | null,
     lead_cost: 0,
-    is_lead: false // New field to track if manually added client is a lead
+    is_lead: false,
+    // New pricing fields
+    pricing_model: 'per_person' as 'per_person' | 'flat_rate',
+    flat_hourly_rate: 90,
+    worker_hourly_rate: 20
   });
 
   const { addJob, updateJob, isAddingJob, isUpdatingJob } = useJobs();
@@ -122,14 +125,21 @@ export const ScheduleJobDialog = ({ open, onOpenChange, leadData, jobData }: Sch
   const handleInputChange = (field: string, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     
-    // Auto-calculate estimated total when hourly rate or duration changes
-    if (field === 'hourly_rate' || field === 'movers_needed') {
+    // Auto-calculate estimated total based on pricing model
+    if (field === 'hourly_rate' || field === 'movers_needed' || field === 'pricing_model' || field === 'flat_hourly_rate') {
+      const pricingModel = field === 'pricing_model' ? value : formData.pricing_model;
       const rate = field === 'hourly_rate' ? Number(value) : formData.hourly_rate;
       const movers = field === 'movers_needed' ? Number(value) : formData.movers_needed;
+      const flatRate = field === 'flat_hourly_rate' ? Number(value) : formData.flat_hourly_rate;
       
-      // Prevent numeric overflow by limiting calculations
-      const calculatedTotal = rate * movers * 2;
-      const maxTotal = 999999.99; // Stay within PostgreSQL numeric limits
+      let calculatedTotal;
+      if (pricingModel === 'flat_rate') {
+        calculatedTotal = flatRate * 2; // Assume 2 hours minimum
+      } else {
+        calculatedTotal = rate * movers * 2; // Assume 2 hours minimum
+      }
+      
+      const maxTotal = 999999.99;
       
       setFormData(prev => ({ 
         ...prev, 
@@ -307,42 +317,103 @@ export const ScheduleJobDialog = ({ open, onOpenChange, leadData, jobData }: Sch
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="hourly_rate">Hourly Rate ($) *</Label>
-              <Input
-                id="hourly_rate"
-                type="number"
-                value={formData.hourly_rate}
-                onChange={(e) => handleInputChange('hourly_rate', e.target.value)}
-                required
-                min="0"
-                step="0.01"
-              />
+          {/* New Pricing Model Section */}
+          <div className="border p-4 rounded-md bg-gray-50">
+            <Label className="font-medium text-gray-800 mb-3 block">Pricing Model</Label>
+            
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="pricing_model">How do you charge this client?</Label>
+                <Select onValueChange={(value) => handleInputChange('pricing_model', value)} value={formData.pricing_model}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select pricing model..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="per_person">Per Hour Per Person (Standard)</SelectItem>
+                    <SelectItem value="flat_rate">Flat Hourly Rate (Negotiated)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {formData.pricing_model === 'per_person' ? (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="hourly_rate">Rate Per Hour Per Person ($)</Label>
+                    <Input
+                      id="hourly_rate"
+                      type="number"
+                      value={formData.hourly_rate}
+                      onChange={(e) => handleInputChange('hourly_rate', e.target.value)}
+                      required
+                      min="0"
+                      step="0.01"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="movers_needed">Number of Movers</Label>
+                    <Input
+                      id="movers_needed"
+                      type="number"
+                      value={formData.movers_needed}
+                      onChange={(e) => handleInputChange('movers_needed', e.target.value)}
+                      required
+                      min="1"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Total Per Hour</Label>
+                    <div className="p-2 bg-white border rounded text-sm">
+                      ${(formData.hourly_rate * formData.movers_needed).toFixed(2)}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="flat_hourly_rate">Total Hourly Rate ($)</Label>
+                    <Input
+                      id="flat_hourly_rate"
+                      type="number"
+                      value={formData.flat_hourly_rate}
+                      onChange={(e) => handleInputChange('flat_hourly_rate', e.target.value)}
+                      required
+                      min="0"
+                      step="0.01"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="worker_hourly_rate">Worker Rate Per Hour ($)</Label>
+                    <Input
+                      id="worker_hourly_rate"
+                      type="number"
+                      value={formData.worker_hourly_rate}
+                      onChange={(e) => handleInputChange('worker_hourly_rate', e.target.value)}
+                      min="0"
+                      step="0.01"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Your Profit Per Hour</Label>
+                    <div className="p-2 bg-white border rounded text-sm">
+                      ${(formData.flat_hourly_rate - (formData.worker_hourly_rate * formData.movers_needed)).toFixed(2)}
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="movers_needed">Movers Needed *</Label>
-              <Input
-                id="movers_needed"
-                type="number"
-                value={formData.movers_needed}
-                onChange={(e) => handleInputChange('movers_needed', e.target.value)}
-                required
-                min="1"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="estimated_total">Estimated Total ($) *</Label>
-              <Input
-                id="estimated_total"
-                type="number"
-                value={formData.estimated_total}
-                onChange={(e) => handleInputChange('estimated_total', e.target.value)}
-                required
-                min="0"
-                step="0.01"
-              />
-            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="estimated_total">Estimated Total ($) *</Label>
+            <Input
+              id="estimated_total"
+              type="number"
+              value={formData.estimated_total}
+              onChange={(e) => handleInputChange('estimated_total', e.target.value)}
+              required
+              min="0"
+              step="0.01"
+            />
           </div>
 
           <div className="space-y-2">

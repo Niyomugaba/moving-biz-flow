@@ -37,6 +37,10 @@ export interface Job {
   lead_cost?: number;
   created_at: string;
   updated_at: string;
+  // New pricing fields
+  pricing_model?: 'per_person' | 'flat_rate';
+  flat_hourly_rate?: number;
+  worker_hourly_rate?: number;
 }
 
 export interface CreateJobData {
@@ -58,7 +62,11 @@ export interface CreateJobData {
   paid_at?: string;
   lead_id?: string;
   lead_cost?: number;
-  is_lead?: boolean; // New flag to indicate if the client is a lead
+  is_lead?: boolean;
+  // New pricing fields
+  pricing_model?: 'per_person' | 'flat_rate';
+  flat_hourly_rate?: number;
+  worker_hourly_rate?: number;
 }
 
 export const useJobs = () => {
