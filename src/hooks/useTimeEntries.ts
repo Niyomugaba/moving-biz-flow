@@ -1,3 +1,4 @@
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -41,6 +42,14 @@ export interface CreateTimeEntryData {
   tip_amount?: number;
 }
 
+// Helper function to calculate total pay
+const calculateTotalPay = (entry: Partial<TimeEntry>): number => {
+  const regularPay = (entry.regular_hours || 0) * (entry.hourly_rate || 0);
+  const overtimePay = (entry.overtime_hours || 0) * (entry.overtime_rate || entry.hourly_rate || 0);
+  const tipAmount = entry.tip_amount || 0;
+  return regularPay + overtimePay + tipAmount;
+};
+
 export const useTimeEntries = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -77,6 +86,15 @@ export const useTimeEntries = () => {
       
       const sanitizedData = sanitizeDataForDatabase(entryData);
       
+      // Calculate total pay on the client side to ensure accuracy
+      const totalPay = calculateTotalPay({
+        regular_hours: sanitizedData.regular_hours,
+        overtime_hours: sanitizedData.overtime_hours,
+        hourly_rate: sanitizedData.hourly_rate,
+        overtime_rate: sanitizedData.overtime_rate,
+        tip_amount: sanitizedData.tip_amount
+      });
+      
       const insertData = {
         employee_id: sanitizedData.employee_id,
         job_id: sanitizedData.job_id,
@@ -89,6 +107,7 @@ export const useTimeEntries = () => {
         overtime_rate: sanitizedData.overtime_rate,
         notes: sanitizedData.notes,
         tip_amount: sanitizedData.tip_amount || 0,
+        total_pay: totalPay,
         status: 'pending' as const
       };
 
@@ -108,29 +127,7 @@ export const useTimeEntries = () => {
       // Update job's actual_total if this time entry has a job_id and tip
       if (data.job_id && data.tip_amount && data.tip_amount > 0) {
         console.log('Updating job actual_total with tip amount:', data.tip_amount);
-        
-        // Get current job data
-        const { data: jobData, error: jobError } = await supabase
-          .from('jobs')
-          .select('actual_total, estimated_total')
-          .eq('id', data.job_id)
-          .single();
-
-        if (!jobError && jobData) {
-          const currentTotal = jobData.actual_total || jobData.estimated_total || 0;
-          const newTotal = currentTotal + data.tip_amount;
-          
-          const { error: updateError } = await supabase
-            .from('jobs')
-            .update({ actual_total: newTotal })
-            .eq('id', data.job_id);
-
-          if (updateError) {
-            console.error('Error updating job total:', updateError);
-          } else {
-            console.log('Job total updated successfully to:', newTotal);
-          }
-        }
+        await updateJobTotalWithTip(data.job_id, data.tip_amount);
       }
 
       return data as TimeEntry;
@@ -153,6 +150,35 @@ export const useTimeEntries = () => {
     }
   });
 
+  // Helper function to update job totals with tip amounts
+  const updateJobTotalWithTip = async (jobId: string, tipAmount: number) => {
+    try {
+      const { data: jobData, error: jobError } = await supabase
+        .from('jobs')
+        .select('actual_total, estimated_total')
+        .eq('id', jobId)
+        .single();
+
+      if (!jobError && jobData) {
+        const currentTotal = jobData.actual_total || jobData.estimated_total || 0;
+        const newTotal = currentTotal + tipAmount;
+        
+        const { error: updateError } = await supabase
+          .from('jobs')
+          .update({ actual_total: newTotal })
+          .eq('id', jobId);
+
+        if (updateError) {
+          console.error('Error updating job total:', updateError);
+        } else {
+          console.log('Job total updated successfully to:', newTotal);
+        }
+      }
+    } catch (error) {
+      console.error('Error in updateJobTotalWithTip:', error);
+    }
+  };
+
   const updateTimeEntryMutation = useMutation({
     mutationFn: async ({ id, updates }: { id: string; updates: Partial<TimeEntry> }) => {
       console.log('Updating time entry:', id, updates);
@@ -169,6 +195,18 @@ export const useTimeEntries = () => {
         throw fetchError;
       }
 
+      // Recalculate total_pay if any relevant fields are updated
+      const updatedEntry = { ...originalEntry, ...updates };
+      if (updates.regular_hours !== undefined || 
+          updates.overtime_hours !== undefined || 
+          updates.hourly_rate !== undefined || 
+          updates.overtime_rate !== undefined || 
+          updates.tip_amount !== undefined) {
+        
+        updates.total_pay = calculateTotalPay(updatedEntry);
+        console.log('Recalculated total pay:', updates.total_pay);
+      }
+
       const { data, error } = await supabase
         .from('time_entries')
         .update(updates)
@@ -176,37 +214,19 @@ export const useTimeEntries = () => {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error updating time entry:', error);
+        throw error;
+      }
 
-      // If tip amount changed and there's a job_id, update job total
+      // Handle tip amount changes for job totals
       const originalTip = originalEntry.tip_amount || 0;
-      const newTip = updates.tip_amount || 0;
+      const newTip = updates.tip_amount !== undefined ? updates.tip_amount : originalTip;
       const tipDifference = newTip - originalTip;
 
       if (data.job_id && tipDifference !== 0) {
         console.log('Updating job total due to tip change:', tipDifference);
-        
-        const { data: jobData, error: jobError } = await supabase
-          .from('jobs')
-          .select('actual_total, estimated_total')
-          .eq('id', data.job_id)
-          .single();
-
-        if (!jobError && jobData) {
-          const currentTotal = jobData.actual_total || jobData.estimated_total || 0;
-          const newTotal = currentTotal + tipDifference;
-          
-          const { error: updateError } = await supabase
-            .from('jobs')
-            .update({ actual_total: newTotal })
-            .eq('id', data.job_id);
-
-          if (updateError) {
-            console.error('Error updating job total:', updateError);
-          } else {
-            console.log('Job total updated to reflect tip change:', newTotal);
-          }
-        }
+        await updateJobTotalWithTip(data.job_id, tipDifference);
       }
 
       return data as TimeEntry;
@@ -231,6 +251,8 @@ export const useTimeEntries = () => {
 
   const deleteTimeEntryMutation = useMutation({
     mutationFn: async (id: string) => {
+      console.log('Deleting time entry:', id);
+      
       // Get the time entry before deleting to adjust job total if needed
       const { data: timeEntry, error: fetchError } = await supabase
         .from('time_entries')
@@ -247,31 +269,15 @@ export const useTimeEntries = () => {
         .delete()
         .eq('id', id);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error deleting time entry:', error);
+        throw error;
+      }
 
       // If there was a tip and job_id, subtract from job total
       if (timeEntry && timeEntry.job_id && timeEntry.tip_amount && timeEntry.tip_amount > 0) {
         console.log('Adjusting job total after time entry deletion:', -timeEntry.tip_amount);
-        
-        const { data: jobData, error: jobError } = await supabase
-          .from('jobs')
-          .select('actual_total, estimated_total')
-          .eq('id', timeEntry.job_id)
-          .single();
-
-        if (!jobError && jobData) {
-          const currentTotal = jobData.actual_total || jobData.estimated_total || 0;
-          const newTotal = Math.max(0, currentTotal - timeEntry.tip_amount);
-          
-          const { error: updateError } = await supabase
-            .from('jobs')
-            .update({ actual_total: newTotal })
-            .eq('id', timeEntry.job_id);
-
-          if (updateError) {
-            console.error('Error adjusting job total after deletion:', updateError);
-          }
-        }
+        await updateJobTotalWithTip(timeEntry.job_id, -timeEntry.tip_amount);
       }
     },
     onSuccess: () => {
@@ -283,6 +289,7 @@ export const useTimeEntries = () => {
       });
     },
     onError: (error: any) => {
+      console.error('Error deleting time entry:', error);
       toast({
         title: "Error",
         description: error.message || "Failed to delete time entry.",
@@ -313,6 +320,8 @@ export const useTimeEntries = () => {
         console.error('Error approving time entry:', error);
         throw error;
       }
+      
+      console.log('Time entry approved successfully:', data);
       return data as TimeEntry;
     },
     onSuccess: () => {
@@ -334,6 +343,8 @@ export const useTimeEntries = () => {
 
   const rejectTimeEntryMutation = useMutation({
     mutationFn: async ({ id, reason }: { id: string; reason?: string }) => {
+      console.log('Rejecting time entry:', id, 'with reason:', reason);
+      
       const { data, error } = await supabase
         .from('time_entries')
         .update({ 
@@ -344,7 +355,12 @@ export const useTimeEntries = () => {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error rejecting time entry:', error);
+        throw error;
+      }
+      
+      console.log('Time entry rejected successfully:', data);
       return data as TimeEntry;
     },
     onSuccess: () => {
@@ -355,6 +371,7 @@ export const useTimeEntries = () => {
       });
     },
     onError: (error: any) => {
+      console.error('Error rejecting time entry:', error);
       toast({
         title: "Error",
         description: error.message || "Failed to reject time entry.",
@@ -365,6 +382,8 @@ export const useTimeEntries = () => {
 
   const markAsPaidMutation = useMutation({
     mutationFn: async (id: string) => {
+      console.log('Marking time entry as paid:', id);
+      
       const { data, error } = await supabase
         .from('time_entries')
         .update({ 
@@ -375,7 +394,12 @@ export const useTimeEntries = () => {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error marking time entry as paid:', error);
+        throw error;
+      }
+      
+      console.log('Time entry marked as paid successfully:', data);
       return data as TimeEntry;
     },
     onSuccess: () => {
@@ -386,6 +410,7 @@ export const useTimeEntries = () => {
       });
     },
     onError: (error: any) => {
+      console.error('Error marking time entry as paid:', error);
       toast({
         title: "Error",
         description: error.message || "Failed to mark time entry as paid.",
@@ -397,6 +422,7 @@ export const useTimeEntries = () => {
   const markAsUnpaidMutation = useMutation({
     mutationFn: async (id: string) => {
       console.log('Marking time entry as unpaid:', id);
+      
       const { data, error } = await supabase
         .from('time_entries')
         .update({ 
@@ -411,6 +437,8 @@ export const useTimeEntries = () => {
         console.error('Error marking time entry as unpaid:', error);
         throw error;
       }
+      
+      console.log('Time entry marked as unpaid successfully:', data);
       return data as TimeEntry;
     },
     onSuccess: () => {

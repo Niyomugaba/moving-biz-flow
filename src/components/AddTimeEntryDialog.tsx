@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import { Button } from './ui/button';
@@ -7,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { useEmployees } from '@/hooks/useEmployees';
 import { useJobs } from '@/hooks/useJobs';
 import { useTimeEntries } from '@/hooks/useTimeEntries';
-import { Clock, Zap, DollarSign } from 'lucide-react';
+import { Clock, Zap, DollarSign, AlertCircle } from 'lucide-react';
 
 interface AddTimeEntryDialogProps {
   open: boolean;
@@ -26,6 +27,7 @@ export const AddTimeEntryDialog = ({ open, onOpenChange }: AddTimeEntryDialogPro
   const [clockOutTime, setClockOutTime] = useState('');
   const [tipAmount, setTipAmount] = useState('0');
   const [notes, setNotes] = useState('');
+  const [validationErrors, setValidationErrors] = useState<string[]>([]);
 
   const selectedEmployee = employees.find(emp => emp.id === selectedEmployeeId);
   const selectedJob = jobs.find(job => job.id === selectedJobId);
@@ -33,6 +35,8 @@ export const AddTimeEntryDialog = ({ open, onOpenChange }: AddTimeEntryDialogPro
   // Auto-populate job data when job is selected
   useEffect(() => {
     if (selectedJob && selectedJob.id !== 'no-job') {
+      console.log('Selected job changed:', selectedJob);
+      
       // Set job date
       setEntryDate(selectedJob.job_date);
       
@@ -50,6 +54,8 @@ export const AddTimeEntryDialog = ({ open, onOpenChange }: AddTimeEntryDialogPro
         
         const endTimeString = endTime.toTimeString().slice(0, 5);
         setClockOutTime(endTimeString);
+        
+        console.log('Auto-calculated end time:', endTimeString);
       }
       
       // Add helpful note about the job
@@ -65,38 +71,94 @@ export const AddTimeEntryDialog = ({ open, onOpenChange }: AddTimeEntryDialogPro
   const calculateHours = () => {
     if (!clockInTime || !clockOutTime) return 0;
     
-    const clockIn = new Date(`${entryDate}T${clockInTime}`);
-    const clockOut = new Date(`${entryDate}T${clockOutTime}`);
-    const totalMinutes = (clockOut.getTime() - clockIn.getTime()) / (1000 * 60);
-    
-    return Math.max(0, totalMinutes / 60);
+    try {
+      const clockIn = new Date(`${entryDate}T${clockInTime}`);
+      const clockOut = new Date(`${entryDate}T${clockOutTime}`);
+      const totalMinutes = (clockOut.getTime() - clockIn.getTime()) / (1000 * 60);
+      
+      return Math.max(0, totalMinutes / 60);
+    } catch (error) {
+      console.error('Error calculating hours:', error);
+      return 0;
+    }
   };
 
   const totalHours = calculateHours();
   const regularHours = Math.min(totalHours, 8);
   const overtimeHours = Math.max(0, totalHours - 8);
 
+  const validateForm = () => {
+    const errors: string[] = [];
+    
+    if (!selectedEmployeeId) {
+      errors.push('Employee is required');
+    }
+    
+    if (!entryDate) {
+      errors.push('Date is required');
+    }
+    
+    if (!clockInTime) {
+      errors.push('Start time is required');
+    }
+    
+    if (!clockOutTime) {
+      errors.push('End time is required');
+    }
+    
+    if (clockInTime && clockOutTime && totalHours <= 0) {
+      errors.push('End time must be after start time');
+    }
+    
+    if (parseFloat(tipAmount) < 0) {
+      errors.push('Tip amount cannot be negative');
+    }
+    
+    setValidationErrors(errors);
+    return errors.length === 0;
+  };
+
+  const calculatePayPreview = () => {
+    if (!selectedEmployee || totalHours <= 0) return null;
+    
+    const hourlyRate = selectedJob?.worker_hourly_rate || selectedEmployee.hourly_wage;
+    const regularPay = regularHours * hourlyRate;
+    const overtimePay = overtimeHours * hourlyRate * 1.5;
+    const tipAmountNum = parseFloat(tipAmount) || 0;
+    const totalPay = regularPay + overtimePay + tipAmountNum;
+    
+    return {
+      hourlyRate,
+      regularPay,
+      overtimePay,
+      tipAmountNum,
+      totalPay
+    };
+  };
+
+  const payPreview = calculatePayPreview();
+
   const handleSubmit = () => {
-    if (!selectedEmployeeId || !clockInTime || !clockOutTime || !selectedEmployee) {
+    console.log('Form submission started');
+    
+    if (!validateForm()) {
+      console.error('Form validation failed:', validationErrors);
       return;
     }
 
-    // Create proper ISO timestamp strings - remove the extra :00
+    if (!selectedEmployee) {
+      console.error('No employee selected');
+      return;
+    }
+
+    // Create proper ISO timestamp strings
     const clockInDateTime = new Date(`${entryDate}T${clockInTime}`).toISOString();
     const clockOutDateTime = new Date(`${entryDate}T${clockOutTime}`).toISOString();
 
     // Use job's worker hourly rate if available, otherwise employee's wage
     const hourlyRate = selectedJob?.worker_hourly_rate || selectedEmployee.hourly_wage;
 
-    console.log('Creating time entry with fixed timestamps:', {
-      clock_in_time: clockInDateTime,
-      clock_out_time: clockOutDateTime,
-      entry_date: entryDate,
-      employee_id: selectedEmployeeId,
-      job_id: selectedJobId === 'no-job' ? undefined : selectedJobId
-    });
-
-    addTimeEntry({
+    const timeEntryData = {
       employee_id: selectedEmployeeId,
       job_id: selectedJobId === 'no-job' ? undefined : selectedJobId,
       entry_date: entryDate,
@@ -108,9 +170,18 @@ export const AddTimeEntryDialog = ({ open, onOpenChange }: AddTimeEntryDialogPro
       hourly_rate: hourlyRate,
       overtime_rate: overtimeHours > 0 ? hourlyRate * 1.5 : undefined,
       notes: notes || undefined
-    });
+    };
+
+    console.log('Creating time entry with data:', timeEntryData);
+
+    addTimeEntry(timeEntryData);
 
     // Reset form
+    resetForm();
+    onOpenChange(false);
+  };
+
+  const resetForm = () => {
     setSelectedEmployeeId('');
     setSelectedJobId('no-job');
     setEntryDate(new Date().toISOString().split('T')[0]);
@@ -118,7 +189,7 @@ export const AddTimeEntryDialog = ({ open, onOpenChange }: AddTimeEntryDialogPro
     setClockOutTime('');
     setTipAmount('0');
     setNotes('');
-    onOpenChange(false);
+    setValidationErrors([]);
   };
 
   const handleQuickFill = () => {
@@ -135,6 +206,8 @@ export const AddTimeEntryDialog = ({ open, onOpenChange }: AddTimeEntryDialogPro
       
       const endTimeString = endTime.toTimeString().slice(0, 5);
       setClockOutTime(endTimeString);
+      
+      console.log('Quick fill applied:', { start: defaultStartTime, end: endTimeString });
     }
   };
 
@@ -149,6 +222,21 @@ export const AddTimeEntryDialog = ({ open, onOpenChange }: AddTimeEntryDialogPro
         </DialogHeader>
         
         <div className="space-y-4">
+          {/* Validation Errors */}
+          {validationErrors.length > 0 && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+              <div className="flex items-center gap-2 mb-2">
+                <AlertCircle className="h-4 w-4 text-red-600" />
+                <span className="font-medium text-red-800">Please fix the following errors:</span>
+              </div>
+              <ul className="list-disc list-inside text-sm text-red-700 space-y-1">
+                {validationErrors.map((error, index) => (
+                  <li key={index}>{error}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Job (Optional) *
@@ -289,25 +377,22 @@ export const AddTimeEntryDialog = ({ open, onOpenChange }: AddTimeEntryDialogPro
             />
           </div>
 
-          {totalHours > 0 && (
+          {/* Time and Pay Summary */}
+          {totalHours > 0 && payPreview && (
             <div className="bg-blue-50 p-3 rounded-lg">
-              <h4 className="font-medium text-blue-800 mb-1">Time Summary</h4>
+              <h4 className="font-medium text-blue-800 mb-1">Time & Pay Summary</h4>
               <div className="text-sm text-blue-700 space-y-1">
                 <div>Total Hours: {totalHours.toFixed(2)}</div>
-                <div>Regular Hours: {regularHours.toFixed(2)}</div>
+                <div>Regular Hours: {regularHours.toFixed(2)} × ${payPreview.hourlyRate} = ${payPreview.regularPay.toFixed(2)}</div>
                 {overtimeHours > 0 && (
-                  <div>Overtime Hours: {overtimeHours.toFixed(2)}</div>
+                  <div>Overtime Hours: {overtimeHours.toFixed(2)} × ${(payPreview.hourlyRate * 1.5).toFixed(2)} = ${payPreview.overtimePay.toFixed(2)}</div>
                 )}
-                {selectedEmployee && (
-                  <div className="font-medium">
-                    Total Pay: ${((regularHours * (selectedJob?.worker_hourly_rate || selectedEmployee.hourly_wage)) + 
-                    (overtimeHours * (selectedJob?.worker_hourly_rate || selectedEmployee.hourly_wage) * 1.5) +
-                    (parseFloat(tipAmount) || 0)).toFixed(2)}
-                    {parseFloat(tipAmount) > 0 && (
-                      <span className="text-green-600 ml-2">(+${tipAmount} tip)</span>
-                    )}
-                  </div>
+                {payPreview.tipAmountNum > 0 && (
+                  <div className="text-green-600">Tip: ${payPreview.tipAmountNum.toFixed(2)}</div>
                 )}
+                <div className="font-medium border-t pt-1">
+                  <strong>Total Pay: ${payPreview.totalPay.toFixed(2)}</strong>
+                </div>
               </div>
             </div>
           )}
@@ -335,7 +420,7 @@ export const AddTimeEntryDialog = ({ open, onOpenChange }: AddTimeEntryDialogPro
           </Button>
           <Button
             onClick={handleSubmit}
-            disabled={!selectedEmployeeId || !clockInTime || !clockOutTime || isAddingTimeEntry}
+            disabled={!selectedEmployeeId || !clockInTime || !clockOutTime || isAddingTimeEntry || validationErrors.length > 0}
             className="flex-1"
           >
             {isAddingTimeEntry ? 'Adding...' : 'Add Entry'}

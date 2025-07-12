@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -48,6 +49,22 @@ export const TimeEntryCard = ({
   const [rejectReason, setRejectReason] = useState('');
 
   const employee = employees.find(emp => emp.id === entry.employee_id);
+  const job = jobs.find(j => j.id === entry.job_id);
+
+  // Calculate totals for display
+  const calculatePreviewTotals = () => {
+    const regularPay = (editedEntry.regular_hours || 0) * (editedEntry.hourly_rate || 0);
+    const overtimePay = (editedEntry.overtime_hours || 0) * (editedEntry.overtime_rate || editedEntry.hourly_rate || 0);
+    const tipAmount = editedEntry.tip_amount || 0;
+    const totalPay = regularPay + overtimePay + tipAmount;
+    
+    return {
+      regularPay,
+      overtimePay,
+      tipAmount,
+      totalPay
+    };
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -67,24 +84,77 @@ export const TimeEntryCard = ({
   };
 
   const formatTime = (timeString: string) => {
-    return format(new Date(timeString), 'h:mm a');
+    try {
+      return format(new Date(timeString), 'h:mm a');
+    } catch (error) {
+      console.error('Error formatting time:', error);
+      return 'Invalid time';
+    }
   };
 
   const formatDate = (dateString: string) => {
-    return format(new Date(dateString), 'MMM dd, yyyy');
+    try {
+      return format(new Date(dateString), 'MMM dd, yyyy');
+    } catch (error) {
+      console.error('Error formatting date:', error);
+      return 'Invalid date';
+    }
   };
 
   const totalHours = (entry.regular_hours || 0) + (entry.overtime_hours || 0);
 
   const handleSaveEdit = () => {
-    onUpdateEntry(entry.id, editedEntry);
+    console.log('Saving edited entry:', editedEntry);
+    
+    // Only pass the changed fields
+    const updates: Partial<TimeEntry> = {};
+    
+    if (editedEntry.regular_hours !== entry.regular_hours) {
+      updates.regular_hours = editedEntry.regular_hours;
+    }
+    if (editedEntry.overtime_hours !== entry.overtime_hours) {
+      updates.overtime_hours = editedEntry.overtime_hours;
+    }
+    if (editedEntry.tip_amount !== entry.tip_amount) {
+      updates.tip_amount = editedEntry.tip_amount;
+    }
+    if (editedEntry.job_id !== entry.job_id) {
+      updates.job_id = editedEntry.job_id;
+    }
+    if (editedEntry.notes !== entry.notes) {
+      updates.notes = editedEntry.notes;
+    }
+    
+    console.log('Updates to apply:', updates);
+    onUpdateEntry(entry.id, updates);
     setEditDialogOpen(false);
   };
 
   const handleRejectWithReason = () => {
+    console.log('Rejecting entry with reason:', rejectReason);
     onReject({ id: entry.id, reason: rejectReason });
     setRejectDialogOpen(false);
     setRejectReason('');
+  };
+
+  const handleApprove = () => {
+    console.log('Approving entry:', entry.id);
+    onApprove(entry.id);
+  };
+
+  const handleMarkAsPaid = () => {
+    console.log('Marking as paid:', entry.id);
+    onMarkAsPaid(entry.id);
+  };
+
+  const handleMarkAsUnpaid = () => {
+    console.log('Marking as unpaid:', entry.id);
+    onMarkAsUnpaid(entry.id);
+  };
+
+  const handleResetStatus = () => {
+    console.log('Resetting status:', entry.id);
+    onResetStatus(entry.id);
   };
 
   return (
@@ -143,9 +213,9 @@ export const TimeEntryCard = ({
             </div>
           )}
 
-          {entry.job_id && (
+          {entry.job_id && job && (
             <div className="text-gray-600">
-              <strong>Job:</strong> {jobs.find(j => j.id === entry.job_id)?.job_number || 'Unknown Job'}
+              <strong>Job:</strong> {job.job_number} - {job.client_name}
             </div>
           )}
 
@@ -182,6 +252,7 @@ export const TimeEntryCard = ({
                       id="regular_hours"
                       type="number"
                       step="0.25"
+                      min="0"
                       value={editedEntry.regular_hours || 0}
                       onChange={(e) => setEditedEntry({...editedEntry, regular_hours: parseFloat(e.target.value) || 0})}
                     />
@@ -192,6 +263,7 @@ export const TimeEntryCard = ({
                       id="overtime_hours"
                       type="number"
                       step="0.25"
+                      min="0"
                       value={editedEntry.overtime_hours || 0}
                       onChange={(e) => setEditedEntry({...editedEntry, overtime_hours: parseFloat(e.target.value) || 0})}
                     />
@@ -237,6 +309,28 @@ export const TimeEntryCard = ({
                     onChange={(e) => setEditedEntry({...editedEntry, notes: e.target.value})}
                   />
                 </div>
+                
+                {/* Live calculation preview */}
+                {(editedEntry.regular_hours || editedEntry.overtime_hours || editedEntry.tip_amount) && (
+                  <div className="bg-blue-50 p-3 rounded-lg">
+                    <h4 className="font-medium text-blue-800 mb-1">Pay Preview</h4>
+                    <div className="text-sm text-blue-700 space-y-1">
+                      {editedEntry.regular_hours > 0 && (
+                        <div>Regular: {editedEntry.regular_hours}h × ${editedEntry.hourly_rate} = ${calculatePreviewTotals().regularPay.toFixed(2)}</div>
+                      )}
+                      {editedEntry.overtime_hours > 0 && (
+                        <div>Overtime: {editedEntry.overtime_hours}h × ${editedEntry.overtime_rate || editedEntry.hourly_rate} = ${calculatePreviewTotals().overtimePay.toFixed(2)}</div>
+                      )}
+                      {editedEntry.tip_amount > 0 && (
+                        <div className="text-green-600">Tip: ${editedEntry.tip_amount.toFixed(2)}</div>
+                      )}
+                      <div className="font-bold border-t pt-1">
+                        Total Pay: ${calculatePreviewTotals().totalPay.toFixed(2)}
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
                 <div className="flex gap-2">
                   <Button onClick={handleSaveEdit} className="flex-1">
                     Save Changes
@@ -253,7 +347,7 @@ export const TimeEntryCard = ({
             <>
               <Button
                 size="sm"
-                onClick={() => onApprove(entry.id)}
+                onClick={handleApprove}
                 disabled={isApproving}
                 className="bg-green-600 hover:bg-green-700 text-white"
               >
@@ -304,7 +398,7 @@ export const TimeEntryCard = ({
           {entry.status === 'approved' && !entry.is_paid && (
             <Button
               size="sm"
-              onClick={() => onMarkAsPaid(entry.id)}
+              onClick={handleMarkAsPaid}
               disabled={isMarkingAsPaid}
               className="bg-blue-600 hover:bg-blue-700 text-white"
             >
@@ -317,7 +411,7 @@ export const TimeEntryCard = ({
             <Button
               size="sm"
               variant="outline"
-              onClick={() => onMarkAsUnpaid(entry.id)}
+              onClick={handleMarkAsUnpaid}
               disabled={isMarkingAsUnpaid}
               className="border-red-500 text-red-600 hover:bg-red-50"
             >
@@ -330,7 +424,7 @@ export const TimeEntryCard = ({
             <Button
               size="sm"
               variant="outline"
-              onClick={() => onResetStatus(entry.id)}
+              onClick={handleResetStatus}
               className="border-yellow-500 text-yellow-600 hover:bg-yellow-50"
             >
               Reset to Pending
