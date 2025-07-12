@@ -90,19 +90,10 @@ export const useJobs = () => {
       }
       
       console.log('Jobs fetched successfully:', data?.length);
-      console.log('Jobs data:', data);
-      
-      // Check for jobs with lead_id to see converted leads
-      const convertedLeadJobs = data?.filter(job => job.lead_id) || [];
-      console.log('Jobs converted from leads:', convertedLeadJobs.length, convertedLeadJobs);
-      
-      const pendingJobs = data?.filter(job => job.status === 'pending_schedule') || [];
-      console.log('Jobs with pending_schedule status:', pendingJobs.length, pendingJobs);
-      
       return data as Job[];
     },
-    staleTime: 0, // Always consider data stale
-    gcTime: 0, // Don't cache data
+    staleTime: 0,
+    gcTime: 0,
   });
 
   const updateJobMutation = useMutation({
@@ -115,7 +106,7 @@ export const useJobs = () => {
       
       // Log if this is a status change to completed
       if (updates.status === 'completed') {
-        console.log('Job being marked as completed - this will trigger client stats update');
+        console.log('Job being marked as completed - database trigger will update client stats automatically');
       }
       
       // First update the job
@@ -227,17 +218,16 @@ export const useJobs = () => {
       // Invalidate all related queries to ensure fresh data
       queryClient.invalidateQueries({ queryKey: ['jobs'] });
       queryClient.invalidateQueries({ queryKey: ['clients'] });
-      queryClient.invalidateQueries({ queryKey: ['client-stats'] });
       queryClient.invalidateQueries({ queryKey: ['employees'] });
       queryClient.invalidateQueries({ queryKey: ['time-entries'] });
       
-      // Force immediate refetch of client stats if job was completed
+      // If job was completed, the database trigger automatically updated client stats
       if (data.status === 'completed') {
-        console.log('Job completed - forcing immediate client stats refetch');
+        console.log('Job completed - database trigger has automatically updated client statistics');
+        // Force immediate refetch of clients to show updated stats
         setTimeout(() => {
-          queryClient.refetchQueries({ queryKey: ['client-stats'] });
           queryClient.refetchQueries({ queryKey: ['clients'] });
-        }, 100); // Very small delay to ensure database updates are committed
+        }, 100);
       }
       
       toast({

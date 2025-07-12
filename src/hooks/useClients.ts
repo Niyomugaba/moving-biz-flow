@@ -1,7 +1,7 @@
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { useClientStats } from './useClientStats';
 
 export interface Client {
   id: string;
@@ -23,7 +23,6 @@ export interface Client {
 export const useClients = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { clientStats } = useClientStats();
 
   const { data: clients = [], isLoading, refetch } = useQuery({
     queryKey: ['clients'],
@@ -39,34 +38,8 @@ export const useClients = () => {
         throw error;
       }
       
-      console.log('Raw clients from database:', data);
-      console.log('Client stats for merging:', clientStats);
-      
-      // Merge database clients with calculated stats
-      const clientsWithStats = data?.map(client => {
-        const stats = clientStats.find(s => s.client_id === client.id);
-        
-        if (stats) {
-          console.log(`Merging stats for client ${client.name}:`, {
-            database_jobs: client.total_jobs_completed,
-            calculated_jobs: stats.total_jobs_completed,
-            database_revenue: client.total_revenue,
-            calculated_revenue: stats.total_revenue
-          });
-          
-          return {
-            ...client,
-            total_jobs_completed: stats.total_jobs_completed,
-            total_revenue: stats.total_revenue
-          };
-        }
-        
-        console.log(`No calculated stats found for client ${client.name}, using database values`);
-        return client;
-      }) || [];
-      
-      console.log('Final clients with merged stats:', clientsWithStats);
-      return clientsWithStats as Client[];
+      console.log('Clients fetched successfully:', data);
+      return data as Client[];
     },
     staleTime: 0,
   });
@@ -102,7 +75,6 @@ export const useClients = () => {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['clients'] });
-      queryClient.invalidateQueries({ queryKey: ['client-stats'] });
       toast({
         title: "Client Added",
         description: `${data.name} has been added as a new client.`,
@@ -141,7 +113,6 @@ export const useClients = () => {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['clients'] });
-      queryClient.invalidateQueries({ queryKey: ['client-stats'] });
       toast({
         title: "Client Updated",
         description: `${data.name} has been updated successfully.`,
@@ -178,7 +149,6 @@ export const useClients = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['clients'] });
-      queryClient.invalidateQueries({ queryKey: ['client-stats'] });
       toast({
         title: "Client Deleted",
         description: "The client has been successfully deleted.",
@@ -205,7 +175,6 @@ export const useClients = () => {
     isUpdatingClient: updateClientMutation.isPending,
     deleteClient: deleteClientMutation.mutateAsync,
     isDeletingClient: deleteClientMutation.isPending,
-    refetchClients: refetch,
-    refetchClientStats: () => queryClient.invalidateQueries({ queryKey: ['client-stats'] })
+    refetchClients: refetch
   };
 };

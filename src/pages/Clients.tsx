@@ -7,7 +7,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useClients } from "@/hooks/useClients";
 import { useLeads } from "@/hooks/useLeads";
-import { useClientStats } from "@/hooks/useClientStats";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { AddClientDialog } from "@/components/AddClientDialog";
 import { EditClientDialog } from "@/components/EditClientDialog";
@@ -30,7 +29,6 @@ import { toast } from "sonner";
 export const Clients = () => {
   const { clients, isLoading, deleteClient } = useClients();
   const { leads } = useLeads();
-  const { clientStats } = useClientStats();
   const [searchTerm, setSearchTerm] = useState('');
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
@@ -38,10 +36,9 @@ export const Clients = () => {
   const [clientToEdit, setClientToEdit] = useState<any>(null);
   const isMobile = useIsMobile();
 
-  // Merge clients with lead status information - stats are already merged in useClients
+  // Merge clients with lead status information
   const clientsWithStatus = useMemo(() => {
     console.log('Processing clients for display:', clients);
-    console.log('Available client stats:', clientStats);
     
     return clients.map(client => {
       const associatedLead = leads.find(lead => 
@@ -63,9 +60,8 @@ export const Clients = () => {
       
       return result;
     });
-  }, [clients, leads, clientStats]);
+  }, [clients, leads]);
 
-  // Filter clients
   const filteredClients = useMemo(() => {
     return clientsWithStatus.filter(client => 
       client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
