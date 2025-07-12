@@ -1,3 +1,4 @@
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -23,6 +24,7 @@ export interface TimeEntry {
   is_paid: boolean;
   paid_at?: string;
   break_duration_minutes?: number;
+  tip_amount?: number;
   created_at: string;
   updated_at: string;
 }
@@ -39,6 +41,7 @@ export interface CreateTimeEntryData {
   overtime_rate?: number;
   notes?: string;
   break_duration_minutes?: number;
+  tip_amount?: number;
 }
 
 export const useTimeEntries = () => {
@@ -91,6 +94,7 @@ export const useTimeEntries = () => {
         overtime_rate: sanitizedData.overtime_rate,
         notes: sanitizedData.notes,
         break_duration_minutes: sanitizedData.break_duration_minutes || 0,
+        tip_amount: sanitizedData.tip_amount || 0,
         status: 'pending' as const
         // total_pay will be calculated by database trigger
       };

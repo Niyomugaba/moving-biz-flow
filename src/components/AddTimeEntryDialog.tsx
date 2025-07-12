@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { useEmployees } from '@/hooks/useEmployees';
 import { useJobs } from '@/hooks/useJobs';
 import { useTimeEntries } from '@/hooks/useTimeEntries';
-import { Clock, Zap } from 'lucide-react';
+import { Clock, Zap, DollarSign } from 'lucide-react';
 
 interface AddTimeEntryDialogProps {
   open: boolean;
@@ -25,7 +25,7 @@ export const AddTimeEntryDialog = ({ open, onOpenChange }: AddTimeEntryDialogPro
   const [entryDate, setEntryDate] = useState(new Date().toISOString().split('T')[0]);
   const [clockInTime, setClockInTime] = useState('');
   const [clockOutTime, setClockOutTime] = useState('');
-  const [breakMinutes, setBreakMinutes] = useState('30');
+  const [tipAmount, setTipAmount] = useState('0');
   const [notes, setNotes] = useState('');
 
   const selectedEmployee = employees.find(emp => emp.id === selectedEmployeeId);
@@ -58,11 +58,6 @@ export const AddTimeEntryDialog = ({ open, onOpenChange }: AddTimeEntryDialogPro
     }
   }, [selectedJob]);
 
-  // Filter employees based on job assignment or show all for completed jobs
-  const availableEmployees = selectedJob && selectedJob.status === 'completed' 
-    ? employees // Show all employees for completed jobs
-    : employees; // For now, show all employees - you can add job assignment filtering later
-
   // Filter jobs to prioritize completed ones
   const completedJobs = jobs.filter(job => job.status === 'completed');
   const otherJobs = jobs.filter(job => job.status !== 'completed');
@@ -74,9 +69,8 @@ export const AddTimeEntryDialog = ({ open, onOpenChange }: AddTimeEntryDialogPro
     const clockIn = new Date(`${entryDate}T${clockInTime}`);
     const clockOut = new Date(`${entryDate}T${clockOutTime}`);
     const totalMinutes = (clockOut.getTime() - clockIn.getTime()) / (1000 * 60);
-    const workMinutes = totalMinutes - (parseInt(breakMinutes) || 0);
     
-    return Math.max(0, workMinutes / 60);
+    return Math.max(0, totalMinutes / 60);
   };
 
   const totalHours = calculateHours();
@@ -88,7 +82,7 @@ export const AddTimeEntryDialog = ({ open, onOpenChange }: AddTimeEntryDialogPro
       return;
     }
 
-    // Create proper datetime strings without forcing UTC
+    // Create proper datetime strings
     const clockInDateTime = `${entryDate}T${clockInTime}:00`;
     const clockOutDateTime = `${entryDate}T${clockOutTime}:00`;
 
@@ -103,7 +97,8 @@ export const AddTimeEntryDialog = ({ open, onOpenChange }: AddTimeEntryDialogPro
       clock_out_time: clockOutDateTime,
       regular_hours: regularHours,
       overtime_hours: overtimeHours > 0 ? overtimeHours : undefined,
-      break_duration_minutes: parseInt(breakMinutes) || 0,
+      break_duration_minutes: 0, // Keep for backwards compatibility
+      tip_amount: parseFloat(tipAmount) || 0,
       hourly_rate: hourlyRate,
       overtime_rate: overtimeHours > 0 ? hourlyRate * 1.5 : undefined,
       notes: notes || undefined
@@ -115,7 +110,7 @@ export const AddTimeEntryDialog = ({ open, onOpenChange }: AddTimeEntryDialogPro
     setEntryDate(new Date().toISOString().split('T')[0]);
     setClockInTime('');
     setClockOutTime('');
-    setBreakMinutes('30');
+    setTipAmount('0');
     setNotes('');
     onOpenChange(false);
   };
@@ -139,7 +134,7 @@ export const AddTimeEntryDialog = ({ open, onOpenChange }: AddTimeEntryDialogPro
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Clock className="h-5 w-5" />
@@ -202,7 +197,7 @@ export const AddTimeEntryDialog = ({ open, onOpenChange }: AddTimeEntryDialogPro
                 <SelectValue placeholder="Select employee" />
               </SelectTrigger>
               <SelectContent>
-                {availableEmployees.map((employee) => (
+                {employees.map((employee) => (
                   <SelectItem key={employee.id} value={employee.id}>
                     <div className="flex items-center gap-2">
                       <span>{employee.name}</span>
@@ -274,15 +269,17 @@ export const AddTimeEntryDialog = ({ open, onOpenChange }: AddTimeEntryDialogPro
           )}
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Break Duration (minutes)
+            <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
+              <DollarSign className="h-4 w-4" />
+              Tip Amount (Optional)
             </label>
             <Input
               type="number"
               min="0"
-              value={breakMinutes}
-              onChange={(e) => setBreakMinutes(e.target.value)}
-              placeholder="30"
+              step="0.01"
+              value={tipAmount}
+              onChange={(e) => setTipAmount(e.target.value)}
+              placeholder="0.00"
             />
           </div>
 
@@ -298,7 +295,11 @@ export const AddTimeEntryDialog = ({ open, onOpenChange }: AddTimeEntryDialogPro
                 {selectedEmployee && (
                   <div className="font-medium">
                     Total Pay: ${((regularHours * (selectedJob?.worker_hourly_rate || selectedEmployee.hourly_wage)) + 
-                    (overtimeHours * (selectedJob?.worker_hourly_rate || selectedEmployee.hourly_wage) * 1.5)).toFixed(2)}
+                    (overtimeHours * (selectedJob?.worker_hourly_rate || selectedEmployee.hourly_wage) * 1.5) +
+                    (parseFloat(tipAmount) || 0)).toFixed(2)}
+                    {parseFloat(tipAmount) > 0 && (
+                      <span className="text-green-600 ml-2">(+${tipAmount} tip)</span>
+                    )}
                   </div>
                 )}
               </div>
@@ -316,23 +317,23 @@ export const AddTimeEntryDialog = ({ open, onOpenChange }: AddTimeEntryDialogPro
               rows={3}
             />
           </div>
+        </div>
 
-          <div className="flex gap-2 pt-4">
-            <Button
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              className="flex-1"
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={handleSubmit}
-              disabled={!selectedEmployeeId || !clockInTime || !clockOutTime || isAddingTimeEntry}
-              className="flex-1"
-            >
-              {isAddingTimeEntry ? 'Adding...' : 'Add Entry'}
-            </Button>
-          </div>
+        <div className="flex gap-2 pt-4 sticky bottom-0 bg-white">
+          <Button
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            className="flex-1"
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleSubmit}
+            disabled={!selectedEmployeeId || !clockInTime || !clockOutTime || isAddingTimeEntry}
+            className="flex-1"
+          >
+            {isAddingTimeEntry ? 'Adding...' : 'Add Entry'}
+          </Button>
         </div>
       </DialogContent>
     </Dialog>

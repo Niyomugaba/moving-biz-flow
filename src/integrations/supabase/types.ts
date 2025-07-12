@@ -475,6 +475,7 @@ export type Database = {
           paid_at: string | null
           regular_hours: number | null
           status: Database["public"]["Enums"]["time_entry_status"]
+          tip_amount: number | null
           total_pay: number | null
           updated_at: string
         }
@@ -498,6 +499,7 @@ export type Database = {
           paid_at?: string | null
           regular_hours?: number | null
           status?: Database["public"]["Enums"]["time_entry_status"]
+          tip_amount?: number | null
           total_pay?: number | null
           updated_at?: string
         }
@@ -521,6 +523,7 @@ export type Database = {
           paid_at?: string | null
           regular_hours?: number | null
           status?: Database["public"]["Enums"]["time_entry_status"]
+          tip_amount?: number | null
           total_pay?: number | null
           updated_at?: string
         }
