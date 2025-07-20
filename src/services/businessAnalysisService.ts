@@ -45,51 +45,51 @@ export class BusinessAnalysisService {
     // Calculate revenue - handle both pricing models
     const totalRevenue = completedJobs.reduce((sum, job) => {
       if (job.pricing_model === 'flat_rate' && job.total_amount_received) {
-        return sum + job.total_amount_received;
+        return sum + Number(job.total_amount_received || 0);
       }
-      return sum + (job.actual_total || job.estimated_total || 0);
+      return sum + Number(job.actual_total || job.estimated_total || 0);
     }, 0);
 
     // Calculate expenses from employee payments and lead costs
     const totalEmployeePayments = completedJobs.reduce((sum, job) => {
       if (job.pricing_model === 'flat_rate') {
         // For flat rate jobs, calculate based on worker payments
-        const workerPayment = (job.worker_hourly_rate || 0) * (job.hours_worked || 0) * (job.movers_needed || 1);
+        const workerPayment = Number(job.worker_hourly_rate || 0) * Number(job.hours_worked || 0) * Number(job.movers_needed || 1);
         return sum + workerPayment;
       } else {
         // For per-person jobs, use time entries
         const jobTimeEntries = timeEntries.filter(entry => entry.job_id === job.id);
         const jobPayroll = jobTimeEntries.reduce((entrySum, entry) => 
-          entrySum + (entry.total_pay || 0), 0);
+          entrySum + Number(entry.total_pay || 0), 0);
         return sum + jobPayroll;
       }
     }, 0);
 
-    const totalLeadCost = completedJobs.reduce((sum, job) => sum + (job.lead_cost || 0), 0);
+    const totalLeadCost = completedJobs.reduce((sum, job) => sum + Number(job.lead_cost || 0), 0);
     const totalExpenses = totalEmployeePayments + totalLeadCost;
     const netProfit = totalRevenue - totalExpenses;
     const profitMargin = totalRevenue > 0 ? (netProfit / totalRevenue) * 100 : 0;
 
     // Calculate average job duration using actual hours worked or time entries
     const jobsWithDuration = completedJobs.filter(job => {
-      const hoursWorked = Number(job.hours_worked) || 0;
-      const actualDuration = Number(job.actual_duration_hours) || 0;
-      const estimatedDuration = Number(job.estimated_duration_hours) || 0;
+      const hoursWorked = Number(job.hours_worked || 0);
+      const actualDuration = Number(job.actual_duration_hours || 0);
+      const estimatedDuration = Number(job.estimated_duration_hours || 0);
       return hoursWorked > 0 || actualDuration > 0 || estimatedDuration > 0;
     });
     
     const averageJobDuration = jobsWithDuration.length > 0 
       ? jobsWithDuration.reduce((sum, job) => {
-          const hoursWorked = Number(job.hours_worked) || 0;
-          const actualDuration = Number(job.actual_duration_hours) || 0;
-          const estimatedDuration = Number(job.estimated_duration_hours) || 0;
+          const hoursWorked = Number(job.hours_worked || 0);
+          const actualDuration = Number(job.actual_duration_hours || 0);
+          const estimatedDuration = Number(job.estimated_duration_hours || 0);
           return sum + (actualDuration || hoursWorked || estimatedDuration);
         }, 0) / jobsWithDuration.length
       : 0;
 
     // Calculate repeat customer rate
     const clientJobCounts = clients.reduce((acc, client) => {
-      acc[client.id] = Number(client.total_jobs_completed) || 0;
+      acc[client.id] = Number(client.total_jobs_completed || 0);
       return acc;
     }, {} as Record<string, number>);
     
