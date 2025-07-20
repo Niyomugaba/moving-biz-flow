@@ -7,7 +7,7 @@ export const useClientStats = () => {
   const { jobs } = useJobs();
 
   const { data: clientStats = [], isLoading, refetch } = useQuery({
-    queryKey: ['client-stats'],
+    queryKey: ['client-stats', jobs.length],
     queryFn: async () => {
       console.log('Calculating client statistics from jobs:', jobs);
       

@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -8,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useClients, Client } from '@/hooks/useClients';
+import { useClientStats } from '@/hooks/useClientStats';
 import { useAuth } from '@/hooks/useAuth';
 import { AddClientDialog } from '@/components/AddClientDialog';
 import { EditClientDialog } from '@/components/EditClientDialog';
@@ -31,6 +31,7 @@ const ITEMS_PER_PAGE = 12;
 
 export const Clients = () => {
   const { clients, isLoading, addClient, updateClient, deleteClient } = useClients();
+  const { clientStats } = useClientStats();
   const { canAccess } = useAuth();
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [showAddDialog, setShowAddDialog] = useState(false);
@@ -41,8 +42,20 @@ export const Clients = () => {
   const [sortBy, setSortBy] = useState<'name' | 'date' | 'revenue' | 'jobs'>('name');
   const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
 
+  // Merge client data with calculated stats
+  const clientsWithStats = useMemo(() => {
+    return clients.map(client => {
+      const stats = clientStats.find(stat => stat.client_id === client.id);
+      return {
+        ...client,
+        total_jobs_completed: stats?.total_jobs_completed || 0,
+        total_revenue: stats?.total_revenue || 0
+      };
+    });
+  }, [clients, clientStats]);
+
   const filteredClients = useMemo(() => {
-    let filtered = clients.filter(client => {
+    let filtered = clientsWithStats.filter(client => {
       const matchesSearch = client.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            client.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            client.phone?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -68,7 +81,7 @@ export const Clients = () => {
     });
 
     return filtered;
-  }, [clients, searchTerm, sortBy]);
+  }, [clientsWithStats, searchTerm, sortBy]);
 
   const totalPages = Math.ceil(filteredClients.length / itemsPerPage);
   const paginatedClients = filteredClients.slice(
