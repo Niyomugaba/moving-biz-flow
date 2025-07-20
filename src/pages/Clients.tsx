@@ -5,6 +5,8 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useClients, Client } from '@/hooks/useClients';
 import { useAuth } from '@/hooks/useAuth';
 import { AddClientDialog } from '@/components/AddClientDialog';
@@ -21,8 +23,7 @@ import {
   Plus,
   Search,
   Star,
-  Clock,
-  CheckCircle
+  Building
 } from 'lucide-react';
 
 const ITEMS_PER_PAGE = 12;
@@ -36,14 +37,15 @@ export const Clients = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(ITEMS_PER_PAGE);
   const [searchTerm, setSearchTerm] = useState('');
-  const [sortBy, setSortBy] = useState<'name' | 'jobs' | 'revenue' | 'recent'>('name');
+  const [sortBy, setSortBy] = useState<'name' | 'date' | 'revenue' | 'jobs'>('name');
+  const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
 
   const filteredClients = useMemo(() => {
     let filtered = clients.filter(client => {
       const matchesSearch = client.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            client.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            client.phone?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           client.primary_address?.toLowerCase().includes(searchTerm.toLowerCase());
+                           client.company_name?.toLowerCase().includes(searchTerm.toLowerCase());
       
       return matchesSearch;
     });
@@ -53,12 +55,12 @@ export const Clients = () => {
       switch (sortBy) {
         case 'name':
           return (a.name || '').localeCompare(b.name || '');
-        case 'jobs':
-          return (b.total_jobs_completed || 0) - (a.total_jobs_completed || 0);
+        case 'date':
+          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
         case 'revenue':
           return (b.total_revenue || 0) - (a.total_revenue || 0);
-        case 'recent':
-          return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
+        case 'jobs':
+          return (b.total_jobs_completed || 0) - (a.total_jobs_completed || 0);
         default:
           return 0;
       }
@@ -73,16 +75,14 @@ export const Clients = () => {
     currentPage * itemsPerPage
   );
 
-  const getClientTypeIcon = (totalJobs: number) => {
-    if (totalJobs === 0) return <Clock className="h-4 w-4 text-gray-500" />;
-    if (totalJobs === 1) return <CheckCircle className="h-4 w-4 text-blue-500" />;
-    return <Star className="h-4 w-4 text-yellow-500" />;
-  };
-
-  const getClientTypeLabel = (totalJobs: number) => {
-    if (totalJobs === 0) return 'New Client';
-    if (totalJobs === 1) return 'One-time Client';
-    return 'Repeat Client';
+  const getRatingStars = (rating: number | null) => {
+    if (!rating) return null;
+    return Array.from({ length: 5 }, (_, i) => (
+      <Star
+        key={i}
+        className={`h-4 w-4 ${i < rating ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'}`}
+      />
+    ));
   };
 
   if (isLoading) {
@@ -94,141 +94,261 @@ export const Clients = () => {
   }
 
   return (
-    <div className="h-full w-full bg-background">
+    <div className="h-full w-full bg-blue-50">
       <ScrollArea className="h-full w-full">
-        <div className="p-6 space-y-6">
+        <div className="p-4 md:p-6 space-y-6">
           {/* Header */}
-          <div className="flex justify-between items-center">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Clients</h1>
-              <p className="text-gray-600">Manage your client relationships</p>
+              <h1 className="text-2xl sm:text-3xl font-bold text-purple-800">Clients</h1>
+              <p className="text-purple-600">Manage your client relationships</p>
             </div>
             {canAccess(['owner', 'admin', 'manager']) && (
               <Button 
                 onClick={() => setShowAddDialog(true)}
-                className="flex items-center gap-2"
+                className="bg-purple-600 hover:bg-purple-700 w-full sm:w-auto"
               >
-                <Plus className="h-4 w-4" />
+                <Plus className="h-4 w-4 mr-2" />
                 Add Client
               </Button>
             )}
           </div>
 
-          {/* Filters */}
-          <div className="flex flex-wrap gap-4 items-center">
-            <div className="flex items-center gap-2">
-              <Search className="h-4 w-4 text-gray-500" />
-              <Input
-                placeholder="Search clients..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-64"
-              />
+          {/* Filters and Controls */}
+          <div className="space-y-4">
+            <div className="flex flex-col sm:flex-row gap-4">
+              <div className="flex-1">
+                <div className="relative">
+                  <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                  <Input
+                    placeholder="Search clients by name, email, phone, or company..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+              </div>
+              
+              <div className="flex gap-2">
+                <Select value={sortBy} onValueChange={(value) => setSortBy(value as 'name' | 'date' | 'revenue' | 'jobs')}>
+                  <SelectTrigger className="w-40">
+                    <SelectValue placeholder="Sort by" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="name">Name</SelectItem>
+                    <SelectItem value="date">Date Added</SelectItem>
+                    <SelectItem value="revenue">Revenue</SelectItem>
+                    <SelectItem value="jobs">Jobs Count</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <Select value={viewMode} onValueChange={(value) => setViewMode(value as 'cards' | 'table')}>
+                  <SelectTrigger className="w-32">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="cards">Cards</SelectItem>
+                    <SelectItem value="table">Table</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
-            <Select value={sortBy} onValueChange={(value) => setSortBy(value as 'name' | 'jobs' | 'revenue' | 'recent')}>
-              <SelectTrigger className="w-48">
-                <SelectValue placeholder="Sort by" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="name">Name</SelectItem>
-                <SelectItem value="jobs">Jobs Completed</SelectItem>
-                <SelectItem value="revenue">Revenue</SelectItem>
-                <SelectItem value="recent">Recently Updated</SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="bg-purple-50 p-3 rounded-lg border border-purple-200">
+              <p className="text-sm text-purple-700 font-medium">
+                Total: {filteredClients.length} clients
+              </p>
+            </div>
           </div>
 
-          {/* Clients Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {paginatedClients.map((client) => (
-              <Card key={client.id} className="hover:shadow-lg transition-shadow border-l-4 border-l-purple-500">
-                <CardHeader className="pb-3">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <CardTitle className="text-lg font-semibold text-gray-900 mb-1">
-                        {client.name}
-                      </CardTitle>
-                      <div className="flex items-center gap-2">
-                        {getClientTypeIcon(client.total_jobs_completed || 0)}
-                        <span className="text-sm text-gray-600">
-                          {getClientTypeLabel(client.total_jobs_completed || 0)}
-                        </span>
+          {/* Content */}
+          {viewMode === 'cards' ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {paginatedClients.map((client) => (
+                <Card key={client.id} className="bg-white hover:shadow-lg transition-shadow border border-blue-200">
+                  <CardHeader className="pb-3">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <CardTitle className="text-lg font-semibold text-gray-900 mb-1">
+                          {client.name}
+                        </CardTitle>
+                        {client.company_name && (
+                          <div className="flex items-center gap-2 text-sm text-gray-600 mb-2">
+                            <Building className="h-4 w-4" />
+                            <span>{client.company_name}</span>
+                          </div>
+                        )}
+                        {client.rating && (
+                          <div className="flex items-center gap-1">
+                            {getRatingStars(client.rating)}
+                          </div>
+                        )}
                       </div>
+                      {canAccess(['owner', 'admin', 'manager']) && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setSelectedClient(client);
+                            setShowEditDialog(true);
+                          }}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                      )}
                     </div>
-                    {canAccess(['owner', 'admin', 'manager']) && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          setSelectedClient(client);
-                          setShowEditDialog(true);
-                        }}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                    )}
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="space-y-2">
-                    {client.email && (
-                      <div className="flex items-center gap-2 text-gray-600">
-                        <Mail className="h-4 w-4" />
-                        <span className="text-sm truncate">{client.email}</span>
-                      </div>
-                    )}
-                    
-                    {client.phone && (
-                      <div className="flex items-center gap-2 text-gray-600">
-                        <Phone className="h-4 w-4" />
-                        <span className="text-sm">{client.phone}</span>
-                      </div>
-                    )}
-                    
-                    {client.primary_address && (
-                      <div className="flex items-start gap-2 text-gray-600">
-                        <MapPin className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                        <span className="text-sm leading-relaxed">{client.primary_address}</span>
-                      </div>
-                    )}
-                  </div>
-                  
-                  <div className="grid grid-cols-2 gap-4 pt-3 border-t border-gray-200">
-                    <div className="text-center">
-                      <div className="flex items-center justify-center gap-1 text-blue-600 mb-1">
-                        <Calendar className="h-4 w-4" />
-                      </div>
-                      <p className="text-sm font-medium text-gray-900">
-                        {client.total_jobs_completed || 0}
-                      </p>
-                      <p className="text-xs text-gray-500">Jobs</p>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div className="space-y-2">
+                      {client.phone && (
+                        <div className="flex items-center gap-2 text-gray-600">
+                          <Phone className="h-4 w-4" />
+                          <span className="text-sm">{client.phone}</span>
+                        </div>
+                      )}
+                      
+                      {client.email && (
+                        <div className="flex items-center gap-2 text-gray-600">
+                          <Mail className="h-4 w-4" />
+                          <span className="text-sm truncate">{client.email}</span>
+                        </div>
+                      )}
+                      
+                      {client.primary_address && (
+                        <div className="flex items-start gap-2 text-gray-600">
+                          <MapPin className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                          <span className="text-sm leading-relaxed">{client.primary_address}</span>
+                        </div>
+                      )}
                     </div>
                     
-                    <div className="text-center">
-                      <div className="flex items-center justify-center gap-1 text-green-600 mb-1">
-                        <DollarSign className="h-4 w-4" />
+                    <div className="grid grid-cols-2 gap-4 pt-3 border-t border-gray-200">
+                      <div className="text-center">
+                        <div className="flex items-center justify-center gap-1 text-green-600 mb-1">
+                          <DollarSign className="h-4 w-4" />
+                        </div>
+                        <p className="text-sm font-medium text-gray-900">
+                          ${(client.total_revenue || 0).toLocaleString()}
+                        </p>
+                        <p className="text-xs text-gray-500">Total Revenue</p>
                       </div>
-                      <p className="text-sm font-medium text-gray-900">
-                        ${(client.total_revenue || 0).toLocaleString()}
-                      </p>
-                      <p className="text-xs text-gray-500">Revenue</p>
+                      
+                      <div className="text-center">
+                        <div className="flex items-center justify-center gap-1 text-blue-600 mb-1">
+                          <Users className="h-4 w-4" />
+                        </div>
+                        <p className="text-sm font-medium text-gray-900">
+                          {client.total_jobs_completed || 0}
+                        </p>
+                        <p className="text-xs text-gray-500">Jobs Done</p>
+                      </div>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <Card className="bg-white border border-blue-200">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Contact</TableHead>
+                    <TableHead>Company</TableHead>
+                    <TableHead>Jobs</TableHead>
+                    <TableHead>Revenue</TableHead>
+                    <TableHead>Rating</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {paginatedClients.map((client) => (
+                    <TableRow key={client.id}>
+                      <TableCell>
+                        <div>
+                          <p className="font-medium">{client.name}</p>
+                          <p className="text-xs text-gray-500">
+                            {new Date(client.created_at).toLocaleDateString()}
+                          </p>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="space-y-1">
+                          {client.phone && (
+                            <div className="flex items-center gap-1 text-sm">
+                              <Phone className="h-3 w-3" />
+                              {client.phone}
+                            </div>
+                          )}
+                          {client.email && (
+                            <div className="flex items-center gap-1 text-sm">
+                              <Mail className="h-3 w-3" />
+                              {client.email}
+                            </div>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>{client.company_name || '-'}</TableCell>
+                      <TableCell>{client.total_jobs_completed || 0}</TableCell>
+                      <TableCell>${(client.total_revenue || 0).toLocaleString()}</TableCell>
+                      <TableCell>
+                        {client.rating ? (
+                          <div className="flex items-center gap-1">
+                            {getRatingStars(client.rating)}
+                          </div>
+                        ) : '-'}
+                      </TableCell>
+                      <TableCell>
+                        {canAccess(['owner', 'admin', 'manager']) && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setSelectedClient(client);
+                              setShowEditDialog(true);
+                            }}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </Card>
+          )}
+
+          {/* No Results */}
+          {filteredClients.length === 0 && (
+            <div className="text-center py-12">
+              <div className="text-gray-400 mb-4">
+                <Users className="h-16 w-16 mx-auto" />
+              </div>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">No clients found</h3>
+              <p className="text-gray-600 mb-6">
+                {searchTerm
+                  ? 'Try adjusting your search terms.'
+                  : 'Get started by adding your first client.'}
+              </p>
+              <Button onClick={() => setShowAddDialog(true)} className="bg-purple-600 hover:bg-purple-700">
+                <Plus className="w-4 h-4 mr-2" />
+                Add Your First Client
+              </Button>
+            </div>
+          )}
 
           {/* Pagination */}
-          <PaginationControls
-            currentPage={currentPage}
-            totalPages={totalPages}
-            itemsPerPage={itemsPerPage}
-            totalItems={filteredClients.length}
-            onPageChange={setCurrentPage}
-            onItemsPerPageChange={setItemsPerPage}
-          />
+          {filteredClients.length > 0 && (
+            <PaginationControls
+              currentPage={currentPage}
+              totalPages={totalPages}
+              itemsPerPage={itemsPerPage}
+              totalItems={filteredClients.length}
+              onPageChange={setCurrentPage}
+              onItemsPerPageChange={setItemsPerPage}
+            />
+          )}
 
           {/* Dialogs */}
           <AddClientDialog
