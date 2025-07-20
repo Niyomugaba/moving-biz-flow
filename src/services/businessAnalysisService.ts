@@ -74,14 +74,16 @@ export class BusinessAnalysisService {
     const jobsWithDuration = completedJobs.filter(job => {
       const hoursWorked = Number(job.hours_worked) || 0;
       const actualDuration = Number(job.actual_duration_hours) || 0;
-      return hoursWorked > 0 || actualDuration > 0;
+      const estimatedDuration = Number(job.estimated_duration_hours) || 0;
+      return hoursWorked > 0 || actualDuration > 0 || estimatedDuration > 0;
     });
     
     const averageJobDuration = jobsWithDuration.length > 0 
       ? jobsWithDuration.reduce((sum, job) => {
           const hoursWorked = Number(job.hours_worked) || 0;
           const actualDuration = Number(job.actual_duration_hours) || 0;
-          return sum + (actualDuration || hoursWorked);
+          const estimatedDuration = Number(job.estimated_duration_hours) || 0;
+          return sum + (actualDuration || hoursWorked || estimatedDuration);
         }, 0) / jobsWithDuration.length
       : 0;
 
