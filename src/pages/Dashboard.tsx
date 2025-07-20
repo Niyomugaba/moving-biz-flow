@@ -1,3 +1,4 @@
+
 import React, { useMemo, useState } from 'react';
 import { MetricCard } from '@/components/MetricCard';
 import { WelcomeMessage } from '@/components/WelcomeMessage';
@@ -246,25 +247,25 @@ export const Dashboard = () => {
               title="Active Jobs"
               value={dashboardMetrics.activeJobs.toString()}
               icon={Calendar}
-              className="bg-blue-50 border-blue-200"
+              className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200"
             />
             <MetricCard
               title="Total Revenue"
               value={`$${dashboardMetrics.totalRevenue.toLocaleString()}`}
               icon={DollarSign}
-              className="bg-green-50 border-green-200"
+              className="bg-gradient-to-br from-green-50 to-green-100 border-green-200"
             />
             <MetricCard
               title="Active Team"
               value={dashboardMetrics.activeEmployees.toString()}
               icon={Users}
-              className="bg-purple-50 border-purple-200"
+              className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200"
             />
             <MetricCard
               title="New Leads"
               value={dashboardMetrics.newLeads.toString()}
               icon={Phone}
-              className="bg-orange-50 border-orange-200"
+              className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200"
             />
           </div>
 
@@ -309,25 +310,25 @@ export const Dashboard = () => {
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-                  <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+                  <div className="bg-gradient-to-br from-green-50 to-green-100 p-4 rounded-lg border border-green-200">
                     <div className="text-sm text-green-700 font-medium">Monthly Revenue</div>
                     <div className="text-2xl font-bold text-green-900">${dashboardMetrics.totalRevenue.toLocaleString()}</div>
                     <div className="text-xs text-green-600">Growth: +{dashboardMetrics.monthlyGrowth.toFixed(1)}%</div>
                   </div>
                   
-                  <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                  <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-4 rounded-lg border border-blue-200">
                     <div className="text-sm text-blue-700 font-medium">Profit Margin</div>
                     <div className="text-2xl font-bold text-blue-900">{dashboardMetrics.profitMargin.toFixed(1)}%</div>
                     <div className="text-xs text-blue-600">Gross Profit: ${dashboardMetrics.grossProfit.toLocaleString()}</div>
                   </div>
                   
-                  <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
+                  <div className="bg-gradient-to-br from-purple-50 to-purple-100 p-4 rounded-lg border border-purple-200">
                     <div className="text-sm text-purple-700 font-medium">Customer LTV</div>
                     <div className="text-2xl font-bold text-purple-900">${dashboardMetrics.avgRevenuePerCustomer.toFixed(0)}</div>
                     <div className="text-xs text-purple-600">CAC: ${dashboardMetrics.customerAcquisitionCost.toFixed(0)}</div>
                   </div>
                   
-                  <div className="bg-orange-50 p-4 rounded-lg border border-orange-200">
+                  <div className="bg-gradient-to-br from-orange-50 to-orange-100 p-4 rounded-lg border border-orange-200">
                     <div className="text-sm text-orange-700 font-medium">Revenue/Employee</div>
                     <div className="text-2xl font-bold text-orange-900">${dashboardMetrics.revenuePerEmployee.toFixed(0)}</div>
                     <div className="text-xs text-orange-600">Efficiency Metric</div>
@@ -392,25 +393,25 @@ export const Dashboard = () => {
               title="Hours Logged"
               value={dashboardMetrics.totalHours.toString()}
               icon={Clock}
-              className="bg-gray-50 border-gray-200"
+              className="bg-gradient-to-br from-gray-50 to-gray-100 border-gray-200"
             />
             <MetricCard
               title="Completed Jobs"
               value={dashboardMetrics.completedJobs.toString()}
               icon={CheckCircle}
-              className="bg-emerald-50 border-emerald-200"
+              className="bg-gradient-to-br from-emerald-50 to-emerald-100 border-emerald-200"
             />
             <MetricCard
               title="Pending Approvals"
               value={dashboardMetrics.pendingTimeEntries.toString()}
               icon={AlertTriangle}
-              className="bg-yellow-50 border-yellow-200"
+              className="bg-gradient-to-br from-yellow-50 to-yellow-100 border-yellow-200"
             />
             <MetricCard
               title="Total Jobs"
               value={dashboardMetrics.totalJobs.toString()}
               icon={PieChart}
-              className="bg-indigo-50 border-indigo-200"
+              className="bg-gradient-to-br from-indigo-50 to-indigo-100 border-indigo-200"
             />
           </div>
         </div>
