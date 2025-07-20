@@ -92,52 +92,38 @@ export const useJobs = () => {
       
       console.log('Jobs fetched successfully:', data?.length);
       
-      // Debug: Check for Natalie's job and fix client_id if missing
+      // Auto-link jobs to clients if missing client_id
       if (data) {
-        const natalieJob = data.find(job => 
-          job.client_name === 'Natalie' || job.client_phone === '+1 (412) 273-5545'
-        );
+        const jobsNeedingClientLink = data.filter(job => !job.client_id && job.client_phone);
         
-        if (natalieJob && !natalieJob.client_id && natalieJob.status === 'completed') {
-          console.log('🔧 FIXING: Natalie\'s completed job has no client_id! Linking now...');
+        for (const job of jobsNeedingClientLink) {
+          console.log(`🔧 Auto-linking job ${job.job_number} to client...`);
           
-          // Find Natalie's client record
-          const { data: natalieClient, error: clientError } = await supabase
+          const { data: client, error: clientError } = await supabase
             .from('clients')
-            .select('id, name, phone')
-            .eq('phone', '+1 (412) 273-5545')
+            .select('id')
+            .eq('phone', job.client_phone)
             .single();
             
-          if (!clientError && natalieClient) {
-            console.log('📝 Found Natalie\'s client record, updating job...');
+          if (!clientError && client) {
+            console.log(`📝 Linking job ${job.job_number} to client ${client.id}`);
             
-            // Update the job with the correct client_id
-            const { error: updateError } = await supabase
+            await supabase
               .from('jobs')
-              .update({ client_id: natalieClient.id })
-              .eq('id', natalieJob.id);
+              .update({ client_id: client.id })
+              .eq('id', job.id);
               
-            if (updateError) {
-              console.error('❌ Failed to update job client_id:', updateError);
-            } else {
-              console.log('✅ Successfully linked job to client! This should trigger stats update.');
-              
-              // Force refresh of client data after linking
-              queryClient.invalidateQueries({ queryKey: ['clients'] });
-              queryClient.invalidateQueries({ queryKey: ['client-stats'] });
-              
-              // Re-fetch the updated jobs data
-              const { data: updatedData } = await supabase
-                .from('jobs')
-                .select('*')
-                .order('created_at', { ascending: false });
-              return updatedData as Job[];
-            }
-          } else {
-            console.log('❌ Could not find Natalie\'s client record:', clientError);
+            // Update the job data locally
+            job.client_id = client.id;
           }
-        } else if (natalieJob) {
-          console.log('✅ Natalie\'s job already has client_id:', natalieJob.client_id);
+        }
+        
+        // Force refresh related queries after auto-linking
+        if (jobsNeedingClientLink.length > 0) {
+          setTimeout(() => {
+            queryClient.invalidateQueries({ queryKey: ['clients'] });
+            queryClient.invalidateQueries({ queryKey: ['client-stats'] });
+          }, 100);
         }
       }
       
@@ -444,7 +430,7 @@ export const useJobs = () => {
 
   const convertLeadToJobMutation = useMutation({
     mutationFn: async ({ leadId, leadData }: { leadId: string; leadData: any }) => {
-      console.log('Starting lead conversion process:', leadId, leadData);
+      console.log('🚀 Starting lead conversion process:', leadId, leadData);
       
       try {
         // Find or create client from the lead
@@ -461,7 +447,7 @@ export const useJobs = () => {
           console.error('Error checking existing client:', clientCheckError);
         } else if (existingClient) {
           clientId = existingClient.id;
-          console.log('Found existing client:', existingClient.id);
+          console.log('✅ Found existing client:', existingClient.id);
         } else {
           // Create new client
           const clientInsertData = {
@@ -478,7 +464,7 @@ export const useJobs = () => {
             total_jobs_completed: 0
           };
 
-          console.log('Creating client with data:', clientInsertData);
+          console.log('📝 Creating new client:', clientInsertData);
 
           const { data: createdClient, error: clientError } = await supabase
             .from('clients')
@@ -487,20 +473,20 @@ export const useJobs = () => {
             .single();
 
           if (clientError) {
-            console.error('Error creating client from lead:', clientError);
+            console.error('❌ Error creating client from lead:', clientError);
             throw new Error(`Failed to create client: ${clientError.message}`);
           }
 
           clientId = createdClient.id;
-          console.log('Client created successfully:', createdClient);
+          console.log('✅ Client created successfully:', createdClient);
         }
 
-        // Get current date and set default scheduling
+        // Get current date and set realistic scheduling
         const tomorrow = new Date();
         tomorrow.setDate(tomorrow.getDate() + 1);
         const jobDate = tomorrow.toISOString().split('T')[0];
 
-        // Create job with scheduled status and realistic default values
+        // Create job with scheduled status
         const jobInsertData = {
           client_id: clientId,
           client_name: leadData.name,
@@ -518,10 +504,12 @@ export const useJobs = () => {
           status: 'scheduled' as const,
           truck_size: 'medium',
           special_requirements: leadData.notes ? `Lead notes: ${leadData.notes}` : 'Converted from lead - please verify all details',
-          is_paid: false
+          is_paid: false,
+          pricing_model: 'per_person',
+          lead_cost: leadData.lead_cost || 0
         };
 
-        console.log('Creating scheduled job with data:', jobInsertData);
+        console.log('📋 Creating scheduled job:', jobInsertData);
 
         const { data: createdJob, error: jobError } = await supabase
           .from('jobs')
@@ -530,11 +518,11 @@ export const useJobs = () => {
           .single();
 
         if (jobError) {
-          console.error('Error creating job from lead:', jobError);
+          console.error('❌ Error creating job from lead:', jobError);
           throw new Error(`Failed to create job: ${jobError.message}`);
         }
 
-        console.log('Job created successfully:', createdJob);
+        console.log('✅ Job created successfully:', createdJob);
 
         // Update lead status to converted
         const { error: leadError } = await supabase
@@ -543,39 +531,46 @@ export const useJobs = () => {
           .eq('id', leadId);
 
         if (leadError) {
-          console.error('Error updating lead status:', leadError);
+          console.error('❌ Error updating lead status:', leadError);
           throw new Error(`Failed to update lead status: ${leadError.message}`);
         }
 
-        console.log('Lead status updated to converted successfully');
+        console.log('✅ Lead status updated to converted successfully');
 
-        return { job: createdJob as Job, client: existingClient || clientId };
+        return { job: createdJob as Job, client: existingClient || { id: clientId } };
 
       } catch (error) {
-        console.error('Full error in lead conversion:', error);
+        console.error('💥 Full error in lead conversion:', error);
         throw error;
       }
     },
     onSuccess: (data) => {
-      console.log('Lead conversion successful, invalidating queries');
+      console.log('🎉 Lead conversion successful, invalidating queries');
+      
+      // Force immediate refresh of all related data
       queryClient.invalidateQueries({ queryKey: ['jobs'] });
       queryClient.invalidateQueries({ queryKey: ['leads'] });
       queryClient.invalidateQueries({ queryKey: ['clients'] });
       queryClient.invalidateQueries({ queryKey: ['client-stats'] });
       
+      // Force refetch immediately
+      setTimeout(() => {
+        queryClient.refetchQueries({ queryKey: ['jobs'] });
+      }, 100);
+      
       toast({
-        title: "Lead Converted Successfully",
-        description: `Lead converted and scheduled as job for tomorrow. Please update addresses and details in the Jobs section.`,
+        title: "🎯 Lead Converted Successfully!",
+        description: `Lead converted and scheduled as job for tomorrow. The job now appears in your Jobs list and is ready for scheduling details.`,
         duration: 4000
       });
     },
     onError: (error: any) => {
-      console.error('Error converting lead to job:', error);
+      console.error('💥 Error converting lead to job:', error);
       toast({
-        title: "Conversion Failed",
+        title: "❌ Conversion Failed",
         description: error.message || "Failed to convert lead to job. Please try again.",
         variant: "destructive",
-        duration: 2000
+        duration: 4000
       });
     }
   });
