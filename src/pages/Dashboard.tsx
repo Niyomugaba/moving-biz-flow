@@ -174,25 +174,25 @@ export const Dashboard = () => {
           { 
             metric: 'Revenue Growth', 
             value: `${monthlyGrowth.toFixed(1)}%`, 
-            trend: 'up',
+            trend: 'up' as const,
             description: 'Month-over-month growth'
           },
           { 
             metric: 'Profit Margin', 
             value: `${profitMargin.toFixed(1)}%`, 
-            trend: (profitMargin > 20 ? 'up' : 'down'),
+            trend: (profitMargin > 20 ? 'up' : 'down') as const,
             description: 'Gross profit percentage'
           },
           { 
             metric: 'Customer LTV', 
             value: `$${avgRevenuePerCustomer.toFixed(0)}`, 
-            trend: (avgRevenuePerCustomer > 500 ? 'up' : 'stable'),
+            trend: (avgRevenuePerCustomer > 500 ? 'up' : 'stable') as const,
             description: 'Average lifetime value'
           },
           { 
             metric: 'CAC Payback', 
             value: `${customerAcquisitionCost > 0 ? Math.round(avgRevenuePerCustomer / customerAcquisitionCost * 10) / 10 : 0}x`, 
-            trend: 'up',
+            trend: 'up' as const,
             description: 'Customer acquisition cost return'
           },
         ]
