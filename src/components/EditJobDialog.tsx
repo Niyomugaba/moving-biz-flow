@@ -366,7 +366,7 @@ export const EditJobDialog = ({ job, open, onOpenChange }: EditJobDialogProps) =
             <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <Label htmlFor="status">Job Status</Label>
-                <Select value={status} onValueChange={setStatus}>
+                <Select value={status} onValueChange={(value: Job['status']) => setStatus(value)}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -383,7 +383,7 @@ export const EditJobDialog = ({ job, open, onOpenChange }: EditJobDialogProps) =
                 <Checkbox
                   id="isPaid"
                   checked={isPaid}
-                  onCheckedChange={setIsPaid}
+                  onCheckedChange={(checked) => setIsPaid(!!checked)}
                 />
                 <Label htmlFor="isPaid">Job is Paid</Label>
               </div>

@@ -41,6 +41,7 @@ export interface Job {
   pricing_model?: 'per_person' | 'flat_rate';
   flat_hourly_rate?: number;
   worker_hourly_rate?: number;
+  total_amount_received?: number;
   // Add hours_worked as a calculated field for the form
   hours_worked?: number;
 }
