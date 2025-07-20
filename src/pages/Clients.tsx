@@ -73,26 +73,6 @@ export const Clients = () => {
     currentPage * itemsPerPage
   );
 
-  const handleAddClient = async (clientData: {
-    name: string;
-    phone: string;
-    email?: string;
-    primary_address: string;
-    company_name?: string;
-    preferred_contact_method?: string;
-  }) => {
-    await addClient(clientData);
-    setShowAddDialog(false);
-  };
-
-  const handleEditClient = async (clientData: Partial<Client>) => {
-    if (selectedClient) {
-      await updateClient({ id: selectedClient.id, updates: clientData });
-      setShowEditDialog(false);
-      setSelectedClient(null);
-    }
-  };
-
   const getClientTypeIcon = (totalJobs: number) => {
     if (totalJobs === 0) return <Clock className="h-4 w-4 text-gray-500" />;
     if (totalJobs === 1) return <CheckCircle className="h-4 w-4 text-blue-500" />;
@@ -251,20 +231,16 @@ export const Clients = () => {
           />
 
           {/* Dialogs */}
-          {showAddDialog && (
-            <AddClientDialog
-              open={showAddDialog}
-              onOpenChange={setShowAddDialog}
-              onAdd={handleAddClient}
-            />
-          )}
+          <AddClientDialog
+            open={showAddDialog}
+            onOpenChange={setShowAddDialog}
+          />
 
           {showEditDialog && selectedClient && (
             <EditClientDialog
               open={showEditDialog}
               onOpenChange={setShowEditDialog}
               client={selectedClient}
-              onUpdate={handleEditClient}
             />
           )}
         </div>

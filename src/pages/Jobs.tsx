@@ -80,40 +80,6 @@ export const Jobs = () => {
     currentPage * itemsPerPage
   );
 
-  const handleScheduleJob = async (jobData: {
-    client_name: string;
-    client_phone: string;
-    client_email?: string;
-    origin_address: string;
-    destination_address: string;
-    job_date: string;
-    start_time: string;
-    hourly_rate: number;
-    movers_needed: number;
-    estimated_total: number;
-    truck_size?: string;
-    special_requirements?: string;
-  }) => {
-    await addJob(jobData);
-    setShowScheduleDialog(false);
-  };
-
-  const handleEditJob = async (jobData: Partial<Job>) => {
-    if (selectedJob) {
-      await updateJob({ id: selectedJob.id, updates: jobData });
-      setShowEditDialog(false);
-      setSelectedJob(null);
-    }
-  };
-
-  const handlePaymentUpdate = async (paymentData: any) => {
-    if (selectedJob) {
-      await updateJob({ id: selectedJob.id, updates: paymentData });
-      setShowPaymentDialog(false);
-      setSelectedJob(null);
-    }
-  };
-
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'completed':
@@ -294,13 +260,10 @@ export const Jobs = () => {
           />
 
           {/* Dialogs */}
-          {showScheduleDialog && (
-            <ScheduleJobDialog
-              open={showScheduleDialog}
-              onOpenChange={setShowScheduleDialog}
-              onSchedule={handleScheduleJob}
-            />
-          )}
+          <ScheduleJobDialog
+            open={showScheduleDialog}
+            onOpenChange={setShowScheduleDialog}
+          />
 
           {showEditDialog && selectedJob && (
             <EditJobDialog
@@ -311,7 +274,6 @@ export const Jobs = () => {
                 is_paid: selectedJob.is_paid || false,
                 estimated_duration_hours: selectedJob.estimated_duration_hours || 2
               }}
-              onUpdate={handleEditJob}
             />
           )}
 
@@ -324,7 +286,6 @@ export const Jobs = () => {
                 is_paid: selectedJob.is_paid || false,
                 estimated_duration_hours: selectedJob.estimated_duration_hours || 2
               }}
-              onUpdate={handlePaymentUpdate}
             />
           )}
         </div>

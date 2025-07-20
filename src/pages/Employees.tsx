@@ -78,29 +78,6 @@ export const Employees = () => {
     currentPage * itemsPerPage
   );
 
-  const handleAddEmployee = async (employeeData: {
-    name: string;
-    phone: string;
-    email: string;
-    address?: string;
-    hourly_wage: number;
-    status: 'active' | 'inactive' | 'terminated' | 'on_leave';
-    hire_date: string;
-    position?: string;
-    department?: string;
-  }) => {
-    await addEmployee(employeeData);
-    setShowAddDialog(false);
-  };
-
-  const handleEditEmployee = async (employeeData: Partial<Employee>) => {
-    if (selectedEmployee) {
-      await updateEmployee({ id: selectedEmployee.id, updates: employeeData });
-      setShowEditDialog(false);
-      setSelectedEmployee(null);
-    }
-  };
-
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'active':
@@ -287,21 +264,19 @@ export const Employees = () => {
           />
 
           {/* Dialogs */}
-          {showAddDialog && (
-            <AddEmployeeDialog
-              open={showAddDialog}
-              onOpenChange={setShowAddDialog}
-              onAdd={handleAddEmployee}
-            />
-          )}
+          <AddEmployeeDialog
+            open={showAddDialog}
+            onOpenChange={setShowAddDialog}
+            onAddEmployee={addEmployee}
+          />
 
           {showEditDialog && selectedEmployee && (
             <EditEmployeeDialog
               open={showEditDialog}
               onOpenChange={setShowEditDialog}
               employee={selectedEmployee}
-              onUpdate={handleEditEmployee}
-              onDelete={deleteEmployee}
+              onUpdateEmployee={updateEmployee}
+              onDeleteEmployee={deleteEmployee}
               isUpdating={false}
               isDeleting={false}
             />
