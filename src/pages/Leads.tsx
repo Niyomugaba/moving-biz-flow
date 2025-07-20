@@ -75,12 +75,12 @@ export const Leads = () => {
       
       console.log('Lead converted successfully');
       
-      // Show success message and redirect option
+      // Show success message with redirect option
       setTimeout(() => {
-        if (confirm('Lead converted successfully! Would you like to go to the Jobs tab to schedule it?')) {
+        if (confirm('Lead converted and scheduled for tomorrow! The job is now in your Jobs list. Would you like to go to the Jobs tab to update the addresses and details?')) {
           window.location.href = '/jobs';
         }
-      }, 1000);
+      }, 1500);
       
     } catch (error) {
       console.error('Error converting lead:', error);

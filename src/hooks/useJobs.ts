@@ -446,58 +446,81 @@ export const useJobs = () => {
       console.log('Starting lead conversion process:', leadId, leadData);
       
       try {
-        // First, create a client from the lead data
-        const clientInsertData = {
-          name: leadData.name,
-          phone: leadData.phone,
-          email: leadData.email || null,
-          primary_address: 'Address to be confirmed during scheduling',
-          secondary_address: null,
-          company_name: null,
-          notes: leadData.notes || null,
-          preferred_contact_method: 'phone',
-          rating: null,
-          total_revenue: 0,
-          total_jobs_completed: 0
-        };
-
-        console.log('Creating client with data:', clientInsertData);
-
-        const { data: createdClient, error: clientError } = await supabase
+        // Find or create client from the lead
+        let clientId: string | null = null;
+        
+        // First check if client already exists with same phone
+        const { data: existingClient, error: clientCheckError } = await supabase
           .from('clients')
-          .insert(clientInsertData)
-          .select()
-          .single();
+          .select('id')
+          .eq('phone', leadData.phone)
+          .maybeSingle();
 
-        if (clientError) {
-          console.error('Error creating client from lead:', clientError);
-          throw new Error(`Failed to create client: ${clientError.message}`);
+        if (clientCheckError) {
+          console.error('Error checking existing client:', clientCheckError);
+        } else if (existingClient) {
+          clientId = existingClient.id;
+          console.log('Found existing client:', existingClient.id);
+        } else {
+          // Create new client
+          const clientInsertData = {
+            name: leadData.name,
+            phone: leadData.phone,
+            email: leadData.email || null,
+            primary_address: 'Address to be confirmed during scheduling',
+            secondary_address: null,
+            company_name: null,
+            notes: leadData.notes || null,
+            preferred_contact_method: 'phone',
+            rating: null,
+            total_revenue: 0,
+            total_jobs_completed: 0
+          };
+
+          console.log('Creating client with data:', clientInsertData);
+
+          const { data: createdClient, error: clientError } = await supabase
+            .from('clients')
+            .insert(clientInsertData)
+            .select()
+            .single();
+
+          if (clientError) {
+            console.error('Error creating client from lead:', clientError);
+            throw new Error(`Failed to create client: ${clientError.message}`);
+          }
+
+          clientId = createdClient.id;
+          console.log('Client created successfully:', createdClient);
         }
 
-        console.log('Client created successfully:', createdClient);
+        // Get current date and set default scheduling
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        const jobDate = tomorrow.toISOString().split('T')[0];
 
-        // Create job with pending_schedule status - needs to be scheduled
+        // Create job with scheduled status and realistic default values
         const jobInsertData = {
-          client_id: createdClient.id,
+          client_id: clientId,
           client_name: leadData.name,
           client_phone: leadData.phone,
           client_email: leadData.email || null,
-          origin_address: 'Origin address to be confirmed during scheduling',
-          destination_address: 'Destination address to be confirmed during scheduling',
-          job_date: '2025-01-01', // Placeholder date - will be updated when scheduled
-          start_time: '09:00', // Placeholder time - will be updated when scheduled
-          hourly_rate: leadData.estimated_value ? Math.max(50, Math.floor(leadData.estimated_value / 4)) : 50,
+          origin_address: 'Origin address - Please update before job date',
+          destination_address: 'Destination address - Please update before job date',
+          job_date: jobDate,
+          start_time: '09:00',
+          hourly_rate: leadData.estimated_value ? Math.max(50, Math.floor(leadData.estimated_value / 4)) : 75,
           movers_needed: 2,
-          estimated_total: leadData.estimated_value || 200,
+          estimated_total: leadData.estimated_value || 300,
           estimated_duration_hours: 4,
           lead_id: leadId,
-          status: 'pending_schedule' as const,
-          truck_size: null,
-          special_requirements: leadData.notes || null,
+          status: 'scheduled' as const,
+          truck_size: 'medium',
+          special_requirements: leadData.notes ? `Lead notes: ${leadData.notes}` : 'Converted from lead - please verify all details',
           is_paid: false
         };
 
-        console.log('Creating job with data:', jobInsertData);
+        console.log('Creating scheduled job with data:', jobInsertData);
 
         const { data: createdJob, error: jobError } = await supabase
           .from('jobs')
@@ -525,7 +548,7 @@ export const useJobs = () => {
 
         console.log('Lead status updated to converted successfully');
 
-        return { job: createdJob as Job, client: createdClient };
+        return { job: createdJob as Job, client: existingClient || clientId };
 
       } catch (error) {
         console.error('Full error in lead conversion:', error);
@@ -541,8 +564,8 @@ export const useJobs = () => {
       
       toast({
         title: "Lead Converted Successfully",
-        description: `Lead converted to client "${data.client.name}". The job is ready for scheduling in the Jobs section.`,
-        duration: 2000
+        description: `Lead converted and scheduled as job for tomorrow. Please update addresses and details in the Jobs section.`,
+        duration: 4000
       });
     },
     onError: (error: any) => {
