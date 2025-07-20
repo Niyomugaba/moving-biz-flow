@@ -29,18 +29,43 @@ import {
   AlertTriangle,
   XCircle
 } from 'lucide-react';
-import { Job } from '@/integrations/supabase/types';
 
 const ITEMS_PER_PAGE = 10;
 
+// Define Job interface based on the database schema
+interface Job {
+  id: string;
+  job_number: string;
+  client_id?: string;
+  client_name: string;
+  client_phone: string;
+  client_email?: string;
+  job_date: string;
+  start_time: string;
+  estimated_duration_hours: number;
+  actual_duration_hours?: number;
+  hourly_rate: number;
+  estimated_total: number;
+  actual_total?: number;
+  movers_needed: number;
+  status: string;
+  origin_address: string;
+  destination_address: string;
+  special_requirements?: string;
+  completion_notes?: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export const Jobs = () => {
-  const { jobs, loading, scheduleJob, updateJob, deleteJob } = useJobs();
+  const { jobs, isLoading, addJob, updateJob, deleteJob } = useJobs();
   const { canAccess } = useAuth();
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
   const [showScheduleDialog, setShowScheduleDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(ITEMS_PER_PAGE);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [sortBy, setSortBy] = useState<'date' | 'status' | 'value'>('date');
@@ -49,8 +74,8 @@ export const Jobs = () => {
     let filtered = jobs.filter(job => {
       const matchesSearch = job.job_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            job.client_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           job.pickup_address?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           job.delivery_address?.toLowerCase().includes(searchTerm.toLowerCase());
+                           job.origin_address?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           job.destination_address?.toLowerCase().includes(searchTerm.toLowerCase());
       
       const matchesStatus = statusFilter === 'all' || job.status === statusFilter;
       
@@ -74,14 +99,14 @@ export const Jobs = () => {
     return filtered;
   }, [jobs, searchTerm, statusFilter, sortBy]);
 
-  const totalPages = Math.ceil(filteredJobs.length / ITEMS_PER_PAGE);
+  const totalPages = Math.ceil(filteredJobs.length / itemsPerPage);
   const paginatedJobs = filteredJobs.slice(
-    (currentPage - 1) * ITEMS_PER_PAGE,
-    currentPage * ITEMS_PER_PAGE
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
   );
 
   const handleScheduleJob = async (jobData: Partial<Job>) => {
-    await scheduleJob(jobData);
+    await addJob(jobData);
     setShowScheduleDialog(false);
   };
 
@@ -114,7 +139,7 @@ export const Jobs = () => {
     }
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
@@ -220,10 +245,10 @@ export const Jobs = () => {
                           <MapPin className="h-4 w-4 mt-0.5 flex-shrink-0" />
                           <div>
                             <p className="text-sm">
-                              <span className="font-medium">From:</span> {job.pickup_address || 'Not specified'}
+                              <span className="font-medium">From:</span> {job.origin_address || 'Not specified'}
                             </p>
                             <p className="text-sm">
-                              <span className="font-medium">To:</span> {job.delivery_address || 'Not specified'}
+                              <span className="font-medium">To:</span> {job.destination_address || 'Not specified'}
                             </p>
                           </div>
                         </div>
@@ -274,13 +299,16 @@ export const Jobs = () => {
           <PaginationControls
             currentPage={currentPage}
             totalPages={totalPages}
+            itemsPerPage={itemsPerPage}
+            totalItems={filteredJobs.length}
             onPageChange={setCurrentPage}
+            onItemsPerPageChange={setItemsPerPage}
           />
 
           {/* Dialogs */}
           {showScheduleDialog && (
             <ScheduleJobDialog
-              isOpen={showScheduleDialog}
+              open={showScheduleDialog}
               onClose={() => setShowScheduleDialog(false)}
               onSchedule={handleScheduleJob}
             />
@@ -288,7 +316,7 @@ export const Jobs = () => {
 
           {showEditDialog && selectedJob && (
             <EditJobDialog
-              isOpen={showEditDialog}
+              open={showEditDialog}
               onClose={() => {
                 setShowEditDialog(false);
                 setSelectedJob(null);
@@ -300,7 +328,7 @@ export const Jobs = () => {
 
           {showPaymentDialog && selectedJob && (
             <JobPaymentDialog
-              isOpen={showPaymentDialog}
+              open={showPaymentDialog}
               onClose={() => {
                 setShowPaymentDialog(false);
                 setSelectedJob(null);

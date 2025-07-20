@@ -5,7 +5,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useClients } from '@/hooks/useClients';
+import { useClients, Client } from '@/hooks/useClients';
 import { useAuth } from '@/hooks/useAuth';
 import { AddClientDialog } from '@/components/AddClientDialog';
 import { EditClientDialog } from '@/components/EditClientDialog';
@@ -24,17 +24,17 @@ import {
   Clock,
   CheckCircle
 } from 'lucide-react';
-import { Client } from '@/integrations/supabase/types';
 
 const ITEMS_PER_PAGE = 12;
 
 export const Clients = () => {
-  const { clients, loading, addClient, updateClient, deleteClient } = useClients();
+  const { clients, isLoading, addClient, updateClient, deleteClient } = useClients();
   const { canAccess } = useAuth();
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(ITEMS_PER_PAGE);
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState<'name' | 'jobs' | 'revenue' | 'recent'>('name');
 
@@ -43,7 +43,7 @@ export const Clients = () => {
       const matchesSearch = client.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            client.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            client.phone?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           client.address?.toLowerCase().includes(searchTerm.toLowerCase());
+                           client.primary_address?.toLowerCase().includes(searchTerm.toLowerCase());
       
       return matchesSearch;
     });
@@ -67,10 +67,10 @@ export const Clients = () => {
     return filtered;
   }, [clients, searchTerm, sortBy]);
 
-  const totalPages = Math.ceil(filteredClients.length / ITEMS_PER_PAGE);
+  const totalPages = Math.ceil(filteredClients.length / itemsPerPage);
   const paginatedClients = filteredClients.slice(
-    (currentPage - 1) * ITEMS_PER_PAGE,
-    currentPage * ITEMS_PER_PAGE
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
   );
 
   const handleAddClient = async (clientData: Partial<Client>) => {
@@ -98,7 +98,7 @@ export const Clients = () => {
     return 'Repeat Client';
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
@@ -199,10 +199,10 @@ export const Clients = () => {
                       </div>
                     )}
                     
-                    {client.address && (
+                    {client.primary_address && (
                       <div className="flex items-start gap-2 text-gray-600">
                         <MapPin className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                        <span className="text-sm leading-relaxed">{client.address}</span>
+                        <span className="text-sm leading-relaxed">{client.primary_address}</span>
                       </div>
                     )}
                   </div>
@@ -237,13 +237,16 @@ export const Clients = () => {
           <PaginationControls
             currentPage={currentPage}
             totalPages={totalPages}
+            itemsPerPage={itemsPerPage}
+            totalItems={filteredClients.length}
             onPageChange={setCurrentPage}
+            onItemsPerPageChange={setItemsPerPage}
           />
 
           {/* Dialogs */}
           {showAddDialog && (
             <AddClientDialog
-              isOpen={showAddDialog}
+              open={showAddDialog}
               onClose={() => setShowAddDialog(false)}
               onAdd={handleAddClient}
             />
@@ -251,7 +254,7 @@ export const Clients = () => {
 
           {showEditDialog && selectedClient && (
             <EditClientDialog
-              isOpen={showEditDialog}
+              open={showEditDialog}
               onClose={() => {
                 setShowEditDialog(false);
                 setSelectedClient(null);

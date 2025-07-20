@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { useEmployees } from '@/hooks/useEmployees';
+import { useEmployees, Employee } from '@/hooks/useEmployees';
 import { useAuth } from '@/hooks/useAuth';
 import { AddEmployeeDialog } from '@/components/AddEmployeeDialog';
 import { EditEmployeeDialog } from '@/components/EditEmployeeDialog';
@@ -26,25 +26,24 @@ import {
   Clock,
   Shield
 } from 'lucide-react';
-import { Employee } from '@/integrations/supabase/types';
 
 const ITEMS_PER_PAGE = 12;
 
 export const Employees = () => {
-  const { employees, loading, addEmployee, updateEmployee, deleteEmployee } = useEmployees();
+  const { employees, isLoading, addEmployee, updateEmployee, deleteEmployee } = useEmployees();
   const { canAccess } = useAuth();
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(ITEMS_PER_PAGE);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [sortBy, setSortBy] = useState<'name' | 'date' | 'rate' | 'status'>('name');
 
   const filteredEmployees = useMemo(() => {
     let filtered = employees.filter(employee => {
-      const matchesSearch = employee.first_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           employee.last_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      const matchesSearch = employee.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            employee.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            employee.phone?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            employee.employee_number?.toLowerCase().includes(searchTerm.toLowerCase());
@@ -58,11 +57,11 @@ export const Employees = () => {
     filtered.sort((a, b) => {
       switch (sortBy) {
         case 'name':
-          return `${a.first_name} ${a.last_name}`.localeCompare(`${b.first_name} ${b.last_name}`);
+          return (a.name || '').localeCompare(b.name || '');
         case 'date':
           return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
         case 'rate':
-          return (b.hourly_rate || 0) - (a.hourly_rate || 0);
+          return (b.hourly_wage || 0) - (a.hourly_wage || 0);
         case 'status':
           return (a.status || '').localeCompare(b.status || '');
         default:
@@ -73,10 +72,10 @@ export const Employees = () => {
     return filtered;
   }, [employees, searchTerm, statusFilter, sortBy]);
 
-  const totalPages = Math.ceil(filteredEmployees.length / ITEMS_PER_PAGE);
+  const totalPages = Math.ceil(filteredEmployees.length / itemsPerPage);
   const paginatedEmployees = filteredEmployees.slice(
-    (currentPage - 1) * ITEMS_PER_PAGE,
-    currentPage * ITEMS_PER_PAGE
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
   );
 
   const handleAddEmployee = async (employeeData: Partial<Employee>) => {
@@ -118,7 +117,7 @@ export const Employees = () => {
     }
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
@@ -192,7 +191,7 @@ export const Employees = () => {
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <CardTitle className="text-lg font-semibold text-gray-900 mb-1">
-                        {employee.first_name} {employee.last_name}
+                        {employee.name}
                       </CardTitle>
                       <div className="flex items-center gap-2">
                         <Badge variant="secondary" className="text-xs">
@@ -247,7 +246,7 @@ export const Employees = () => {
                         <DollarSign className="h-4 w-4" />
                       </div>
                       <p className="text-sm font-medium text-gray-900">
-                        ${employee.hourly_rate || 0}/hr
+                        ${employee.hourly_wage || 0}/hr
                       </p>
                       <p className="text-xs text-gray-500">Hourly Rate</p>
                     </div>
@@ -271,13 +270,16 @@ export const Employees = () => {
           <PaginationControls
             currentPage={currentPage}
             totalPages={totalPages}
+            itemsPerPage={itemsPerPage}
+            totalItems={filteredEmployees.length}
             onPageChange={setCurrentPage}
+            onItemsPerPageChange={setItemsPerPage}
           />
 
           {/* Dialogs */}
           {showAddDialog && (
             <AddEmployeeDialog
-              isOpen={showAddDialog}
+              open={showAddDialog}
               onClose={() => setShowAddDialog(false)}
               onAdd={handleAddEmployee}
             />
@@ -285,7 +287,7 @@ export const Employees = () => {
 
           {showEditDialog && selectedEmployee && (
             <EditEmployeeDialog
-              isOpen={showEditDialog}
+              open={showEditDialog}
               onClose={() => {
                 setShowEditDialog(false);
                 setSelectedEmployee(null);
