@@ -3,6 +3,7 @@ import React from 'react';
 import { MetricCard } from '@/components/MetricCard';
 import { WelcomeMessage } from '@/components/WelcomeMessage';
 import { QuickAccessLinks } from '@/components/QuickAccessLinks';
+import { BusinessAnalysisCard } from '@/components/BusinessAnalysisCard';
 import { useAuth } from '@/hooks/useAuth';
 import { useJobs } from '@/hooks/useJobs';
 import { useEmployees } from '@/hooks/useEmployees';
@@ -105,6 +106,11 @@ export const Dashboard = () => {
           icon={TrendingUp}
           className="bg-indigo-50 border-indigo-200"
         />
+      </div>
+
+      {/* AI Business Analysis */}
+      <div className="grid grid-cols-1 gap-6">
+        <BusinessAnalysisCard />
       </div>
     </div>
   );

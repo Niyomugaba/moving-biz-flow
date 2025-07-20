@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { DateRangeFilter, DateRange } from "@/components/DateRangeFilter";
+import { BusinessAnalysisCard } from "@/components/BusinessAnalysisCard";
 import { filterDataByDateRange, useDateFilter } from "@/hooks/useDateFilter";
 import { useJobs } from "@/hooks/useJobs";
 import { useLeads } from "@/hooks/useLeads";
@@ -37,6 +38,10 @@ export const Financials = () => {
     const paidRevenue = filteredData.jobs
       .filter(job => job.status === 'completed' && job.is_paid)
       .reduce((sum, job) => {
+        // Use total_amount_received for flat rate jobs, otherwise calculate normally
+        if (job.pricing_model === 'flat_rate' && job.total_amount_received) {
+          return sum + job.total_amount_received;
+        }
         const jobRevenue = job.actual_total || (job.hourly_rate * job.movers_needed * (job.actual_duration_hours || 0));
         return sum + jobRevenue;
       }, 0);
@@ -44,6 +49,9 @@ export const Financials = () => {
     const unpaidRevenue = filteredData.jobs
       .filter(job => job.status === 'completed' && !job.is_paid)
       .reduce((sum, job) => {
+        if (job.pricing_model === 'flat_rate' && job.total_amount_received) {
+          return sum + job.total_amount_received;
+        }
         const jobRevenue = job.actual_total || (job.hourly_rate * job.movers_needed * (job.actual_duration_hours || 0));
         return sum + jobRevenue;
       }, 0);
@@ -153,6 +161,9 @@ export const Financials = () => {
         selectedRange={selectedDateRange}
         onRangeChange={setSelectedDateRange}
       />
+
+      {/* AI Business Analysis */}
+      <BusinessAnalysisCard />
 
       {/* Revenue Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
