@@ -14,7 +14,7 @@ import {
   AlertTriangle,
   CheckCircle2
 } from 'lucide-react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell, ComposedChart } from 'recharts';
 
 interface KPIData {
   totalRevenue: number;
@@ -25,112 +25,99 @@ interface KPIData {
   repeatCustomerRate: number;
   completionRate: number;
   activeJobs: number;
-  monthlyRevenueData: Array<{ month: string; revenue: number; profit: number }>;
+  customerAcquisitionCost: number;
+  revenuePerEmployee: number;
+  monthlyRevenueData: Array<{ month: string; revenue: number; profit: number; jobs: number }>;
   statusDistribution: Array<{ name: string; value: number; color: string }>;
-  topPerformingMetrics: Array<{ metric: string; value: string; trend: 'up' | 'down' | 'stable' }>;
+  financialMetrics: Array<{ metric: string; value: string; trend: 'up' | 'down' | 'stable'; description: string }>;
 }
 
 interface AdvancedKPIDashboardProps {
   data: KPIData;
 }
 
-const COLORS = ['#8B5CF6', '#06B6D4', '#10B981', '#F59E0B', '#EF4444'];
+const COLORS = ['#10B981', '#3B82F6', '#F59E0B', '#EF4444', '#6B7280'];
 
 export const AdvancedKPIDashboard: React.FC<AdvancedKPIDashboardProps> = ({ data }) => {
-  const kpiCards = [
+  const performanceMetrics = [
     {
       title: 'Monthly Revenue',
       value: `$${data.totalRevenue.toLocaleString()}`,
       change: data.monthlyGrowth,
       icon: DollarSign,
       color: 'text-green-600',
-      bgColor: 'bg-green-50'
+      bgColor: 'bg-green-50',
+      description: 'Total revenue this period'
     },
     {
       title: 'Profit Margin',
       value: `${data.profitMargin.toFixed(1)}%`,
-      target: 30,
-      current: data.profitMargin,
+      change: data.profitMargin > 20 ? 5.2 : -2.1,
       icon: TrendingUp,
       color: 'text-blue-600',
-      bgColor: 'bg-blue-50'
+      bgColor: 'bg-blue-50',
+      description: 'Gross profit percentage'
     },
     {
       title: 'Lead Conversion',
       value: `${data.conversionRate.toFixed(1)}%`,
-      target: 40,
-      current: data.conversionRate,
+      change: data.conversionRate > 30 ? 8.3 : -1.5,
       icon: Target,
       color: 'text-purple-600',
-      bgColor: 'bg-purple-50'
+      bgColor: 'bg-purple-50',
+      description: 'Leads converted to jobs'
     },
     {
       title: 'Avg Job Value',
       value: `$${data.averageJobValue.toFixed(0)}`,
-      target: 500,
-      current: data.averageJobValue,
+      change: data.averageJobValue > 400 ? 12.1 : -3.2,
       icon: Calendar,
       color: 'text-orange-600',
-      bgColor: 'bg-orange-50'
+      bgColor: 'bg-orange-50',
+      description: 'Average revenue per job'
     },
     {
-      title: 'Repeat Customers',
+      title: 'Customer Retention',
       value: `${data.repeatCustomerRate.toFixed(1)}%`,
-      target: 25,
-      current: data.repeatCustomerRate,
+      change: data.repeatCustomerRate > 20 ? 15.7 : -5.1,
       icon: Repeat,
       color: 'text-indigo-600',
-      bgColor: 'bg-indigo-50'
+      bgColor: 'bg-indigo-50',
+      description: 'Repeat customer rate'
     },
     {
-      title: 'Completion Rate',
+      title: 'Job Completion',
       value: `${data.completionRate.toFixed(1)}%`,
-      target: 95,
-      current: data.completionRate,
+      change: data.completionRate > 80 ? 3.5 : -1.8,
       icon: CheckCircle2,
       color: 'text-emerald-600',
-      bgColor: 'bg-emerald-50'
+      bgColor: 'bg-emerald-50',
+      description: 'Jobs completed successfully'
     }
   ];
 
   return (
     <div className="space-y-6">
-      {/* KPI Cards Grid */}
+      {/* Performance Metrics Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {kpiCards.map((kpi, index) => {
-          const Icon = kpi.icon;
-          const isOnTarget = kpi.target ? kpi.current >= kpi.target : true;
+        {performanceMetrics.map((metric, index) => {
+          const Icon = metric.icon;
+          const isPositive = metric.change >= 0;
           
           return (
-            <Card key={index} className={`${kpi.bgColor} border-l-4 border-l-current hover:shadow-lg transition-shadow`}>
+            <Card key={index} className={`${metric.bgColor} border-l-4 border-l-current hover:shadow-lg transition-shadow`}>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-gray-700">{kpi.title}</CardTitle>
-                <Icon className={`h-5 w-5 ${kpi.color}`} />
+                <CardTitle className="text-sm font-medium text-gray-700">{metric.title}</CardTitle>
+                <Icon className={`h-5 w-5 ${metric.color}`} />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-gray-900 mb-2">{kpi.value}</div>
+                <div className="text-2xl font-bold text-gray-900 mb-1">{metric.value}</div>
+                <div className="text-xs text-gray-600 mb-2">{metric.description}</div>
                 
-                {kpi.target && (
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">Target: {kpi.target}{kpi.title.includes('%') ? '%' : ''}</span>
-                      <span className={isOnTarget ? 'text-green-600' : 'text-orange-600'}>
-                        {isOnTarget ? '✓ On Track' : '⚠ Below Target'}
-                      </span>
-                    </div>
-                    <Progress 
-                      value={Math.min((kpi.current / kpi.target) * 100, 100)} 
-                      className="h-2"
-                    />
-                  </div>
-                )}
-                
-                {kpi.change !== undefined && (
-                  <div className={`flex items-center text-sm ${kpi.change >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                    {kpi.change >= 0 ? <TrendingUp className="h-4 w-4 mr-1" /> : <TrendingDown className="h-4 w-4 mr-1" />}
-                    {Math.abs(kpi.change).toFixed(1)}% vs last month
-                  </div>
-                )}
+                <div className={`flex items-center text-sm ${isPositive ? 'text-green-600' : 'text-red-600'}`}>
+                  {isPositive ? <TrendingUp className="h-4 w-4 mr-1" /> : <TrendingDown className="h-4 w-4 mr-1" />}
+                  {Math.abs(metric.change).toFixed(1)}% vs last period
+                </div>
               </CardContent>
             </Card>
           );
@@ -139,36 +126,29 @@ export const AdvancedKPIDashboard: React.FC<AdvancedKPIDashboardProps> = ({ data
 
       {/* Charts Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Revenue Trend Chart */}
+        {/* Revenue, Profit & Jobs Combined Chart */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <TrendingUp className="h-5 w-5 text-green-600" />
-              Revenue & Profit Trend
+              Revenue & Job Performance
             </CardTitle>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={data.monthlyRevenueData}>
+              <ComposedChart data={data.monthlyRevenueData}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="month" />
-                <YAxis />
-                <Tooltip formatter={(value) => [`$${value}`, undefined]} />
-                <Line 
-                  type="monotone" 
-                  dataKey="revenue" 
-                  stroke="#10B981" 
-                  strokeWidth={3}
-                  name="Revenue"
-                />
-                <Line 
-                  type="monotone" 
-                  dataKey="profit" 
-                  stroke="#8B5CF6" 
-                  strokeWidth={3}
-                  name="Profit"
-                />
-              </LineChart>
+                <YAxis yAxisId="left" />
+                <YAxis yAxisId="right" orientation="right" />
+                <Tooltip formatter={(value, name) => {
+                  if (name === 'Jobs') return [value, 'Jobs Completed'];
+                  return [`$${value}`, name];
+                }} />
+                <Bar yAxisId="right" dataKey="jobs" fill="#8B5CF6" name="Jobs" />
+                <Line yAxisId="left" type="monotone" dataKey="revenue" stroke="#10B981" strokeWidth={3} name="Revenue" />
+                <Line yAxisId="left" type="monotone" dataKey="profit" stroke="#3B82F6" strokeWidth={3} name="Profit" />
+              </ComposedChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
@@ -205,21 +185,22 @@ export const AdvancedKPIDashboard: React.FC<AdvancedKPIDashboardProps> = ({ data
         </Card>
       </div>
 
-      {/* Performance Alerts */}
-      <Card className="border-l-4 border-l-yellow-500">
+      {/* Financial Performance Insights */}
+      <Card className="border-l-4 border-l-green-500">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <AlertTriangle className="h-5 w-5 text-yellow-600" />
-            Performance Insights
+            <DollarSign className="h-5 w-5 text-green-600" />
+            Financial Performance Analysis
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {data.topPerformingMetrics.map((metric, index) => (
-              <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {data.financialMetrics.map((metric, index) => (
+              <div key={index} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                <div className="flex-1">
                   <div className="font-medium text-gray-900">{metric.metric}</div>
                   <div className="text-lg font-bold text-gray-700">{metric.value}</div>
+                  <div className="text-xs text-gray-500">{metric.description}</div>
                 </div>
                 <div className={`p-2 rounded-full ${
                   metric.trend === 'up' ? 'bg-green-100 text-green-600' :
@@ -232,6 +213,43 @@ export const AdvancedKPIDashboard: React.FC<AdvancedKPIDashboardProps> = ({ data
                 </div>
               </div>
             ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Key Business Metrics Summary */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <BarChart3 className="h-5 w-5 text-blue-600" />
+            Key Business Metrics
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="space-y-2">
+              <h4 className="font-medium text-gray-900">Revenue Metrics</h4>
+              <div className="text-2xl font-bold text-green-600">${data.totalRevenue.toLocaleString()}</div>
+              <div className="text-sm text-gray-600">Monthly Revenue</div>
+              <div className="text-lg font-semibold">${data.averageJobValue.toFixed(0)}</div>
+              <div className="text-xs text-gray-500">Average Job Value</div>
+            </div>
+            
+            <div className="space-y-2">
+              <h4 className="font-medium text-gray-900">Customer Metrics</h4>
+              <div className="text-2xl font-bold text-blue-600">{data.conversionRate.toFixed(1)}%</div>
+              <div className="text-sm text-gray-600">Conversion Rate</div>
+              <div className="text-lg font-semibold">{data.repeatCustomerRate.toFixed(1)}%</div>
+              <div className="text-xs text-gray-500">Repeat Customer Rate</div>
+            </div>
+            
+            <div className="space-y-2">
+              <h4 className="font-medium text-gray-900">Operational Metrics</h4>
+              <div className="text-2xl font-bold text-purple-600">{data.completionRate.toFixed(1)}%</div>
+              <div className="text-sm text-gray-600">Job Completion Rate</div>
+              <div className="text-lg font-semibold">${data.revenuePerEmployee.toFixed(0)}</div>
+              <div className="text-xs text-gray-500">Revenue per Employee</div>
+            </div>
           </div>
         </CardContent>
       </Card>

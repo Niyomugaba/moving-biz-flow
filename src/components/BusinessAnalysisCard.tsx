@@ -3,7 +3,8 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Lightbulb, TrendingUp, AlertTriangle, CheckCircle, BarChart3, RefreshCw, Target, DollarSign, Users, Calendar } from 'lucide-react';
+import { Progress } from '@/components/ui/progress';
+import { Lightbulb, TrendingUp, AlertTriangle, CheckCircle, BarChart3, RefreshCw, Target, DollarSign, Users, Calendar, Star } from 'lucide-react';
 import { useJobs } from '@/hooks/useJobs';
 import { useLeads } from '@/hooks/useLeads';
 import { useClients } from '@/hooks/useClients';
@@ -33,12 +34,10 @@ export const BusinessAnalysisCard: React.FC<BusinessAnalysisCardProps> = ({
     setIsAnalyzing(true);
     
     setTimeout(() => {
-      // Filter data by selected date range
       const filteredJobs = filterDataByDateRange(jobs, startDate, endDate, 'job_date');
       const filteredLeads = filterDataByDateRange(leads, startDate, endDate, 'created_at');
       const filteredTimeEntries = filterDataByDateRange(timeEntries, startDate, endDate, 'entry_date');
 
-      // Calculate business metrics
       const metrics = BusinessAnalysisService.analyzeBusinessMetrics(
         filteredJobs,
         filteredLeads,
@@ -48,9 +47,7 @@ export const BusinessAnalysisCard: React.FC<BusinessAnalysisCardProps> = ({
         selectedDateRange
       );
 
-      // Generate startup-specific insights
       const startupInsights = generateNewBusinessInsights(metrics, filteredJobs.length);
-
       setInsights(startupInsights);
       setIsAnalyzing(false);
     }, 1500);
@@ -60,128 +57,125 @@ export const BusinessAnalysisCard: React.FC<BusinessAnalysisCardProps> = ({
     const insights: BusinessInsight[] = [];
 
     // Early Stage Business Assessment
-    if (totalJobs < 10) {
+    if (totalJobs < 15) {
       insights.push({
         category: 'operations',
-        title: 'Early Stage Growth Phase',
-        description: `With ${totalJobs} jobs completed, you're in the crucial early growth phase of your moving business.`,
-        impact: 'This is the foundation-building stage where every job and customer interaction shapes your reputation.',
-        recommendation: 'Focus on delivering exceptional service quality, collecting customer testimonials, and building word-of-mouth referrals. Document your processes and track key metrics religiously.',
+        title: 'Early Growth Stage Assessment',
+        description: `With ${totalJobs} jobs completed, you're building the foundation of your moving business.`,
+        impact: 'This is the critical phase where service quality and customer satisfaction determine long-term success.',
+        recommendation: 'Focus on perfecting your service delivery process. Document every successful job procedure and collect detailed customer feedback. Build a referral system early.',
         priority: 'high',
-        expectedOutcome: 'Strong foundation for scaling to 25+ jobs per month',
+        expectedOutcome: 'Establish strong operational foundation for 30+ monthly jobs',
         timeframe: '3-6 months',
         metrics: [
-          { label: 'Current Job Count', value: totalJobs.toString() },
-          { label: 'Next Milestone', value: '25 jobs' }
+          { label: 'Current Jobs', value: totalJobs.toString() },
+          { label: 'Next Target', value: '30 jobs/month' },
+          { label: 'Success Rate', value: `${Math.round((totalJobs / jobs.length) * 100)}%` }
         ]
       });
     }
 
-    // Cash Flow Focus for New Business
+    // Revenue Growth Analysis
     if (metrics.totalRevenue > 0) {
-      const monthlyRunRate = metrics.totalRevenue;
+      const projectedAnnual = metrics.totalRevenue * 12;
       insights.push({
         category: 'revenue',
-        title: 'Cash Flow & Revenue Tracking',
-        description: `Your current revenue of $${metrics.totalRevenue.toLocaleString()} shows early traction in the market.`,
-        impact: 'Consistent cash flow is critical for new businesses to cover operating expenses and invest in growth.',
-        recommendation: 'Set up a dedicated business account, track daily cash flow, and maintain a 3-month expense buffer. Consider offering payment terms that improve cash flow (deposits, same-day payment).',
+        title: 'Revenue Growth Trajectory',
+        description: `Current revenue of $${metrics.totalRevenue.toLocaleString()} indicates ${projectedAnnual > 100000 ? 'strong' : 'developing'} market traction.`,
+        impact: 'Revenue growth rate determines your ability to scale operations and invest in business expansion.',
+        recommendation: 'Track weekly revenue trends, identify peak booking periods, and optimize pricing for maximum profitability. Consider service packages.',
         priority: 'critical',
-        expectedOutcome: 'Predictable monthly cash flow of $15,000+',
-        timeframe: '2-4 months',
+        expectedOutcome: `Achieve $${Math.round(projectedAnnual * 1.5).toLocaleString()} annual revenue`,
+        timeframe: '6-12 months',
         metrics: [
-          { label: 'Current Revenue', value: `$${metrics.totalRevenue.toLocaleString()}` },
-          { label: 'Target Monthly', value: '$15,000' }
+          { label: 'Monthly Revenue', value: `$${metrics.totalRevenue.toLocaleString()}` },
+          { label: 'Annual Projection', value: `$${projectedAnnual.toLocaleString()}` },
+          { label: 'Growth Target', value: `$${Math.round(projectedAnnual * 1.5).toLocaleString()}` }
         ]
       });
     }
 
-    // Customer Base Building
-    if (metrics.repeatCustomerRate < 30 && totalJobs > 5) {
+    // Customer Development Strategy
+    if (metrics.conversionRate > 0) {
       insights.push({
         category: 'marketing',
-        title: 'Customer Retention Strategy',
-        description: `${metrics.repeatCustomerRate.toFixed(1)}% repeat customer rate indicates opportunity to build loyal customer base.`,
-        impact: 'Repeat customers cost 5x less to acquire and typically spend 67% more than new customers.',
-        recommendation: 'Implement a customer follow-up system within 48 hours post-move, create a referral program with incentives, and maintain contact for seasonal moving needs.',
+        title: 'Customer Acquisition Performance',
+        description: `${metrics.conversionRate.toFixed(1)}% conversion rate with ${metrics.totalLeads} leads shows your sales effectiveness.`,
+        impact: 'Higher conversion rates reduce marketing costs and accelerate business growth.',
+        recommendation: 'Implement rapid response system (under 15 minutes), create compelling service packages, and follow up with unconverted leads monthly.',
         priority: 'high',
-        expectedOutcome: 'Achieve 40%+ repeat customer rate within 6 months',
-        timeframe: '3-6 months',
+        expectedOutcome: 'Increase conversion rate to 45%+ within 3 months',
+        timeframe: '2-4 months',
         metrics: [
-          { label: 'Current Rate', value: `${metrics.repeatCustomerRate.toFixed(1)}%` },
-          { label: 'Industry Target', value: '40%+' }
+          { label: 'Current Rate', value: `${metrics.conversionRate.toFixed(1)}%` },
+          { label: 'Total Leads', value: metrics.totalLeads.toString() },
+          { label: 'Target Rate', value: '45%+' }
         ]
       });
     }
 
-    // Pricing Strategy for New Business
-    if (metrics.averageJobValue < 350) {
+    // Pricing Strategy Optimization
+    if (metrics.averageJobValue > 0) {
+      const industryBenchmark = 450;
+      const pricingHealth = metrics.averageJobValue >= industryBenchmark ? 'strong' : 'needs improvement';
+      
       insights.push({
         category: 'revenue',
-        title: 'Pricing Optimization Opportunity',
-        description: `Average job value of $${metrics.averageJobValue.toFixed(0)} suggests room for pricing improvement.`,
-        impact: 'Underpricing is common among new businesses but limits growth capital and sustainability.',
-        recommendation: 'Research local competitor pricing, create service tiers (basic, standard, premium), and don\'t compete solely on price. Add value through insurance, supplies, or extra services.',
-        priority: 'high',
-        expectedOutcome: 'Increase average job value to $450+ within 4 months',
+        title: 'Pricing Strategy Analysis',
+        description: `Average job value of $${metrics.averageJobValue.toFixed(0)} is ${pricingHealth} compared to industry standards.`,
+        impact: `${pricingHealth === 'strong' ? 'Strong pricing supports healthy margins' : 'Underpricing limits growth capital and profitability'}`,
+        recommendation: pricingHealth === 'strong' 
+          ? 'Maintain current pricing strategy and consider premium service tiers for high-value customers.'
+          : 'Research competitor pricing, implement minimum job values, and add value-added services to justify price increases.',
+        priority: pricingHealth === 'strong' ? 'medium' : 'high',
+        expectedOutcome: `Achieve $${Math.max(industryBenchmark, metrics.averageJobValue * 1.2).toFixed(0)} average job value`,
         timeframe: '2-4 months',
         metrics: [
           { label: 'Current Average', value: `$${metrics.averageJobValue.toFixed(0)}` },
-          { label: 'Target Average', value: '$450+' }
+          { label: 'Industry Benchmark', value: `$${industryBenchmark}` },
+          { label: 'Pricing Health', value: pricingHealth }
         ]
       });
     }
 
-    // Lead Generation Focus
-    if (metrics.conversionRate < 40 && metrics.totalLeads > 10) {
+    // Profitability Analysis
+    if (metrics.profitMargin !== undefined) {
+      const profitHealth = metrics.profitMargin >= 25 ? 'excellent' : metrics.profitMargin >= 15 ? 'good' : 'needs improvement';
+      
       insights.push({
-        category: 'marketing',
-        title: 'Lead Conversion Improvement',
-        description: `${metrics.conversionRate.toFixed(1)}% conversion rate shows potential to improve sales process.`,
-        impact: 'Higher conversion rates reduce customer acquisition costs and accelerate growth.',
-        recommendation: 'Respond to leads within 15 minutes, create a phone script, offer free estimates, and follow up with non-converting leads after 30 days.',
-        priority: 'medium',
-        expectedOutcome: 'Achieve 50%+ conversion rate within 3 months',
-        timeframe: '1-3 months',
-        metrics: [
-          { label: 'Current Rate', value: `${metrics.conversionRate.toFixed(1)}%` },
-          { label: 'Target Rate', value: '50%+' }
-        ]
-      });
-    }
-
-    // Operational Efficiency for Small Business
-    if (totalJobs > 5 && metrics.profitMargin < 20) {
-      insights.push({
-        category: 'operations',
+        category: 'profitability',
         title: 'Profit Margin Optimization',
-        description: `${metrics.profitMargin.toFixed(1)}% profit margin needs improvement for sustainable growth.`,
-        impact: 'Low margins limit your ability to invest in equipment, marketing, and team expansion.',
-        recommendation: 'Track all job costs (labor, fuel, equipment), optimize routes, negotiate supplier discounts, and consider minimum job values to ensure profitability.',
-        priority: 'high',
-        expectedOutcome: 'Achieve 25%+ profit margins consistently',
-        timeframe: '2-3 months',
+        description: `${metrics.profitMargin.toFixed(1)}% profit margin indicates ${profitHealth} financial health.`,
+        impact: 'Profit margins determine business sustainability and growth investment capacity.',
+        recommendation: profitHealth === 'excellent' 
+          ? 'Maintain current cost structure and explore expansion opportunities.'
+          : 'Analyze job-specific costs, optimize routes, negotiate better supplier rates, and eliminate inefficiencies.',
+        priority: profitHealth === 'needs improvement' ? 'critical' : 'medium',
+        expectedOutcome: 'Achieve and maintain 25%+ profit margins',
+        timeframe: '2-6 months',
         metrics: [
           { label: 'Current Margin', value: `${metrics.profitMargin.toFixed(1)}%` },
-          { label: 'Target Margin', value: '25%+' }
+          { label: 'Target Margin', value: '25%+' },
+          { label: 'Profit Health', value: profitHealth }
         ]
       });
     }
 
-    // Growth Readiness Assessment
-    if (totalJobs > 15 && metrics.completedJobs > 12) {
+    // Operational Efficiency
+    if (totalJobs > 10) {
       insights.push({
         category: 'operations',
-        title: 'Scale-Up Readiness Assessment',
-        description: `With ${metrics.completedJobs} completed jobs, you're approaching readiness for scaling operations.`,
-        impact: 'Strategic growth planning prevents operational chaos and maintains service quality.',
-        recommendation: 'Standardize processes, consider hiring part-time help, invest in scheduling software, and create employee training materials for consistent service delivery.',
+        title: 'Operational Scaling Readiness',
+        description: `With ${totalJobs} completed jobs, you're approaching the scaling phase of your business.`,
+        impact: 'Efficient operations enable consistent service quality as you handle more jobs.',
+        recommendation: 'Standardize job procedures, implement scheduling software, create training materials, and consider hiring additional team members.',
         priority: 'medium',
-        expectedOutcome: 'Successfully scale to 40+ jobs per month',
+        expectedOutcome: 'Scale to 50+ jobs per month with consistent quality',
         timeframe: '4-8 months',
         metrics: [
-          { label: 'Completed Jobs', value: metrics.completedJobs.toString() },
-          { label: 'Scale Target', value: '40+ monthly' }
+          { label: 'Jobs Completed', value: totalJobs.toString() },
+          { label: 'Scaling Target', value: '50+ monthly' },
+          { label: 'Efficiency Score', value: `${Math.min(100, (totalJobs / 50) * 100).toFixed(0)}%` }
         ]
       });
     }
@@ -191,38 +185,21 @@ export const BusinessAnalysisCard: React.FC<BusinessAnalysisCardProps> = ({
 
   const getInsightIcon = (category: string) => {
     switch (category) {
-      case 'revenue': return <DollarSign className="h-4 w-4 text-green-600" />;
-      case 'profitability': return <TrendingUp className="h-4 w-4 text-blue-600" />;
-      case 'operations': return <Target className="h-4 w-4 text-purple-600" />;
-      case 'marketing': return <Users className="h-4 w-4 text-orange-600" />;
-      case 'workforce': return <Users className="h-4 w-4 text-indigo-600" />;
-      default: return <Lightbulb className="h-4 w-4 text-gray-600" />;
+      case 'revenue': return <DollarSign className="h-5 w-5 text-green-600" />;
+      case 'profitability': return <TrendingUp className="h-5 w-5 text-blue-600" />;
+      case 'operations': return <Target className="h-5 w-5 text-purple-600" />;
+      case 'marketing': return <Users className="h-5 w-5 text-orange-600" />;
+      default: return <Lightbulb className="h-5 w-5 text-gray-600" />;
     }
   };
 
-  const getPriorityBadge = (priority: string) => {
+  const getPriorityColor = (priority: string) => {
     switch (priority) {
-      case 'critical': 
-        return <Badge variant="destructive" className="bg-red-100 text-red-800 border-red-200">Critical</Badge>;
-      case 'high': 
-        return <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200">High Priority</Badge>;
-      case 'medium': 
-        return <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">Medium</Badge>;
-      default: 
-        return <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">Low Priority</Badge>;
+      case 'critical': return 'bg-red-500';
+      case 'high': return 'bg-orange-500';
+      case 'medium': return 'bg-yellow-500';
+      default: return 'bg-blue-500';
     }
-  };
-
-  const getCategoryName = (category: string) => {
-    const names = {
-      revenue: 'Revenue Growth',
-      profitability: 'Profit Optimization',
-      operations: 'Operations',
-      marketing: 'Customer Development',
-      workforce: 'Team Building',
-      competitive: 'Market Position'
-    };
-    return names[category as keyof typeof names] || category;
   };
 
   const getRangeLabel = () => {
@@ -238,12 +215,12 @@ export const BusinessAnalysisCard: React.FC<BusinessAnalysisCardProps> = ({
   };
 
   return (
-    <Card className="w-full bg-background">
+    <Card className="w-full">
       <CardHeader>
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2">
             <BarChart3 className="h-5 w-5" />
-            Startup Business Intelligence - {getRangeLabel()}
+            Business Growth Analysis - {getRangeLabel()}
           </CardTitle>
           <Button 
             onClick={generateStartupFocusedInsights} 
@@ -258,7 +235,7 @@ export const BusinessAnalysisCard: React.FC<BusinessAnalysisCardProps> = ({
             ) : (
               <>
                 <TrendingUp className="h-4 w-4 mr-2" />
-                Get Growth Insights
+                Generate Insights
               </>
             )}
           </Button>
@@ -266,82 +243,118 @@ export const BusinessAnalysisCard: React.FC<BusinessAnalysisCardProps> = ({
       </CardHeader>
       <CardContent>
         {insights.length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground">
-            <BarChart3 className="h-12 w-12 mx-auto mb-3 text-muted-foreground/50" />
-            <p className="text-lg font-medium mb-2">Startup-Focused Business Analysis</p>
-            <p className="text-sm">Get tailored insights for your growing moving business. Click "Get Growth Insights" to receive customized recommendations based on your current performance and stage of growth.</p>
+          <div className="text-center py-12">
+            <div className="mx-auto w-24 h-24 bg-blue-100 rounded-full flex items-center justify-center mb-4">
+              <BarChart3 className="h-12 w-12 text-blue-600" />
+            </div>
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">Ready for Business Analysis</h3>
+            <p className="text-gray-600 mb-6 max-w-md mx-auto">
+              Get personalized insights tailored to your moving business stage and performance. 
+              Our analysis focuses on actionable recommendations for growth.
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-500 mb-6">
+              <div className="flex items-center justify-center gap-2">
+                <DollarSign className="h-4 w-4" />
+                Revenue Analysis
+              </div>
+              <div className="flex items-center justify-center gap-2">
+                <Users className="h-4 w-4" />
+                Customer Insights
+              </div>
+              <div className="flex items-center justify-center gap-2">
+                <Target className="h-4 w-4" />
+                Growth Strategy
+              </div>
+            </div>
           </div>
         ) : (
           <div className="space-y-6">
-            {/* Quick Action Summary */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-muted/30 rounded-lg">
-              <div className="text-center">
-                <div className="text-2xl font-bold text-red-600">
-                  {insights.filter(i => i.priority === 'critical').length}
-                </div>
-                <div className="text-sm text-muted-foreground">Critical Actions</div>
+            {/* Analysis Summary */}
+            <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-6 border border-blue-200">
+              <div className="flex items-center gap-3 mb-4">
+                <Star className="h-6 w-6 text-yellow-500" />
+                <h3 className="text-lg font-semibold">Business Health Overview</h3>
               </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-orange-600">
-                  {insights.filter(i => i.priority === 'high').length}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-red-600">
+                    {insights.filter(i => i.priority === 'critical').length}
+                  </div>
+                  <div className="text-sm text-gray-600">Critical Issues</div>
                 </div>
-                <div className="text-sm text-muted-foreground">High Priority</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-blue-600">
-                  {insights.filter(i => i.category === 'revenue').length}
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-orange-600">
+                    {insights.filter(i => i.priority === 'high').length}
+                  </div>
+                  <div className="text-sm text-gray-600">High Priority</div>
                 </div>
-                <div className="text-sm text-muted-foreground">Revenue Focus</div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-green-600">
+                    {insights.filter(i => i.category === 'revenue').length}
+                  </div>
+                  <div className="text-sm text-gray-600">Revenue Focus</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-blue-600">
+                    {insights.length}
+                  </div>
+                  <div className="text-sm text-gray-600">Total Insights</div>
+                </div>
               </div>
             </div>
 
-            {/* Growth Insights */}
+            {/* Insights Cards */}
             <div className="space-y-4">
               {insights.map((insight, index) => (
-                <Card key={index} className="border border-border/50 hover:border-border transition-colors">
+                <Card key={index} className="border-l-4 border-l-blue-500 hover:shadow-md transition-shadow">
                   <CardContent className="p-6">
                     <div className="flex items-start gap-4">
-                      {getInsightIcon(insight.category)}
+                      <div className="flex-shrink-0">
+                        {getInsightIcon(insight.category)}
+                      </div>
                       <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-3">
-                          <h4 className="font-semibold text-lg">{insight.title}</h4>
-                          {getPriorityBadge(insight.priority)}
-                          <Badge variant="outline" className="text-xs">
-                            {getCategoryName(insight.category)}
+                        <div className="flex items-center gap-3 mb-4">
+                          <h4 className="text-lg font-semibold text-gray-900">{insight.title}</h4>
+                          <div className={`w-3 h-3 rounded-full ${getPriorityColor(insight.priority)}`} />
+                          <Badge variant="secondary" className="text-xs">
+                            {insight.category.charAt(0).toUpperCase() + insight.category.slice(1)}
                           </Badge>
                         </div>
                         
-                        <div className="space-y-3">
-                          <div>
-                            <p className="text-foreground mb-2">{insight.description}</p>
-                            <div className="text-sm text-destructive bg-destructive/10 p-3 rounded border border-destructive/20">
-                              <strong>Business Impact:</strong> {insight.impact}
+                        <div className="space-y-4">
+                          <div className="bg-gray-50 rounded-lg p-4">
+                            <p className="text-gray-700 mb-2">{insight.description}</p>
+                            <div className="text-sm text-red-700 bg-red-50 p-3 rounded border-l-4 border-red-200">
+                              <strong>Impact:</strong> {insight.impact}
                             </div>
                           </div>
 
-                          <div className="bg-primary/5 border border-primary/20 rounded p-4">
-                            <h5 className="font-medium text-primary mb-2">Recommended Action Plan</h5>
-                            <p className="text-primary/90 mb-3">{insight.recommendation}</p>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                          <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+                            <h5 className="font-semibold text-blue-900 mb-2 flex items-center gap-2">
+                              <CheckCircle className="h-4 w-4" />
+                              Action Plan
+                            </h5>
+                            <p className="text-blue-800 mb-3">{insight.recommendation}</p>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                               <div>
-                                <strong className="text-primary">Expected Outcome:</strong>
-                                <p className="text-primary/80">{insight.expectedOutcome}</p>
+                                <div className="font-medium text-blue-900">Expected Outcome:</div>
+                                <p className="text-sm text-blue-700">{insight.expectedOutcome}</p>
                               </div>
                               <div>
-                                <strong className="text-primary">Timeline:</strong>
-                                <p className="text-primary/80">{insight.timeframe}</p>
+                                <div className="font-medium text-blue-900">Timeline:</div>
+                                <p className="text-sm text-blue-700">{insight.timeframe}</p>
                               </div>
                             </div>
                           </div>
 
                           {insight.metrics && insight.metrics.length > 0 && (
-                            <div className="bg-muted/50 rounded p-3">
-                              <h6 className="font-medium text-foreground mb-2">Key Metrics</h6>
-                              <div className="grid grid-cols-2 gap-3 text-sm">
+                            <div className="bg-white border rounded-lg p-4">
+                              <h6 className="font-medium text-gray-900 mb-3">Key Metrics</h6>
+                              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                                 {insight.metrics.map((metric, idx) => (
-                                  <div key={idx} className="flex justify-between">
-                                    <span className="text-muted-foreground">{metric.label}:</span>
-                                    <span className="font-medium">{metric.value}</span>
+                                  <div key={idx} className="text-center p-3 bg-gray-50 rounded">
+                                    <div className="font-semibold text-gray-900">{metric.value}</div>
+                                    <div className="text-sm text-gray-600">{metric.label}</div>
                                   </div>
                                 ))}
                               </div>
@@ -355,16 +368,31 @@ export const BusinessAnalysisCard: React.FC<BusinessAnalysisCardProps> = ({
               ))}
             </div>
 
-            {insights.length > 0 && (
-              <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg">
-                <h4 className="font-medium text-green-900 mb-2">New Business Success Framework</h4>
-                <p className="text-green-800 text-sm">
-                  These insights are specifically tailored for growing moving businesses. Focus on 1-2 critical items first, 
-                  then tackle high-priority recommendations. Success in the moving industry comes from consistent service quality, 
-                  efficient operations, and strong customer relationships.
-                </p>
+            {/* Success Framework */}
+            <div className="bg-green-50 border border-green-200 rounded-lg p-6">
+              <h4 className="font-semibold text-green-900 mb-3 flex items-center gap-2">
+                <CheckCircle className="h-5 w-5" />
+                Moving Business Success Framework
+              </h4>
+              <p className="text-green-800 mb-4">
+                These insights are specifically designed for growing moving businesses. Focus on addressing 
+                critical and high-priority items first, then gradually work through medium-priority recommendations.
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                <div className="text-center">
+                  <div className="font-medium text-green-900">Foundation</div>
+                  <div className="text-green-700">Service Quality & Processes</div>
+                </div>
+                <div className="text-center">
+                  <div className="font-medium text-green-900">Growth</div>
+                  <div className="text-green-700">Customer Acquisition & Retention</div>
+                </div>
+                <div className="text-center">
+                  <div className="font-medium text-green-900">Scale</div>
+                  <div className="text-green-700">Operations & Profitability</div>
+                </div>
               </div>
-            )}
+            </div>
           </div>
         )}
       </CardContent>
