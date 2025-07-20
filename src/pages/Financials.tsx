@@ -1,10 +1,10 @@
-
 import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { BusinessAnalysisCard } from '@/components/BusinessAnalysisCard';
+import { DateRangeFilter, DateRange } from '@/components/DateRangeFilter';
 import { useJobs } from '@/hooks/useJobs';
 import { useEmployees } from '@/hooks/useEmployees';
 import { useLeads } from '@/hooks/useLeads';
@@ -21,17 +21,32 @@ import {
   ArrowDownRight,
   Minus
 } from 'lucide-react';
-import { LineChart, Line, AreaChart, Area, BarChart, Bar, PieChart as RechartsPieChart, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { 
+  LineChart, 
+  Line, 
+  AreaChart, 
+  Area, 
+  BarChart, 
+  Bar, 
+  PieChart as RechartsPieChart, 
+  Pie,
+  Cell, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  Legend, 
+  ResponsiveContainer 
+} from 'recharts';
 
 export const Financials = () => {
   const { jobs } = useJobs();
   const { employees } = useEmployees();
   const { leads } = useLeads();
   const { timeEntries } = useTimeEntries();
-  const [selectedPeriod, setSelectedPeriod] = useState('this_month');
+  const [selectedPeriod, setSelectedPeriod] = useState<DateRange>('this_month');
   const [showBusinessAnalysis, setShowBusinessAnalysis] = useState(false);
 
-  // Calculate comprehensive financial metrics
   const financialData = useMemo(() => {
     const completedJobs = jobs.filter(job => job.status === 'completed');
     const totalRevenue = completedJobs.reduce((sum, job) => {
@@ -101,7 +116,7 @@ export const Financials = () => {
       serviceBreakdown,
       averageJobValue: completedJobs.length > 0 ? Math.round(totalRevenue / completedJobs.length) : 0,
       totalJobs: completedJobs.length,
-      revenueGrowth: 15.2, // Simplified growth calculation
+      revenueGrowth: 15.2,
     };
   }, [jobs]);
 
@@ -120,33 +135,29 @@ export const Financials = () => {
   };
 
   return (
-    <div className="h-full w-full bg-background">
+    <div className="h-full w-full bg-gradient-to-br from-slate-50 to-gray-100">
       <ScrollArea className="h-full w-full">
         <div className="p-4 sm:p-6 space-y-6">
           {/* Header */}
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <div>
-              <h1 className="text-3xl font-bold text-slate-900">Financial Dashboard</h1>
+            <div className="bg-white/80 backdrop-blur-sm rounded-lg p-4 border border-slate-200 shadow-sm">
+              <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-900 to-purple-900 bg-clip-text text-transparent">
+                Financial Dashboard
+              </h1>
               <p className="text-slate-600 mt-1">Comprehensive financial analytics and insights</p>
             </div>
             
             <div className="flex items-center gap-3">
-              <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
-                <SelectTrigger className="w-40">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="this_week">This Week</SelectItem>
-                  <SelectItem value="this_month">This Month</SelectItem>
-                  <SelectItem value="this_quarter">This Quarter</SelectItem>
-                  <SelectItem value="this_year">This Year</SelectItem>
-                </SelectContent>
-              </Select>
+              <DateRangeFilter
+                selectedRange={selectedPeriod}
+                onRangeChange={setSelectedPeriod}
+                className="bg-white/80 backdrop-blur-sm shadow-sm"
+              />
               
               <Button 
                 onClick={() => setShowBusinessAnalysis(!showBusinessAnalysis)}
                 variant={showBusinessAnalysis ? "default" : "outline"}
-                className="flex items-center gap-2"
+                className="flex items-center gap-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white border-0 shadow-lg"
               >
                 <Target className="h-4 w-4" />
                 Business Insights
@@ -156,11 +167,13 @@ export const Financials = () => {
 
           {/* Key Financial Metrics */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <Card className="border-l-4 border-l-blue-500 bg-gradient-to-r from-blue-50 to-white">
+            <Card className="border-l-4 border-l-blue-500 bg-gradient-to-br from-blue-50 via-white to-blue-50/30 shadow-lg hover:shadow-xl transition-all duration-300">
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-sm font-medium text-slate-600">Total Revenue</CardTitle>
-                  <DollarSign className="h-5 w-5 text-blue-600" />
+                  <div className="p-2 bg-blue-100 rounded-full">
+                    <DollarSign className="h-5 w-5 text-blue-600" />
+                  </div>
                 </div>
               </CardHeader>
               <CardContent>
@@ -172,11 +185,13 @@ export const Financials = () => {
               </CardContent>
             </Card>
 
-            <Card className="border-l-4 border-l-green-500 bg-gradient-to-r from-green-50 to-white">
+            <Card className="border-l-4 border-l-emerald-500 bg-gradient-to-br from-emerald-50 via-white to-emerald-50/30 shadow-lg hover:shadow-xl transition-all duration-300">
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-sm font-medium text-slate-600">Gross Profit</CardTitle>
-                  <TrendingUp className="h-5 w-5 text-green-600" />
+                  <div className="p-2 bg-emerald-100 rounded-full">
+                    <TrendingUp className="h-5 w-5 text-emerald-600" />
+                  </div>
                 </div>
               </CardHeader>
               <CardContent>
@@ -188,11 +203,13 @@ export const Financials = () => {
               </CardContent>
             </Card>
 
-            <Card className="border-l-4 border-l-orange-500 bg-gradient-to-r from-orange-50 to-white">
+            <Card className="border-l-4 border-l-orange-500 bg-gradient-to-br from-orange-50 via-white to-orange-50/30 shadow-lg hover:shadow-xl transition-all duration-300">
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-sm font-medium text-slate-600">Total Expenses</CardTitle>
-                  <TrendingDown className="h-5 w-5 text-orange-600" />
+                  <div className="p-2 bg-orange-100 rounded-full">
+                    <TrendingDown className="h-5 w-5 text-orange-600" />
+                  </div>
                 </div>
               </CardHeader>
               <CardContent>
@@ -203,11 +220,13 @@ export const Financials = () => {
               </CardContent>
             </Card>
 
-            <Card className="border-l-4 border-l-purple-500 bg-gradient-to-r from-purple-50 to-white">
+            <Card className="border-l-4 border-l-purple-500 bg-gradient-to-br from-purple-50 via-white to-purple-50/30 shadow-lg hover:shadow-xl transition-all duration-300">
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-sm font-medium text-slate-600">Avg. Job Value</CardTitle>
-                  <Calendar className="h-5 w-5 text-purple-600" />
+                  <div className="p-2 bg-purple-100 rounded-full">
+                    <Calendar className="h-5 w-5 text-purple-600" />
+                  </div>
                 </div>
               </CardHeader>
               <CardContent>
@@ -222,28 +241,30 @@ export const Financials = () => {
           {/* Charts Section */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Revenue Trend Chart */}
-            <Card className="col-span-1 lg:col-span-2">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <BarChart3 className="h-5 w-5 text-blue-600" />
-                  Revenue & Profit Trend
+            <Card className="col-span-1 lg:col-span-2 bg-white/80 backdrop-blur-sm shadow-lg border border-slate-200">
+              <CardHeader className="bg-gradient-to-r from-slate-50 to-gray-50 border-b border-slate-200">
+                <CardTitle className="flex items-center gap-2 text-slate-800">
+                  <div className="p-2 bg-blue-100 rounded-full">
+                    <BarChart3 className="h-5 w-5 text-blue-600" />
+                  </div>
+                  Revenue & Profit Performance
                 </CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="p-6">
                 <div className="h-80">
                   <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={financialData.monthlyData}>
+                    <AreaChart data={financialData.monthlyData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
                       <defs>
                         <linearGradient id="revenueGradient" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.3}/>
-                          <stop offset="95%" stopColor="#3B82F6" stopOpacity={0}/>
+                          <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.4}/>
+                          <stop offset="95%" stopColor="#3B82F6" stopOpacity={0.05}/>
                         </linearGradient>
                         <linearGradient id="profitGradient" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#10B981" stopOpacity={0.3}/>
-                          <stop offset="95%" stopColor="#10B981" stopOpacity={0}/>
+                          <stop offset="5%" stopColor="#10B981" stopOpacity={0.4}/>
+                          <stop offset="95%" stopColor="#10B981" stopOpacity={0.05}/>
                         </linearGradient>
                       </defs>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
+                      <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" opacity={0.6} />
                       <XAxis 
                         dataKey="month" 
                         stroke="#64748B"
@@ -260,10 +281,11 @@ export const Financials = () => {
                       />
                       <Tooltip 
                         contentStyle={{
-                          backgroundColor: 'white',
+                          backgroundColor: 'rgba(255, 255, 255, 0.95)',
                           border: '1px solid #E2E8F0',
-                          borderRadius: '8px',
-                          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                          borderRadius: '12px',
+                          boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+                          backdropFilter: 'blur(10px)'
                         }}
                         formatter={(value: number, name: string) => [
                           `$${value.toLocaleString()}`,
@@ -275,7 +297,7 @@ export const Financials = () => {
                         type="monotone"
                         dataKey="revenue"
                         stroke="#3B82F6"
-                        strokeWidth={2}
+                        strokeWidth={3}
                         fill="url(#revenueGradient)"
                         name="Revenue"
                       />
@@ -283,7 +305,7 @@ export const Financials = () => {
                         type="monotone"
                         dataKey="profit"
                         stroke="#10B981"
-                        strokeWidth={2}
+                        strokeWidth={3}
                         fill="url(#profitGradient)"
                         name="Profit"
                       />
@@ -294,14 +316,16 @@ export const Financials = () => {
             </Card>
 
             {/* Service Breakdown */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <PieChart className="h-5 w-5 text-indigo-600" />
-                  Revenue by Service
+            <Card className="bg-white/80 backdrop-blur-sm shadow-lg border border-slate-200">
+              <CardHeader className="bg-gradient-to-r from-slate-50 to-gray-50 border-b border-slate-200">
+                <CardTitle className="flex items-center gap-2 text-slate-800">
+                  <div className="p-2 bg-indigo-100 rounded-full">
+                    <PieChart className="h-5 w-5 text-indigo-600" />
+                  </div>
+                  Revenue by Service Type
                 </CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="p-6">
                 <div className="h-64">
                   <ResponsiveContainer width="100%" height="100%">
                     <RechartsPieChart>
@@ -321,10 +345,11 @@ export const Financials = () => {
                       <Tooltip 
                         formatter={(value: number) => [`$${value.toLocaleString()}`, 'Revenue']}
                         contentStyle={{
-                          backgroundColor: 'white',
+                          backgroundColor: 'rgba(255, 255, 255, 0.95)',
                           border: '1px solid #E2E8F0',
-                          borderRadius: '8px',
-                          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                          borderRadius: '12px',
+                          boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)',
+                          backdropFilter: 'blur(10px)'
                         }}
                       />
                       <Legend />
@@ -335,18 +360,20 @@ export const Financials = () => {
             </Card>
 
             {/* Monthly Jobs */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Calendar className="h-5 w-5 text-teal-600" />
-                  Jobs Completed
+            <Card className="bg-white/80 backdrop-blur-sm shadow-lg border border-slate-200">
+              <CardHeader className="bg-gradient-to-r from-slate-50 to-gray-50 border-b border-slate-200">
+                <CardTitle className="flex items-center gap-2 text-slate-800">
+                  <div className="p-2 bg-teal-100 rounded-full">
+                    <Calendar className="h-5 w-5 text-teal-600" />
+                  </div>
+                  Jobs Completed Monthly
                 </CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="p-6">
                 <div className="h-64">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={financialData.monthlyData}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
+                    <BarChart data={financialData.monthlyData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" opacity={0.6} />
                       <XAxis 
                         dataKey="month" 
                         stroke="#64748B"
@@ -362,19 +389,26 @@ export const Financials = () => {
                       />
                       <Tooltip 
                         contentStyle={{
-                          backgroundColor: 'white',
+                          backgroundColor: 'rgba(255, 255, 255, 0.95)',
                           border: '1px solid #E2E8F0',
-                          borderRadius: '8px',
-                          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                          borderRadius: '12px',
+                          boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)',
+                          backdropFilter: 'blur(10px)'
                         }}
                         formatter={(value: number) => [`${value}`, 'Jobs']}
                       />
                       <Bar 
                         dataKey="jobs" 
-                        fill="#0D9488"
-                        radius={[4, 4, 0, 0]}
+                        fill="url(#jobsGradient)"
+                        radius={[8, 8, 0, 0]}
                         name="Jobs"
                       />
+                      <defs>
+                        <linearGradient id="jobsGradient" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#0D9488" stopOpacity={0.8}/>
+                          <stop offset="95%" stopColor="#0D9488" stopOpacity={0.3}/>
+                        </linearGradient>
+                      </defs>
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
@@ -384,7 +418,9 @@ export const Financials = () => {
 
           {/* Business Analysis */}
           {showBusinessAnalysis && (
-            <BusinessAnalysisCard selectedDateRange={selectedPeriod} />
+            <div className="bg-white/80 backdrop-blur-sm rounded-lg shadow-lg border border-slate-200">
+              <BusinessAnalysisCard selectedDateRange={selectedPeriod} />
+            </div>
           )}
         </div>
       </ScrollArea>
