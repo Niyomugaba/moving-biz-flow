@@ -103,7 +103,7 @@ export const Jobs = () => {
     
     const csvRows = [];
     const headers = [
-      'Job Number', 'Client Name', 'Client Phone', 'Status', 'Scheduled Date', 
+      'Job Number', 'Client Name', 'Client Phone', 'Status', 'Job Date', 
       'Origin', 'Destination', 'Estimated Total', 'Actual Total', 'Created Date'
     ];
     csvRows.push(headers.join(','));
@@ -114,7 +114,7 @@ export const Jobs = () => {
         job.client_name || '',
         job.client_phone || '',
         job.status || '',
-        job.scheduled_date || '',
+        job.job_date || '',
         job.origin_address || '',
         job.destination_address || '',
         job.estimated_total || 0,
@@ -273,10 +273,10 @@ export const Jobs = () => {
                         </div>
                       )}
                       
-                      {job.scheduled_date && (
+                      {job.job_date && (
                         <div className="flex items-center gap-2 text-gray-600">
                           <Calendar className="h-4 w-4" />
-                          <span className="text-sm">{new Date(job.scheduled_date).toLocaleDateString()}</span>
+                          <span className="text-sm">{new Date(job.job_date).toLocaleDateString()}</span>
                         </div>
                       )}
                       
@@ -330,7 +330,7 @@ export const Jobs = () => {
                     <TableHead>Job</TableHead>
                     <TableHead>Client</TableHead>
                     <TableHead>Status</TableHead>
-                    <TableHead>Scheduled</TableHead>
+                    <TableHead>Job Date</TableHead>
                     <TableHead>Value</TableHead>
                     <TableHead>Duration</TableHead>
                     <TableHead>Actions</TableHead>
@@ -359,7 +359,7 @@ export const Jobs = () => {
                         <StatusBadge status={job.status} variant="job" />
                       </TableCell>
                       <TableCell>
-                        {job.scheduled_date ? new Date(job.scheduled_date).toLocaleDateString() : '-'}
+                        {job.job_date ? new Date(job.job_date).toLocaleDateString() : '-'}
                       </TableCell>
                       <TableCell>${job.estimated_total || 0}</TableCell>
                       <TableCell>{job.estimated_duration_hours || 4}h</TableCell>

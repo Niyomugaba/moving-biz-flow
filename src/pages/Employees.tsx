@@ -32,7 +32,7 @@ import {
 const ITEMS_PER_PAGE = 12;
 
 export const Employees = () => {
-  const { employees, isLoading, addEmployee, updateEmployee, deleteEmployee } = useEmployees();
+  const { employees, isLoading, addEmployee, updateEmployee, deleteEmployee, isAddingEmployee, isUpdatingEmployee, isDeletingEmployee } = useEmployees();
   const { canAccess } = useAuth();
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [showAddDialog, setShowAddDialog] = useState(false);
@@ -429,6 +429,7 @@ export const Employees = () => {
           <AddEmployeeDialog
             open={showAddDialog}
             onOpenChange={setShowAddDialog}
+            onAddEmployee={addEmployee}
           />
 
           {showEditDialog && selectedEmployee && (
@@ -436,6 +437,10 @@ export const Employees = () => {
               open={showEditDialog}
               onOpenChange={setShowEditDialog}
               employee={selectedEmployee}
+              onUpdateEmployee={updateEmployee}
+              onDeleteEmployee={deleteEmployee}
+              isUpdating={isUpdatingEmployee}
+              isDeleting={isDeletingEmployee}
             />
           )}
         </div>
