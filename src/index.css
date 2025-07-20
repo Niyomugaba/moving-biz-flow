@@ -3,7 +3,7 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. */
+/* Enhanced design system with better animations, typography, and visual polish */
 
 @layer base {
   :root {
@@ -46,7 +46,8 @@
     --sidebar-border: 220 13% 91%;
     --sidebar-ring: 267 100% 32%;
 
-    /* Custom purple and gold colors */
+    /* Enhanced purple and gold colors with more variants */
+    --purple-25: 250 100% 99%;
     --purple-50: 250 100% 97%;
     --purple-100: 244 100% 94%;
     --purple-200: 243 100% 88%;
@@ -57,7 +58,9 @@
     --purple-700: 267 100% 28%;
     --purple-800: 267 100% 24%;
     --purple-900: 267 100% 20%;
+    --purple-950: 267 100% 16%;
 
+    --gold-25: 48 100% 99%;
     --gold-50: 48 100% 97%;
     --gold-100: 48 96% 89%;
     --gold-200: 48 97% 77%;
@@ -68,6 +71,43 @@
     --gold-700: 26 90% 37%;
     --gold-800: 23 83% 31%;
     --gold-900: 22 78% 26%;
+    --gold-950: 22 78% 22%;
+
+    /* Status colors */
+    --success: 142 76% 36%;
+    --success-foreground: 138 76% 97%;
+    --warning: 43 96% 56%;
+    --warning-foreground: 43 96% 8%;
+    --error: 0 84% 60%;
+    --error-foreground: 0 0% 98%;
+    --info: 214 95% 93%;
+    --info-foreground: 214 84% 5%;
+
+    /* Spacing scale */
+    --spacing-xs: 0.25rem;
+    --spacing-sm: 0.5rem;
+    --spacing-md: 1rem;
+    --spacing-lg: 1.5rem;
+    --spacing-xl: 2rem;
+    --spacing-2xl: 3rem;
+    --spacing-3xl: 4rem;
+
+    /* Typography scale */
+    --text-xs: 0.75rem;
+    --text-sm: 0.875rem;
+    --text-base: 1rem;
+    --text-lg: 1.125rem;
+    --text-xl: 1.25rem;
+    --text-2xl: 1.5rem;
+    --text-3xl: 1.875rem;
+    --text-4xl: 2.25rem;
+
+    /* Shadows */
+    --shadow-sm: 0 1px 2px 0 hsl(0 0% 0% / 0.05);
+    --shadow-md: 0 4px 6px -1px hsl(0 0% 0% / 0.1), 0 2px 4px -2px hsl(0 0% 0% / 0.1);
+    --shadow-lg: 0 10px 15px -3px hsl(0 0% 0% / 0.1), 0 4px 6px -4px hsl(0 0% 0% / 0.1);
+    --shadow-xl: 0 20px 25px -5px hsl(0 0% 0% / 0.1), 0 8px 10px -6px hsl(0 0% 0% / 0.1);
+    --shadow-2xl: 0 25px 50px -12px hsl(0 0% 0% / 0.25);
   }
 
   .dark {
@@ -115,33 +155,313 @@
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+
+  /* Enhanced typography */
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-semibold tracking-tight;
+  }
+
+  h1 {
+    @apply text-4xl leading-tight;
+  }
+
+  h2 {
+    @apply text-3xl leading-tight;
+  }
+
+  h3 {
+    @apply text-2xl leading-snug;
+  }
+
+  h4 {
+    @apply text-xl leading-snug;
+  }
+
+  h5 {
+    @apply text-lg leading-normal;
+  }
+
+  h6 {
+    @apply text-base leading-normal;
+  }
+
+  p {
+    @apply leading-relaxed;
   }
 }
 
-/* Custom utility classes for solid colors */
+/* Enhanced animation system */
 @layer utilities {
-  .bg-purple-solid {
-    @apply bg-purple-600;
+  /* Smooth transitions */
+  .transition-smooth {
+    @apply transition-all duration-300 ease-out;
+  }
+
+  .transition-fast {
+    @apply transition-all duration-150 ease-out;
+  }
+
+  .transition-slow {
+    @apply transition-all duration-500 ease-out;
+  }
+
+  /* Hover animations */
+  .hover-lift {
+    @apply transition-smooth hover:transform hover:-translate-y-1 hover:shadow-lg;
+  }
+
+  .hover-scale {
+    @apply transition-fast hover:transform hover:scale-105;
+  }
+
+  .hover-scale-sm {
+    @apply transition-fast hover:transform hover:scale-102;
+  }
+
+  /* Focus styles */
+  .focus-ring {
+    @apply focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background;
+  }
+
+  /* Enhanced button styles */
+  .btn-primary {
+    @apply bg-primary text-primary-foreground hover:bg-primary/90 focus-ring transition-smooth;
+  }
+
+  .btn-secondary {
+    @apply bg-secondary text-secondary-foreground hover:bg-secondary/80 focus-ring transition-smooth;
+  }
+
+  .btn-outline {
+    @apply border border-input bg-background hover:bg-accent hover:text-accent-foreground focus-ring transition-smooth;
+  }
+
+  .btn-ghost {
+    @apply hover:bg-accent hover:text-accent-foreground focus-ring transition-smooth;
+  }
+
+  /* Card enhancements */
+  .card-elevated {
+    @apply bg-card border shadow-md hover:shadow-lg transition-smooth;
+  }
+
+  .card-interactive {
+    @apply card-elevated hover-lift cursor-pointer;
+  }
+
+  /* Status colors */
+  .status-success {
+    @apply bg-green-50 text-green-700 border-green-200;
+  }
+
+  .status-warning {
+    @apply bg-yellow-50 text-yellow-700 border-yellow-200;
+  }
+
+  .status-error {
+    @apply bg-red-50 text-red-700 border-red-200;
+  }
+
+  .status-info {
+    @apply bg-blue-50 text-blue-700 border-blue-200;
+  }
+
+  /* Gradient backgrounds */
+  .gradient-purple {
+    @apply bg-gradient-to-r from-purple-600 to-purple-700;
+  }
+
+  .gradient-gold {
+    @apply bg-gradient-to-r from-yellow-500 to-yellow-600;
+  }
+
+  .gradient-subtle {
+    @apply bg-gradient-to-br from-purple-50 to-blue-50;
+  }
+
+  /* Loading animations */
+  .pulse-slow {
+    @apply animate-pulse;
+    animation-duration: 2s;
+  }
+
+  .shimmer {
+    @apply relative overflow-hidden;
+  }
+
+  .shimmer::before {
+    @apply absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent;
+    content: '';
+    animation: shimmer 2s infinite;
+    transform: translateX(-100%);
+  }
+
+  /* Form enhancements */
+  .input-enhanced {
+    @apply border border-input bg-background px-3 py-2 text-sm ring-offset-background 
+           placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 
+           focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed 
+           disabled:opacity-50 transition-smooth;
+  }
+
+  .input-error {
+    @apply border-red-500 focus-visible:ring-red-500;
+  }
+
+  .input-success {
+    @apply border-green-500 focus-visible:ring-green-500;
+  }
+
+  /* Table enhancements */
+  .table-enhanced {
+    @apply w-full border-collapse;
+  }
+
+  .table-enhanced thead {
+    @apply bg-muted/50;
+  }
+
+  .table-enhanced th {
+    @apply border-b px-4 py-3 text-left align-middle font-medium text-muted-foreground;
+  }
+
+  .table-enhanced td {
+    @apply border-b px-4 py-3 align-middle;
+  }
+
+  .table-enhanced tbody tr {
+    @apply transition-colors hover:bg-muted/50;
+  }
+
+  /* Modal enhancements */
+  .modal-backdrop {
+    @apply fixed inset-0 z-50 bg-background/80 backdrop-blur-sm;
+  }
+
+  .modal-content {
+    @apply fixed left-1/2 top-1/2 z-50 w-full max-w-lg -translate-x-1/2 -translate-y-1/2 
+           border bg-background p-6 shadow-lg duration-200 sm:rounded-lg;
+  }
+
+  /* Spacing utilities */
+  .space-xs > * + * {
+    margin-top: var(--spacing-xs);
+  }
+
+  .space-sm > * + * {
+    margin-top: var(--spacing-sm);
+  }
+
+  .space-md > * + * {
+    margin-top: var(--spacing-md);
+  }
+
+  .space-lg > * + * {
+    margin-top: var(--spacing-lg);
+  }
+
+  .space-xl > * + * {
+    margin-top: var(--spacing-xl);
+  }
+
+  /* Text utilities */
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .text-pretty {
+    text-wrap: pretty;
+  }
+}
+
+/* Custom keyframes */
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Animation classes */
+.animate-fade-in {
+  animation: fade-in 0.3s ease-out;
+}
+
+.animate-scale-in {
+  animation: scale-in 0.2s ease-out;
+}
+
+.animate-slide-up {
+  animation: slide-up 0.4s ease-out;
+}
+
+/* Print styles */
+@media print {
+  .no-print {
+    display: none !important;
   }
   
-  .bg-gold-solid {
-    @apply bg-yellow-500;
+  .print-break {
+    page-break-after: always;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .card-elevated {
+    @apply border-2;
   }
   
-  .text-purple-solid {
-    @apply text-purple-600;
+  .btn-primary, .btn-secondary, .btn-outline {
+    @apply border-2;
   }
-  
-  .text-gold-solid {
-    @apply text-yellow-500;
-  }
-  
-  .border-purple-solid {
-    @apply border-purple-600;
-  }
-  
-  .border-gold-solid {
-    @apply border-yellow-500;
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }
