@@ -17,6 +17,7 @@ export interface Job {
   hourly_rate: number;
   movers_needed: number;
   estimated_total: number;
+  estimated_duration_hours?: number;
   actual_duration_hours?: number;
   actual_total?: number;
   truck_size?: string;
