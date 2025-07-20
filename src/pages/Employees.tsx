@@ -25,7 +25,8 @@ import {
   UserCheck,
   UserX,
   Clock,
-  Shield
+  Shield,
+  Download
 } from 'lucide-react';
 
 const ITEMS_PER_PAGE = 12;
@@ -106,6 +107,42 @@ export const Employees = () => {
     }
   };
 
+  const exportEmployeesToCSV = () => {
+    if (!employees.length) return;
+    
+    const csvRows = [];
+    const headers = [
+      'Name', 'Employee Number', 'Phone', 'Email', 'Status', 'Hourly Rate', 
+      'Department', 'Position', 'Hire Date', 'Address'
+    ];
+    csvRows.push(headers.join(','));
+
+    for (const employee of filteredEmployees) {
+      const values = [
+        employee.name || '',
+        employee.employee_number || '',
+        employee.phone || '',
+        employee.email || '',
+        employee.status || '',
+        employee.hourly_wage || 0,
+        employee.department || '',
+        employee.position || '',
+        employee.hire_date || '',
+        employee.address || ''
+      ].map(value => `"${value}"`);
+      
+      csvRows.push(values.join(','));
+    }
+
+    const csvData = csvRows.join('\n');
+    const blob = new Blob([csvData], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.setAttribute('href', url);
+    a.setAttribute('download', 'employees_report.csv');
+    a.click();
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -117,22 +154,32 @@ export const Employees = () => {
   return (
     <div className="h-full w-full bg-blue-50">
       <ScrollArea className="h-full w-full">
-        <div className="p-4 md:p-6 space-y-6">
+        <div className="space-y-6 p-4 md:p-6 min-h-screen">
           {/* Header */}
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
             <div>
               <h1 className="text-2xl sm:text-3xl font-bold text-purple-800">Employees</h1>
               <p className="text-purple-600">Manage your team members</p>
             </div>
-            {canAccess(['owner', 'admin', 'manager']) && (
+            <div className="flex gap-2">
               <Button 
-                onClick={() => setShowAddDialog(true)}
-                className="bg-purple-600 hover:bg-purple-700 w-full sm:w-auto"
+                onClick={exportEmployeesToCSV}
+                variant="outline"
+                className="w-full sm:w-auto"
               >
-                <Plus className="h-4 w-4 mr-2" />
-                Add Employee
+                <Download className="w-4 h-4 mr-2" />
+                Export CSV
               </Button>
-            )}
+              {canAccess(['owner', 'admin', 'manager']) && (
+                <Button 
+                  onClick={() => setShowAddDialog(true)}
+                  className="bg-purple-600 hover:bg-purple-700 w-full sm:w-auto"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Employee
+                </Button>
+              )}
+            </div>
           </div>
 
           {/* Filters and Controls */}
@@ -382,7 +429,6 @@ export const Employees = () => {
           <AddEmployeeDialog
             open={showAddDialog}
             onOpenChange={setShowAddDialog}
-            onAddEmployee={addEmployee}
           />
 
           {showEditDialog && selectedEmployee && (
@@ -390,10 +436,6 @@ export const Employees = () => {
               open={showEditDialog}
               onOpenChange={setShowEditDialog}
               employee={selectedEmployee}
-              onUpdateEmployee={updateEmployee}
-              onDeleteEmployee={deleteEmployee}
-              isUpdating={false}
-              isDeleting={false}
             />
           )}
         </div>

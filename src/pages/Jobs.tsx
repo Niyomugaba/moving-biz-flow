@@ -1,37 +1,35 @@
 
 import React, { useState, useMemo } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useJobs, Job } from '@/hooks/useJobs';
 import { useAuth } from '@/hooks/useAuth';
 import { ScheduleJobDialog } from '@/components/ScheduleJobDialog';
 import { EditJobDialog } from '@/components/EditJobDialog';
 import { JobPaymentDialog } from '@/components/JobPaymentDialog';
-import { StatusBadge } from '@/components/StatusBadge';
 import { PaginationControls } from '@/components/PaginationControls';
+import { StatusBadge } from '@/components/StatusBadge';
 import { 
-  Calendar, 
-  MapPin, 
+  Briefcase, 
   Phone, 
+  Mail, 
+  MapPin, 
+  Calendar, 
   DollarSign, 
-  Users, 
-  Clock, 
-  Edit, 
+  Edit,
   Plus,
   Search,
-  Filter,
-  MoreHorizontal,
-  CheckCircle,
-  AlertTriangle,
-  XCircle
+  Clock,
+  User,
+  Download
 } from 'lucide-react';
 
-const ITEMS_PER_PAGE = 10;
+const ITEMS_PER_PAGE = 12;
 
 export const Jobs = () => {
   const { jobs, isLoading, addJob, updateJob, deleteJob } = useJobs();
@@ -44,13 +42,14 @@ export const Jobs = () => {
   const [itemsPerPage, setItemsPerPage] = useState(ITEMS_PER_PAGE);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [sortBy, setSortBy] = useState<'date' | 'status' | 'value'>('date');
+  const [sortBy, setSortBy] = useState<'date' | 'value' | 'status' | 'client'>('date');
   const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
 
   const filteredJobs = useMemo(() => {
     let filtered = jobs.filter(job => {
-      const matchesSearch = job.job_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           job.client_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      const matchesSearch = job.client_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           job.job_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           job.client_phone?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            job.origin_address?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            job.destination_address?.toLowerCase().includes(searchTerm.toLowerCase());
       
@@ -63,11 +62,13 @@ export const Jobs = () => {
     filtered.sort((a, b) => {
       switch (sortBy) {
         case 'date':
-          return new Date(b.job_date || b.created_at).getTime() - new Date(a.job_date || a.created_at).getTime();
-        case 'status':
-          return (a.status || '').localeCompare(b.status || '');
+          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
         case 'value':
           return (b.estimated_total || 0) - (a.estimated_total || 0);
+        case 'status':
+          return (a.status || '').localeCompare(b.status || '');
+        case 'client':
+          return (a.client_name || '').localeCompare(b.client_name || '');
         default:
           return 0;
       }
@@ -82,17 +83,55 @@ export const Jobs = () => {
     currentPage * itemsPerPage
   );
 
-  const getStatusIcon = (status: string) => {
+  const getStatusColor = (status: string) => {
     switch (status) {
-      case 'completed':
-        return <CheckCircle className="h-4 w-4 text-green-600" />;
+      case 'scheduled':
+        return 'bg-blue-100 text-blue-800';
       case 'in_progress':
-        return <Clock className="h-4 w-4 text-blue-600" />;
+        return 'bg-yellow-100 text-yellow-800';
+      case 'completed':
+        return 'bg-green-100 text-green-800';
       case 'cancelled':
-        return <XCircle className="h-4 w-4 text-red-600" />;
+        return 'bg-red-100 text-red-800';
       default:
-        return <AlertTriangle className="h-4 w-4 text-yellow-600" />;
+        return 'bg-gray-100 text-gray-800';
     }
+  };
+
+  const exportJobsToCSV = () => {
+    if (!jobs.length) return;
+    
+    const csvRows = [];
+    const headers = [
+      'Job Number', 'Client Name', 'Client Phone', 'Status', 'Scheduled Date', 
+      'Origin', 'Destination', 'Estimated Total', 'Actual Total', 'Created Date'
+    ];
+    csvRows.push(headers.join(','));
+
+    for (const job of filteredJobs) {
+      const values = [
+        job.job_number || '',
+        job.client_name || '',
+        job.client_phone || '',
+        job.status || '',
+        job.scheduled_date || '',
+        job.origin_address || '',
+        job.destination_address || '',
+        job.estimated_total || 0,
+        job.actual_total || 0,
+        new Date(job.created_at).toLocaleDateString()
+      ].map(value => `"${value}"`);
+      
+      csvRows.push(values.join(','));
+    }
+
+    const csvData = csvRows.join('\n');
+    const blob = new Blob([csvData], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.setAttribute('href', url);
+    a.setAttribute('download', 'jobs_report.csv');
+    a.click();
   };
 
   if (isLoading) {
@@ -106,22 +145,32 @@ export const Jobs = () => {
   return (
     <div className="h-full w-full bg-blue-50">
       <ScrollArea className="h-full w-full">
-        <div className="p-4 md:p-6 space-y-6">
+        <div className="space-y-6 p-4 md:p-6 min-h-screen">
           {/* Header */}
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
             <div>
               <h1 className="text-2xl sm:text-3xl font-bold text-purple-800">Jobs</h1>
-              <p className="text-purple-600">Manage and track all moving jobs</p>
+              <p className="text-purple-600">Manage your moving jobs and schedules</p>
             </div>
-            {canAccess(['owner', 'admin', 'manager']) && (
+            <div className="flex gap-2">
               <Button 
-                onClick={() => setShowScheduleDialog(true)}
-                className="bg-purple-600 hover:bg-purple-700 w-full sm:w-auto"
+                onClick={exportJobsToCSV}
+                variant="outline"
+                className="w-full sm:w-auto"
               >
-                <Plus className="h-4 w-4 mr-2" />
-                Schedule Job
+                <Download className="w-4 h-4 mr-2" />
+                Export CSV
               </Button>
-            )}
+              {canAccess(['owner', 'admin', 'manager']) && (
+                <Button 
+                  onClick={() => setShowScheduleDialog(true)}
+                  className="bg-purple-600 hover:bg-purple-700 w-full sm:w-auto"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Schedule Job
+                </Button>
+              )}
+            </div>
           </div>
 
           {/* Filters and Controls */}
@@ -131,7 +180,7 @@ export const Jobs = () => {
                 <div className="relative">
                   <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                   <Input
-                    placeholder="Search jobs by number, client, or address..."
+                    placeholder="Search jobs by client, job number, or address..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="pl-10"
@@ -141,12 +190,11 @@ export const Jobs = () => {
               
               <div className="flex gap-2">
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="w-48">
+                  <SelectTrigger className="w-40">
                     <SelectValue placeholder="Filter by status" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Statuses</SelectItem>
-                    <SelectItem value="pending_schedule">Pending Schedule</SelectItem>
                     <SelectItem value="scheduled">Scheduled</SelectItem>
                     <SelectItem value="in_progress">In Progress</SelectItem>
                     <SelectItem value="completed">Completed</SelectItem>
@@ -154,14 +202,15 @@ export const Jobs = () => {
                   </SelectContent>
                 </Select>
 
-                <Select value={sortBy} onValueChange={(value) => setSortBy(value as 'date' | 'status' | 'value')}>
+                <Select value={sortBy} onValueChange={(value) => setSortBy(value as 'date' | 'value' | 'status' | 'client')}>
                   <SelectTrigger className="w-40">
                     <SelectValue placeholder="Sort by" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="date">Date</SelectItem>
-                    <SelectItem value="status">Status</SelectItem>
                     <SelectItem value="value">Value</SelectItem>
+                    <SelectItem value="status">Status</SelectItem>
+                    <SelectItem value="client">Client</SelectItem>
                   </SelectContent>
                 </Select>
 
@@ -186,96 +235,88 @@ export const Jobs = () => {
 
           {/* Content */}
           {viewMode === 'cards' ? (
-            <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {paginatedJobs.map((job) => (
                 <Card key={job.id} className="bg-white hover:shadow-lg transition-shadow border border-blue-200">
-                  <CardContent className="p-4 md:p-6">
+                  <CardHeader className="pb-3">
                     <div className="flex items-start justify-between">
-                      <div className="flex-1 space-y-3">
-                        <div className="flex items-center gap-3">
-                          {getStatusIcon(job.status)}
-                          <h3 className="text-lg font-semibold text-gray-900">
-                            {job.job_number}
-                          </h3>
-                          <StatusBadge status={job.status} />
+                      <div className="flex-1">
+                        <CardTitle className="text-lg font-semibold text-gray-900 mb-1">
+                          {job.job_number}
+                        </CardTitle>
+                        <div className="flex items-center gap-2 mb-2">
+                          <User className="h-3 w-3" />
+                          <span className="text-sm text-gray-600">{job.client_name}</span>
                         </div>
-                        
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                          <div className="flex items-center gap-2 text-gray-600">
-                            <Users className="h-4 w-4" />
-                            <span className="font-medium">{job.client_name}</span>
-                          </div>
-                          
-                          <div className="flex items-center gap-2 text-gray-600">
-                            <Calendar className="h-4 w-4" />
-                            <span>{job.job_date ? new Date(job.job_date).toLocaleDateString() : 'Not scheduled'}</span>
-                          </div>
-                          
-                          <div className="flex items-center gap-2 text-gray-600">
-                            <DollarSign className="h-4 w-4" />
-                            <span className="font-medium">
-                              ${job.actual_total || job.estimated_total || 0}
-                            </span>
-                          </div>
-                        </div>
-                        
-                        <div className="space-y-2">
-                          <div className="flex items-start gap-2 text-gray-600">
-                            <MapPin className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                            <div>
-                              <p className="text-sm">
-                                <span className="font-medium">From:</span> {job.origin_address || 'Not specified'}
-                              </p>
-                              <p className="text-sm">
-                                <span className="font-medium">To:</span> {job.destination_address || 'Not specified'}
-                              </p>
-                            </div>
-                          </div>
-                          
-                          {job.client_phone && (
-                            <div className="flex items-center gap-2 text-gray-600">
-                              <Phone className="h-4 w-4" />
-                              <span className="text-sm">{job.client_phone}</span>
-                            </div>
-                          )}
-                        </div>
+                        <StatusBadge status={job.status} variant="job" />
                       </div>
-                      
                       {canAccess(['owner', 'admin', 'manager']) && (
-                        <div className="flex items-center gap-2 ml-4">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                              setSelectedJob({
-                                ...job,
-                                is_paid: job.is_paid || false,
-                                estimated_duration_hours: job.estimated_duration_hours || 2
-                              });
-                              setShowEditDialog(true);
-                            }}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          
-                          {job.status === 'completed' && (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => {
-                                setSelectedJob({
-                                  ...job,
-                                  is_paid: job.is_paid || false,
-                                  estimated_duration_hours: job.estimated_duration_hours || 2
-                                });
-                                setShowPaymentDialog(true);
-                              }}
-                            >
-                              <DollarSign className="h-4 w-4" />
-                            </Button>
-                          )}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setSelectedJob({...job, is_paid: job.is_paid || false, estimated_duration_hours: job.estimated_duration_hours || 4});
+                            setShowEditDialog(true);
+                          }}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div className="space-y-2">
+                      {job.client_phone && (
+                        <div className="flex items-center gap-2 text-gray-600">
+                          <Phone className="h-4 w-4" />
+                          <span className="text-sm">{job.client_phone}</span>
                         </div>
                       )}
+                      
+                      {job.scheduled_date && (
+                        <div className="flex items-center gap-2 text-gray-600">
+                          <Calendar className="h-4 w-4" />
+                          <span className="text-sm">{new Date(job.scheduled_date).toLocaleDateString()}</span>
+                        </div>
+                      )}
+                      
+                      {job.origin_address && (
+                        <div className="flex items-start gap-2 text-gray-600">
+                          <MapPin className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                          <div className="text-sm">
+                            <p className="font-medium">From:</p>
+                            <p>{job.origin_address}</p>
+                            {job.destination_address && (
+                              <>
+                                <p className="font-medium mt-1">To:</p>
+                                <p>{job.destination_address}</p>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-4 pt-3 border-t border-gray-200">
+                      <div className="text-center">
+                        <div className="flex items-center justify-center gap-1 text-green-600 mb-1">
+                          <DollarSign className="h-4 w-4" />
+                        </div>
+                        <p className="text-sm font-medium text-gray-900">
+                          ${job.estimated_total || 0}
+                        </p>
+                        <p className="text-xs text-gray-500">Estimated</p>
+                      </div>
+                      
+                      <div className="text-center">
+                        <div className="flex items-center justify-center gap-1 text-blue-600 mb-1">
+                          <Clock className="h-4 w-4" />
+                        </div>
+                        <p className="text-sm font-medium text-gray-900">
+                          {job.estimated_duration_hours || 4}h
+                        </p>
+                        <p className="text-xs text-gray-500">Duration</p>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
@@ -286,12 +327,12 @@ export const Jobs = () => {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Job Number</TableHead>
+                    <TableHead>Job</TableHead>
                     <TableHead>Client</TableHead>
                     <TableHead>Status</TableHead>
-                    <TableHead>Date</TableHead>
+                    <TableHead>Scheduled</TableHead>
                     <TableHead>Value</TableHead>
-                    <TableHead>Addresses</TableHead>
+                    <TableHead>Duration</TableHead>
                     <TableHead>Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -299,9 +340,11 @@ export const Jobs = () => {
                   {paginatedJobs.map((job) => (
                     <TableRow key={job.id}>
                       <TableCell>
-                        <div className="flex items-center gap-2">
-                          {getStatusIcon(job.status)}
-                          <span className="font-medium">{job.job_number}</span>
+                        <div>
+                          <p className="font-medium">{job.job_number}</p>
+                          <p className="text-xs text-gray-500">
+                            {new Date(job.created_at).toLocaleDateString()}
+                          </p>
                         </div>
                       </TableCell>
                       <TableCell>
@@ -313,55 +356,25 @@ export const Jobs = () => {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <StatusBadge status={job.status} />
+                        <StatusBadge status={job.status} variant="job" />
                       </TableCell>
                       <TableCell>
-                        {job.job_date ? new Date(job.job_date).toLocaleDateString() : 'Not scheduled'}
+                        {job.scheduled_date ? new Date(job.scheduled_date).toLocaleDateString() : '-'}
                       </TableCell>
-                      <TableCell>
-                        ${job.actual_total || job.estimated_total || 0}
-                      </TableCell>
-                      <TableCell>
-                        <div className="text-xs">
-                          <p><span className="font-medium">From:</span> {job.origin_address || 'TBD'}</p>
-                          <p><span className="font-medium">To:</span> {job.destination_address || 'TBD'}</p>
-                        </div>
-                      </TableCell>
+                      <TableCell>${job.estimated_total || 0}</TableCell>
+                      <TableCell>{job.estimated_duration_hours || 4}h</TableCell>
                       <TableCell>
                         {canAccess(['owner', 'admin', 'manager']) && (
-                          <div className="flex items-center gap-1">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => {
-                                setSelectedJob({
-                                  ...job,
-                                  is_paid: job.is_paid || false,
-                                  estimated_duration_hours: job.estimated_duration_hours || 2
-                                });
-                                setShowEditDialog(true);
-                              }}
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            
-                            {job.status === 'completed' && (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => {
-                                  setSelectedJob({
-                                    ...job,
-                                    is_paid: job.is_paid || false,
-                                    estimated_duration_hours: job.estimated_duration_hours || 2
-                                  });
-                                  setShowPaymentDialog(true);
-                                }}
-                              >
-                                <DollarSign className="h-4 w-4" />
-                              </Button>
-                            )}
-                          </div>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setSelectedJob({...job, is_paid: job.is_paid || false, estimated_duration_hours: job.estimated_duration_hours || 4});
+                              setShowEditDialog(true);
+                            }}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
                         )}
                       </TableCell>
                     </TableRow>
@@ -375,7 +388,7 @@ export const Jobs = () => {
           {filteredJobs.length === 0 && (
             <div className="text-center py-12">
               <div className="text-gray-400 mb-4">
-                <Calendar className="h-16 w-16 mx-auto" />
+                <Briefcase className="h-16 w-16 mx-auto" />
               </div>
               <h3 className="text-lg font-medium text-gray-900 mb-2">No jobs found</h3>
               <p className="text-gray-600 mb-6">

@@ -22,8 +22,9 @@ import {
   Edit,
   Plus,
   Search,
+  Building,
   Star,
-  Building
+  Download
 } from 'lucide-react';
 
 const ITEMS_PER_PAGE = 12;
@@ -78,11 +79,47 @@ export const Clients = () => {
   const getRatingStars = (rating: number | null) => {
     if (!rating) return null;
     return Array.from({ length: 5 }, (_, i) => (
-      <Star
-        key={i}
-        className={`h-4 w-4 ${i < rating ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'}`}
+      <Star 
+        key={i} 
+        className={`h-3 w-3 ${i < rating ? 'text-yellow-400 fill-current' : 'text-gray-300'}`} 
       />
     ));
+  };
+
+  const exportClientsToCSV = () => {
+    if (!clients.length) return;
+    
+    const csvRows = [];
+    const headers = [
+      'Name', 'Phone', 'Email', 'Company', 'Primary Address', 'Jobs Completed', 
+      'Total Revenue', 'Rating', 'Preferred Contact', 'Created Date'
+    ];
+    csvRows.push(headers.join(','));
+
+    for (const client of filteredClients) {
+      const values = [
+        client.name || '',
+        client.phone || '',
+        client.email || '',
+        client.company_name || '',
+        client.primary_address || '',
+        client.total_jobs_completed || 0,
+        client.total_revenue || 0,
+        client.rating || '',
+        client.preferred_contact_method || '',
+        new Date(client.created_at).toLocaleDateString()
+      ].map(value => `"${value}"`);
+      
+      csvRows.push(values.join(','));
+    }
+
+    const csvData = csvRows.join('\n');
+    const blob = new Blob([csvData], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.setAttribute('href', url);
+    a.setAttribute('download', 'clients_report.csv');
+    a.click();
   };
 
   if (isLoading) {
@@ -96,22 +133,32 @@ export const Clients = () => {
   return (
     <div className="h-full w-full bg-blue-50">
       <ScrollArea className="h-full w-full">
-        <div className="p-4 md:p-6 space-y-6">
+        <div className="space-y-6 p-4 md:p-6 min-h-screen">
           {/* Header */}
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
             <div>
               <h1 className="text-2xl sm:text-3xl font-bold text-purple-800">Clients</h1>
               <p className="text-purple-600">Manage your client relationships</p>
             </div>
-            {canAccess(['owner', 'admin', 'manager']) && (
+            <div className="flex gap-2">
               <Button 
-                onClick={() => setShowAddDialog(true)}
-                className="bg-purple-600 hover:bg-purple-700 w-full sm:w-auto"
+                onClick={exportClientsToCSV}
+                variant="outline"
+                className="w-full sm:w-auto"
               >
-                <Plus className="h-4 w-4 mr-2" />
-                Add Client
+                <Download className="w-4 h-4 mr-2" />
+                Export CSV
               </Button>
-            )}
+              {canAccess(['owner', 'admin', 'manager']) && (
+                <Button 
+                  onClick={() => setShowAddDialog(true)}
+                  className="bg-purple-600 hover:bg-purple-700 w-full sm:w-auto"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Client
+                </Button>
+              )}
+            </div>
           </div>
 
           {/* Filters and Controls */}
@@ -138,7 +185,7 @@ export const Clients = () => {
                     <SelectItem value="name">Name</SelectItem>
                     <SelectItem value="date">Date Added</SelectItem>
                     <SelectItem value="revenue">Revenue</SelectItem>
-                    <SelectItem value="jobs">Jobs Count</SelectItem>
+                    <SelectItem value="jobs">Jobs</SelectItem>
                   </SelectContent>
                 </Select>
 
@@ -173,13 +220,13 @@ export const Clients = () => {
                           {client.name}
                         </CardTitle>
                         {client.company_name && (
-                          <div className="flex items-center gap-2 text-sm text-gray-600 mb-2">
-                            <Building className="h-4 w-4" />
+                          <div className="flex items-center gap-1 text-sm text-gray-600 mb-2">
+                            <Building className="h-3 w-3" />
                             <span>{client.company_name}</span>
                           </div>
                         )}
                         {client.rating && (
-                          <div className="flex items-center gap-1">
+                          <div className="flex items-center gap-1 mb-2">
                             {getRatingStars(client.rating)}
                           </div>
                         )}
@@ -228,19 +275,19 @@ export const Clients = () => {
                           <DollarSign className="h-4 w-4" />
                         </div>
                         <p className="text-sm font-medium text-gray-900">
-                          ${(client.total_revenue || 0).toLocaleString()}
+                          ${client.total_revenue || 0}
                         </p>
-                        <p className="text-xs text-gray-500">Total Revenue</p>
+                        <p className="text-xs text-gray-500">Revenue</p>
                       </div>
                       
                       <div className="text-center">
                         <div className="flex items-center justify-center gap-1 text-blue-600 mb-1">
-                          <Users className="h-4 w-4" />
+                          <Calendar className="h-4 w-4" />
                         </div>
                         <p className="text-sm font-medium text-gray-900">
                           {client.total_jobs_completed || 0}
                         </p>
-                        <p className="text-xs text-gray-500">Jobs Done</p>
+                        <p className="text-xs text-gray-500">Jobs</p>
                       </div>
                     </div>
                   </CardContent>
@@ -252,11 +299,11 @@ export const Clients = () => {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Name</TableHead>
+                    <TableHead>Client</TableHead>
                     <TableHead>Contact</TableHead>
                     <TableHead>Company</TableHead>
-                    <TableHead>Jobs</TableHead>
                     <TableHead>Revenue</TableHead>
+                    <TableHead>Jobs</TableHead>
                     <TableHead>Rating</TableHead>
                     <TableHead>Actions</TableHead>
                   </TableRow>
@@ -289,8 +336,8 @@ export const Clients = () => {
                         </div>
                       </TableCell>
                       <TableCell>{client.company_name || '-'}</TableCell>
+                      <TableCell>${client.total_revenue || 0}</TableCell>
                       <TableCell>{client.total_jobs_completed || 0}</TableCell>
-                      <TableCell>${(client.total_revenue || 0).toLocaleString()}</TableCell>
                       <TableCell>
                         {client.rating ? (
                           <div className="flex items-center gap-1">
@@ -328,7 +375,7 @@ export const Clients = () => {
               <h3 className="text-lg font-medium text-gray-900 mb-2">No clients found</h3>
               <p className="text-gray-600 mb-6">
                 {searchTerm
-                  ? 'Try adjusting your search terms.'
+                  ? 'Try adjusting your search.'
                   : 'Get started by adding your first client.'}
               </p>
               <Button onClick={() => setShowAddDialog(true)} className="bg-purple-600 hover:bg-purple-700">

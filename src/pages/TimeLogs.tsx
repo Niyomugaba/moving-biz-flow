@@ -7,6 +7,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import {
   Clock,
@@ -174,148 +175,154 @@ export const TimeLogs = () => {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="space-y-4">
-        <div className="flex justify-between items-center">
-          <CardTitle className="text-2xl font-bold flex items-center gap-2">
-            <Clock className="h-6 w-6" />
-            Time Logs Management
-          </CardTitle>
-          <div className="flex gap-2">
-            <Button onClick={() => setShowJobSelectionDialog(true)} variant="outline" size="sm">
-              <DollarSign className="h-4 w-4 mr-2" />
-              Process Job Payment
-            </Button>
-            <Button onClick={exportToCSV} variant="outline" size="sm">
-              <Download className="h-4 w-4 mr-2" />
-              Export CSV
-            </Button>
-            <Button onClick={() => setShowAddDialog(true)} size="sm">
-              <Plus className="h-4 w-4 mr-2" />
-              Add Entry
-            </Button>
+    <div className="h-full w-full bg-blue-50">
+      <ScrollArea className="h-full w-full">
+        <div className="space-y-6 p-4 md:p-6 min-h-screen">
+          {/* Header */}
+          <div className="space-y-4">
+            <div className="flex justify-between items-center">
+              <div>
+                <h1 className="text-2xl sm:text-3xl font-bold text-purple-800 flex items-center gap-2">
+                  <Clock className="h-6 w-6" />
+                  Time Logs Management
+                </h1>
+                <p className="text-purple-600">
+                  Review, approve, and manage employee time entries and payments. Note: "Your Bonus Tips" are additional tips you give employees from your revenue.
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <Button onClick={() => setShowJobSelectionDialog(true)} variant="outline" size="sm">
+                  <DollarSign className="h-4 w-4 mr-2" />
+                  Process Job Payment
+                </Button>
+                <Button onClick={exportToCSV} variant="outline" size="sm">
+                  <Download className="h-4 w-4 mr-2" />
+                  Export CSV
+                </Button>
+                <Button onClick={() => setShowAddDialog(true)} size="sm" className="bg-purple-600 hover:bg-purple-700">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Entry
+                </Button>
+              </div>
+            </div>
           </div>
-        </div>
-        <CardDescription>
-          Review, approve, and manage employee time entries and payments. Note: "Your Bonus Tips" are additional tips you give employees from your revenue.
-        </CardDescription>
-      </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Total Entries</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{timeEntries?.length || 0}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Pending Approval</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-yellow-600">
-              {timeEntries?.filter(e => e.status === 'pending').length || 0}
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Approved (Unpaid)</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-blue-600">
-              {timeEntries?.filter(e => e.status === 'approved' && !e.is_paid).length || 0}
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Total Hours</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{totalHours.toFixed(1)}</div>
-          </CardContent>
-        </Card>
-      </div>
+          {/* Stats Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <Card className="bg-white border border-blue-200">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-purple-800">Total Entries</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{timeEntries?.length || 0}</div>
+              </CardContent>
+            </Card>
+            <Card className="bg-white border border-blue-200">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-purple-800">Pending Approval</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-yellow-600">
+                  {timeEntries?.filter(e => e.status === 'pending').length || 0}
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="bg-white border border-blue-200">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-purple-800">Approved (Unpaid)</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-blue-600">
+                  {timeEntries?.filter(e => e.status === 'approved' && !e.is_paid).length || 0}
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="bg-white border border-blue-200">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-purple-800">Total Hours</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{totalHours.toFixed(1)}</div>
+              </CardContent>
+            </Card>
+          </div>
 
-      {/* Filters */}
-      <FilterBar
-        searchTerm={searchTerm}
-        onSearchChange={setSearchTerm}
-        statusFilter={statusFilter}
-        onStatusFilterChange={setStatusFilter}
-        statusOptions={statusOptions}
-        onClearFilters={handleClearFilters}
-        placeholder="Search by employee, job, or notes..."
-      />
+          {/* Filters */}
+          <FilterBar
+            searchTerm={searchTerm}
+            onSearchChange={setSearchTerm}
+            statusFilter={statusFilter}
+            onStatusFilterChange={setStatusFilter}
+            statusOptions={statusOptions}
+            onClearFilters={handleClearFilters}
+            placeholder="Search by employee, job, or notes..."
+          />
 
-      {/* Time Entries Grid */}
-      <div className="grid gap-4">
-        {paginatedEntries.length === 0 ? (
-          <Card>
-            <CardContent className="text-center py-8">
-              <Clock className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-500">No time entries found matching your criteria.</p>
-            </CardContent>
-          </Card>
-        ) : (
-          paginatedEntries.map((entry) => (
-            <TimeEntryCard
-              key={entry.id}
-              entry={entry}
-              onApprove={approveTimeEntry}
-              onReject={rejectTimeEntry}
-              onResetStatus={handleResetStatus}
-              onMarkAsPaid={markAsPaid}
-              onMarkAsUnpaid={markAsUnpaid}
-              onUpdateEntry={(id: string, updates) => updateTimeEntry({ id, updates })}
-              isApproving={isApprovingTimeEntry}
-              isRejecting={isRejectingTimeEntry}
-              isMarkingAsPaid={isMarkingAsPaid}
-              isMarkingAsUnpaid={isMarkingAsUnpaid}
+          {/* Time Entries Grid */}
+          <div className="grid gap-4">
+            {paginatedEntries.length === 0 ? (
+              <Card className="bg-white border border-blue-200">
+                <CardContent className="text-center py-8">
+                  <Clock className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                  <p className="text-gray-500">No time entries found matching your criteria.</p>
+                </CardContent>
+              </Card>
+            ) : (
+              paginatedEntries.map((entry) => (
+                <TimeEntryCard
+                  key={entry.id}
+                  entry={entry}
+                  onApprove={approveTimeEntry}
+                  onReject={rejectTimeEntry}
+                  onResetStatus={handleResetStatus}
+                  onMarkAsPaid={markAsPaid}
+                  onMarkAsUnpaid={markAsUnpaid}
+                  onUpdateEntry={(id: string, updates) => updateTimeEntry({ id, updates })}
+                  isApproving={isApprovingTimeEntry}
+                  isRejecting={isRejectingTimeEntry}
+                  isMarkingAsPaid={isMarkingAsPaid}
+                  isMarkingAsUnpaid={isMarkingAsUnpaid}
+                />
+              ))
+            )}
+          </div>
+
+          {/* Pagination */}
+          {filteredEntries.length > 0 && (
+            <PaginationControls
+              currentPage={currentPage}
+              totalPages={totalPages}
+              itemsPerPage={itemsPerPage}
+              totalItems={filteredEntries.length}
+              onPageChange={setCurrentPage}
+              onItemsPerPageChange={(items) => {
+                setItemsPerPage(items);
+                setCurrentPage(1);
+              }}
             />
-          ))
-        )}
-      </div>
+          )}
 
-      {/* Pagination */}
-      {filteredEntries.length > 0 && (
-        <PaginationControls
-          currentPage={currentPage}
-          totalPages={totalPages}
-          itemsPerPage={itemsPerPage}
-          totalItems={filteredEntries.length}
-          onPageChange={setCurrentPage}
-          onItemsPerPageChange={(items) => {
-            setItemsPerPage(items);
-            setCurrentPage(1);
-          }}
-        />
-      )}
+          {/* Add Time Entry Dialog */}
+          <AddTimeEntryDialog 
+            open={showAddDialog}
+            onOpenChange={setShowAddDialog}
+          />
 
-      {/* Add Time Entry Dialog */}
-      <AddTimeEntryDialog 
-        open={showAddDialog}
-        onOpenChange={setShowAddDialog}
-      />
+          {/* Job Selection Dialog */}
+          <JobSelectionDialog 
+            open={showJobSelectionDialog}
+            onOpenChange={setShowJobSelectionDialog}
+            onJobSelected={handleJobSelected}
+          />
 
-      {/* Job Selection Dialog */}
-      <JobSelectionDialog 
-        open={showJobSelectionDialog}
-        onOpenChange={setShowJobSelectionDialog}
-        onJobSelected={handleJobSelected}
-      />
-
-      {/* Job Payment Dialog */}
-      <JobPaymentDialog 
-        open={showJobPaymentDialog}
-        onOpenChange={setShowJobPaymentDialog}
-        job={selectedJob}
-      />
+          {/* Job Payment Dialog */}
+          <JobPaymentDialog 
+            open={showJobPaymentDialog}
+            onOpenChange={setShowJobPaymentDialog}
+            job={selectedJob}
+          />
+        </div>
+      </ScrollArea>
     </div>
   );
 };
