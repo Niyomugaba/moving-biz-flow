@@ -45,10 +45,10 @@ export const ProtectedLayout: React.FC<ProtectedLayoutProps> = ({
   }
 
   return (
-    <div className="flex h-screen bg-gray-100">
+    <div className="flex h-screen bg-gray-100 overflow-hidden">
       <Sidebar />
-      <main className={`flex-1 overflow-y-auto ${isMobile ? 'w-full' : ''}`}>
-        <div className={isMobile ? 'pt-16' : ''}>
+      <main className={`flex-1 relative ${isMobile ? 'w-full' : ''}`}>
+        <div className={`h-full ${isMobile ? 'pt-16' : ''}`}>
           {children}
         </div>
       </main>

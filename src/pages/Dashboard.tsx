@@ -1,4 +1,3 @@
-
 import React, { useMemo, useState } from 'react';
 import { MetricCard } from '@/components/MetricCard';
 import { WelcomeMessage } from '@/components/WelcomeMessage';
@@ -6,6 +5,7 @@ import { BusinessAnalysisCard } from '@/components/BusinessAnalysisCard';
 import { AdvancedKPIDashboard } from '@/components/AdvancedKPIDashboard';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { useAuth } from '@/hooks/useAuth';
 import { useJobs } from '@/hooks/useJobs';
 import { useEmployees } from '@/hooks/useEmployees';
@@ -209,208 +209,212 @@ export const Dashboard = () => {
   };
 
   return (
-    <div className="p-4 sm:p-6 space-y-6 bg-background min-h-screen">
-      <WelcomeMessage />
-      
-      {/* Quick Access Buttons - Compact design */}
-      {(userRole?.role === 'owner' || userRole?.role === 'admin') && (
-        <div className="flex flex-wrap gap-3">
-          <Button 
-            onClick={handleManagerLogin}
-            variant="outline"
-            size="sm"
-            className="flex items-center gap-2"
-          >
-            <Settings className="h-4 w-4" />
-            Manager Portal
-            <ExternalLink className="h-3 w-3" />
-          </Button>
-          <Button 
-            onClick={handleEmployeePortal}
-            variant="outline"
-            size="sm"
-            className="flex items-center gap-2"
-          >
-            <Users className="h-4 w-4" />
-            Employee Portal
-            <ExternalLink className="h-3 w-3" />
-          </Button>
-        </div>
-      )}
-      
-      {/* Core Business Overview */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-        <MetricCard
-          title="Active Jobs"
-          value={dashboardMetrics.activeJobs.toString()}
-          icon={Calendar}
-          className="bg-blue-50 border-blue-200"
-        />
-        <MetricCard
-          title="Total Revenue"
-          value={`$${dashboardMetrics.totalRevenue.toLocaleString()}`}
-          icon={DollarSign}
-          className="bg-green-50 border-green-200"
-        />
-        <MetricCard
-          title="Active Team"
-          value={dashboardMetrics.activeEmployees.toString()}
-          icon={Users}
-          className="bg-purple-50 border-purple-200"
-        />
-        <MetricCard
-          title="New Leads"
-          value={dashboardMetrics.newLeads.toString()}
-          icon={Phone}
-          className="bg-orange-50 border-orange-200"
-        />
-      </div>
-
-      {/* Advanced Metrics Toggle */}
-      <div className="flex flex-wrap gap-3">
-        <Button 
-          onClick={() => setShowAdvancedMetrics(!showAdvancedMetrics)}
-          variant={showAdvancedMetrics ? "default" : "outline"}
-          className="flex items-center gap-2"
-        >
-          {showAdvancedMetrics ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-          Investor Metrics
-        </Button>
-        
-        <Button 
-          onClick={() => setShowCharts(!showCharts)}
-          variant={showCharts ? "default" : "outline"}
-          className="flex items-center gap-2"
-        >
-          {showCharts ? <EyeOff className="h-4 w-4" /> : <BarChart3 className="h-4 w-4" />}
-          Performance Analytics
-        </Button>
-        
-        <Button 
-          onClick={() => setShowBusinessAnalysis(!showBusinessAnalysis)}
-          variant={showBusinessAnalysis ? "default" : "outline"}
-          className="flex items-center gap-2"
-        >
-          {showBusinessAnalysis ? <EyeOff className="h-4 w-4" /> : <Target className="h-4 w-4" />}
-          Growth Insights
-        </Button>
-      </div>
-
-      {/* Advanced Financial Metrics - Investor Focused */}
-      {showAdvancedMetrics && (
-        <Card className="border-2 border-primary/20">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <TrendingUp className="h-5 w-5 text-green-600" />
-              Investor Dashboard - Financial Performance
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-              <div className="bg-green-50 p-4 rounded-lg border border-green-200">
-                <div className="text-sm text-green-700 font-medium">Monthly Revenue</div>
-                <div className="text-2xl font-bold text-green-900">${dashboardMetrics.totalRevenue.toLocaleString()}</div>
-                <div className="text-xs text-green-600">Growth: +{dashboardMetrics.monthlyGrowth.toFixed(1)}%</div>
-              </div>
-              
-              <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-                <div className="text-sm text-blue-700 font-medium">Profit Margin</div>
-                <div className="text-2xl font-bold text-blue-900">{dashboardMetrics.profitMargin.toFixed(1)}%</div>
-                <div className="text-xs text-blue-600">Gross Profit: ${dashboardMetrics.grossProfit.toLocaleString()}</div>
-              </div>
-              
-              <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
-                <div className="text-sm text-purple-700 font-medium">Customer LTV</div>
-                <div className="text-2xl font-bold text-purple-900">${dashboardMetrics.avgRevenuePerCustomer.toFixed(0)}</div>
-                <div className="text-xs text-purple-600">CAC: ${dashboardMetrics.customerAcquisitionCost.toFixed(0)}</div>
-              </div>
-              
-              <div className="bg-orange-50 p-4 rounded-lg border border-orange-200">
-                <div className="text-sm text-orange-700 font-medium">Revenue/Employee</div>
-                <div className="text-2xl font-bold text-orange-900">${dashboardMetrics.revenuePerEmployee.toFixed(0)}</div>
-                <div className="text-xs text-orange-600">Efficiency Metric</div>
-              </div>
+    <div className="h-full w-full bg-background">
+      <ScrollArea className="h-full w-full">
+        <div className="p-4 sm:p-6 space-y-6">
+          <WelcomeMessage />
+          
+          {/* Quick Access Buttons - Compact design */}
+          {(userRole?.role === 'owner' || userRole?.role === 'admin') && (
+            <div className="flex flex-wrap gap-3">
+              <Button 
+                onClick={handleManagerLogin}
+                variant="outline"
+                size="sm"
+                className="flex items-center gap-2"
+              >
+                <Settings className="h-4 w-4" />
+                Manager Portal
+                <ExternalLink className="h-3 w-3" />
+              </Button>
+              <Button 
+                onClick={handleEmployeePortal}
+                variant="outline"
+                size="sm"
+                className="flex items-center gap-2"
+              >
+                <Users className="h-4 w-4" />
+                Employee Portal
+                <ExternalLink className="h-3 w-3" />
+              </Button>
             </div>
+          )}
+          
+          {/* Core Business Overview */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+            <MetricCard
+              title="Active Jobs"
+              value={dashboardMetrics.activeJobs.toString()}
+              icon={Calendar}
+              className="bg-blue-50 border-blue-200"
+            />
+            <MetricCard
+              title="Total Revenue"
+              value={`$${dashboardMetrics.totalRevenue.toLocaleString()}`}
+              icon={DollarSign}
+              className="bg-green-50 border-green-200"
+            />
+            <MetricCard
+              title="Active Team"
+              value={dashboardMetrics.activeEmployees.toString()}
+              icon={Users}
+              className="bg-purple-50 border-purple-200"
+            />
+            <MetricCard
+              title="New Leads"
+              value={dashboardMetrics.newLeads.toString()}
+              icon={Phone}
+              className="bg-orange-50 border-orange-200"
+            />
+          </div>
+
+          {/* Advanced Metrics Toggle */}
+          <div className="flex flex-wrap gap-3">
+            <Button 
+              onClick={() => setShowAdvancedMetrics(!showAdvancedMetrics)}
+              variant={showAdvancedMetrics ? "default" : "outline"}
+              className="flex items-center gap-2"
+            >
+              {showAdvancedMetrics ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              Investor Metrics
+            </Button>
             
-            {/* Key Performance Indicators */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <h4 className="font-medium text-gray-900 mb-3">Business Health Score</h4>
-                <div className="space-y-2">
-                  <div className="flex justify-between">
-                    <span className="text-sm text-gray-600">Conversion Rate</span>
-                    <span className="font-medium">{dashboardMetrics.conversionRate.toFixed(1)}%</span>
+            <Button 
+              onClick={() => setShowCharts(!showCharts)}
+              variant={showCharts ? "default" : "outline"}
+              className="flex items-center gap-2"
+            >
+              {showCharts ? <EyeOff className="h-4 w-4" /> : <BarChart3 className="h-4 w-4" />}
+              Performance Analytics
+            </Button>
+            
+            <Button 
+              onClick={() => setShowBusinessAnalysis(!showBusinessAnalysis)}
+              variant={showBusinessAnalysis ? "default" : "outline"}
+              className="flex items-center gap-2"
+            >
+              {showBusinessAnalysis ? <EyeOff className="h-4 w-4" /> : <Target className="h-4 w-4" />}
+              Growth Insights
+            </Button>
+          </div>
+
+          {/* Advanced Financial Metrics - Investor Focused */}
+          {showAdvancedMetrics && (
+            <Card className="border-2 border-primary/20">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <TrendingUp className="h-5 w-5 text-green-600" />
+                  Investor Dashboard - Financial Performance
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                  <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+                    <div className="text-sm text-green-700 font-medium">Monthly Revenue</div>
+                    <div className="text-2xl font-bold text-green-900">${dashboardMetrics.totalRevenue.toLocaleString()}</div>
+                    <div className="text-xs text-green-600">Growth: +{dashboardMetrics.monthlyGrowth.toFixed(1)}%</div>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-gray-600">Job Completion Rate</span>
-                    <span className="font-medium">{dashboardMetrics.completionRate.toFixed(1)}%</span>
+                  
+                  <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                    <div className="text-sm text-blue-700 font-medium">Profit Margin</div>
+                    <div className="text-2xl font-bold text-blue-900">{dashboardMetrics.profitMargin.toFixed(1)}%</div>
+                    <div className="text-xs text-blue-600">Gross Profit: ${dashboardMetrics.grossProfit.toLocaleString()}</div>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-gray-600">Customer Retention</span>
-                    <span className="font-medium">{dashboardMetrics.repeatRate.toFixed(1)}%</span>
+                  
+                  <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
+                    <div className="text-sm text-purple-700 font-medium">Customer LTV</div>
+                    <div className="text-2xl font-bold text-purple-900">${dashboardMetrics.avgRevenuePerCustomer.toFixed(0)}</div>
+                    <div className="text-xs text-purple-600">CAC: ${dashboardMetrics.customerAcquisitionCost.toFixed(0)}</div>
+                  </div>
+                  
+                  <div className="bg-orange-50 p-4 rounded-lg border border-orange-200">
+                    <div className="text-sm text-orange-700 font-medium">Revenue/Employee</div>
+                    <div className="text-2xl font-bold text-orange-900">${dashboardMetrics.revenuePerEmployee.toFixed(0)}</div>
+                    <div className="text-xs text-orange-600">Efficiency Metric</div>
                   </div>
                 </div>
-              </div>
-              
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <h4 className="font-medium text-gray-900 mb-3">Cash Flow Analysis</h4>
-                <div className="space-y-2">
-                  <div className="flex justify-between">
-                    <span className="text-sm text-gray-600">Monthly Cash Burn</span>
-                    <span className="font-medium">${dashboardMetrics.monthlyCashBurn.toFixed(0)}</span>
+                
+                {/* Key Performance Indicators */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <h4 className="font-medium text-gray-900 mb-3">Business Health Score</h4>
+                    <div className="space-y-2">
+                      <div className="flex justify-between">
+                        <span className="text-sm text-gray-600">Conversion Rate</span>
+                        <span className="font-medium">{dashboardMetrics.conversionRate.toFixed(1)}%</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-sm text-gray-600">Job Completion Rate</span>
+                        <span className="font-medium">{dashboardMetrics.completionRate.toFixed(1)}%</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-sm text-gray-600">Customer Retention</span>
+                        <span className="font-medium">{dashboardMetrics.repeatRate.toFixed(1)}%</span>
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-gray-600">Cash Runway</span>
-                    <span className="font-medium">{dashboardMetrics.cashRunway.toFixed(1)} months</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-gray-600">Avg Job Duration</span>
-                    <span className="font-medium">{dashboardMetrics.avgJobDuration.toFixed(1)} hrs</span>
+                  
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <h4 className="font-medium text-gray-900 mb-3">Cash Flow Analysis</h4>
+                    <div className="space-y-2">
+                      <div className="flex justify-between">
+                        <span className="text-sm text-gray-600">Monthly Cash Burn</span>
+                        <span className="font-medium">${dashboardMetrics.monthlyCashBurn.toFixed(0)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-sm text-gray-600">Cash Runway</span>
+                        <span className="font-medium">{dashboardMetrics.cashRunway.toFixed(1)} months</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-sm text-gray-600">Avg Job Duration</span>
+                        <span className="font-medium">{dashboardMetrics.avgJobDuration.toFixed(1)} hrs</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+              </CardContent>
+            </Card>
+          )}
 
-      {/* Performance Charts */}
-      {showCharts && (
-        <AdvancedKPIDashboard data={dashboardMetrics.kpiData} />
-      )}
+          {/* Performance Charts */}
+          {showCharts && (
+            <AdvancedKPIDashboard data={dashboardMetrics.kpiData} />
+          )}
 
-      {/* Business Analysis */}
-      {showBusinessAnalysis && (
-        <BusinessAnalysisCard selectedDateRange="this_month" />
-      )}
+          {/* Business Analysis */}
+          {showBusinessAnalysis && (
+            <BusinessAnalysisCard selectedDateRange="this_month" />
+          )}
 
-      {/* Quick Operations Summary */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-        <MetricCard
-          title="Hours Logged"
-          value={dashboardMetrics.totalHours.toString()}
-          icon={Clock}
-          className="bg-gray-50 border-gray-200"
-        />
-        <MetricCard
-          title="Completed Jobs"
-          value={dashboardMetrics.completedJobs.toString()}
-          icon={CheckCircle}
-          className="bg-emerald-50 border-emerald-200"
-        />
-        <MetricCard
-          title="Pending Approvals"
-          value={dashboardMetrics.pendingTimeEntries.toString()}
-          icon={AlertTriangle}
-          className="bg-yellow-50 border-yellow-200"
-        />
-        <MetricCard
-          title="Total Jobs"
-          value={dashboardMetrics.totalJobs.toString()}
-          icon={PieChart}
-          className="bg-indigo-50 border-indigo-200"
-        />
-      </div>
+          {/* Quick Operations Summary */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+            <MetricCard
+              title="Hours Logged"
+              value={dashboardMetrics.totalHours.toString()}
+              icon={Clock}
+              className="bg-gray-50 border-gray-200"
+            />
+            <MetricCard
+              title="Completed Jobs"
+              value={dashboardMetrics.completedJobs.toString()}
+              icon={CheckCircle}
+              className="bg-emerald-50 border-emerald-200"
+            />
+            <MetricCard
+              title="Pending Approvals"
+              value={dashboardMetrics.pendingTimeEntries.toString()}
+              icon={AlertTriangle}
+              className="bg-yellow-50 border-yellow-200"
+            />
+            <MetricCard
+              title="Total Jobs"
+              value={dashboardMetrics.totalJobs.toString()}
+              icon={PieChart}
+              className="bg-indigo-50 border-indigo-200"
+            />
+          </div>
+        </div>
+      </ScrollArea>
     </div>
   );
 };
