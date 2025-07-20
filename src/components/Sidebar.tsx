@@ -146,15 +146,7 @@ export const Sidebar = () => {
               })}
             </nav>
 
-            <div className="mt-auto space-y-4">
-              <div className="p-4 bg-gray-800 rounded-lg">
-                <h3 className="text-sm font-semibold mb-2">Employee Portal</h3>
-                <p className="text-xs text-gray-400 mb-3">Share this link:</p>
-                <div className="bg-gray-700 p-2 rounded text-xs font-mono break-all">
-                  {window.location.origin}/employee-portal
-                </div>
-              </div>
-              
+            <div className="mt-auto">
               <Button 
                 onClick={handleLogout}
                 variant="destructive"
@@ -227,15 +219,7 @@ export const Sidebar = () => {
         })}
       </nav>
 
-      <div className="mt-auto space-y-4">
-        <div className="p-4 bg-gray-800 rounded-lg">
-          <h3 className="text-sm font-semibold mb-2">Employee Portal</h3>
-          <p className="text-xs text-gray-400 mb-3">Share this link with your movers:</p>
-          <div className="bg-gray-700 p-2 rounded text-xs font-mono break-all">
-            {window.location.origin}/employee-portal
-          </div>
-        </div>
-        
+      <div className="mt-auto">
         <Button 
           onClick={handleLogout}
           variant="destructive"

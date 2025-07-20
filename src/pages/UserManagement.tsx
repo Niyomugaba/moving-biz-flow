@@ -7,7 +7,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { UserPlus, Shield, Menu } from 'lucide-react';
+import { UserPlus, Shield } from 'lucide-react';
 
 interface UserWithRole {
   id: string;
