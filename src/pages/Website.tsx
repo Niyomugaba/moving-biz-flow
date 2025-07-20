@@ -4,6 +4,12 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { 
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { 
   Phone, 
   Mail, 
   MapPin, 
@@ -14,7 +20,8 @@ import {
   Clock,
   CheckCircle,
   ArrowRight,
-  ExternalLink
+  ExternalLink,
+  ChevronDown
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -73,9 +80,11 @@ const Website = () => {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <div className="bg-primary rounded-lg p-2">
-                <Truck className="h-6 w-6 text-white" />
-              </div>
+              <img 
+                src="/lovable-uploads/6319d82c-0bdd-465a-9925-c9401c11e50a.png" 
+                alt="Bantu Movers Logo" 
+                className="h-10 w-auto"
+              />
               <div>
                 <h1 className="text-xl font-bold text-primary">Bantu Movers</h1>
                 <p className="text-sm text-muted-foreground">Professional Moving Services</p>
@@ -85,15 +94,27 @@ const Website = () => {
               <a href="#services" className="text-foreground hover:text-primary transition-colors">Services</a>
               <a href="#about" className="text-foreground hover:text-primary transition-colors">About</a>
               <a href="#contact" className="text-foreground hover:text-primary transition-colors">Contact</a>
-              <Button 
-                onClick={() => navigate('/manager-login')}
-                variant="outline"
-                size="sm"
-                className="gap-2"
-              >
-                <ExternalLink className="h-4 w-4" />
-                Mover Portal
-              </Button>
+              
+              {/* Portal Access Dropdown */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="gap-2">
+                    <Shield className="h-4 w-4" />
+                    Portal Login
+                    <ChevronDown className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuItem onClick={() => navigate('/manager-login')}>
+                    <Shield className="h-4 w-4 mr-2" />
+                    Manager Portal
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate('/employee-portal')}>
+                    <Users className="h-4 w-4 mr-2" />
+                    Employee Portal
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </nav>
           </div>
         </div>
@@ -117,7 +138,7 @@ const Website = () => {
               <Phone className="h-5 w-5" />
               Get Free Quote
             </Button>
-            <Button size="lg" variant="outline">
+            <Button size="lg" variant="outline" onClick={() => document.getElementById('services')?.scrollIntoView({ behavior: 'smooth' })}>
               View Services
             </Button>
           </div>
@@ -177,7 +198,7 @@ const Website = () => {
       </section>
 
       {/* Why Choose Us */}
-      <section className="py-20 bg-muted/50">
+      <section id="about" className="py-20 bg-muted/50">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold mb-4">Why Choose Bantu Movers?</h2>
@@ -248,58 +269,8 @@ const Website = () => {
         </div>
       </section>
 
-      {/* Portal Access Section */}
-      <section className="py-20 bg-gradient-to-r from-primary/10 to-secondary/10">
-        <div className="container mx-auto px-4 text-center">
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">Access Our Portals</h2>
-          <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-            Streamlined access for employees, managers, and business operations
-          </p>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-2xl mx-auto">
-            <Card className="hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
-              <CardHeader>
-                <div className="mx-auto mb-4 p-3 bg-primary/10 rounded-lg w-fit">
-                  <Users className="h-8 w-8 text-primary" />
-                </div>
-                <CardTitle>Employee Portal</CardTitle>
-                <CardDescription>Access for team members and field staff</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Button 
-                  onClick={() => navigate('/employee-portal')}
-                  className="w-full gap-2"
-                >
-                  <ArrowRight className="h-4 w-4" />
-                  Employee Login
-                </Button>
-              </CardContent>
-            </Card>
-
-            <Card className="hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
-              <CardHeader>
-                <div className="mx-auto mb-4 p-3 bg-primary/10 rounded-lg w-fit">
-                  <Shield className="h-8 w-8 text-primary" />
-                </div>
-                <CardTitle>Manager Portal</CardTitle>
-                <CardDescription>Administrative access and business management</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Button 
-                  onClick={() => navigate('/manager-login')}
-                  className="w-full gap-2"
-                >
-                  <ArrowRight className="h-4 w-4" />
-                  Manager Login
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </section>
-
       {/* Contact Section */}
-      <section id="contact" className="py-20">
+      <section id="contact" className="py-20 bg-muted/50">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold mb-4">Get Your Free Quote Today</h2>
@@ -308,113 +279,115 @@ const Website = () => {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            <div>
-              <h3 className="text-2xl font-semibold mb-6">Contact Information</h3>
-              <div className="space-y-4">
-                <div className="flex items-center gap-4">
-                  <div className="bg-primary rounded-lg p-3">
-                    <Phone className="h-5 w-5 text-white" />
+          <div className="max-w-4xl mx-auto">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
+              <div>
+                <h3 className="text-2xl font-semibold mb-6">Contact Information</h3>
+                <div className="space-y-4">
+                  <div className="flex items-center gap-4">
+                    <div className="bg-primary rounded-lg p-3">
+                      <Phone className="h-5 w-5 text-white" />
+                    </div>
+                    <div>
+                      <p className="font-semibold">Phone</p>
+                      <p className="text-muted-foreground">(225) 555-MOVE</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="font-semibold">Phone</p>
-                    <p className="text-muted-foreground">(225) 555-MOVE</p>
+                  
+                  <div className="flex items-center gap-4">
+                    <div className="bg-primary rounded-lg p-3">
+                      <Mail className="h-5 w-5 text-white" />
+                    </div>
+                    <div>
+                      <p className="font-semibold">Email</p>
+                      <p className="text-muted-foreground">info@bantumovers.com</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center gap-4">
+                    <div className="bg-primary rounded-lg p-3">
+                      <MapPin className="h-5 w-5 text-white" />
+                    </div>
+                    <div>
+                      <p className="font-semibold">Service Area</p>
+                      <p className="text-muted-foreground">Baton Rouge, LA & Surrounding Areas</p>
+                    </div>
                   </div>
                 </div>
-                
-                <div className="flex items-center gap-4">
-                  <div className="bg-primary rounded-lg p-3">
-                    <Mail className="h-5 w-5 text-white" />
-                  </div>
-                  <div>
-                    <p className="font-semibold">Email</p>
-                    <p className="text-muted-foreground">info@bantumovers.com</p>
-                  </div>
-                </div>
-                
-                <div className="flex items-center gap-4">
-                  <div className="bg-primary rounded-lg p-3">
-                    <MapPin className="h-5 w-5 text-white" />
-                  </div>
-                  <div>
-                    <p className="font-semibold">Service Area</p>
-                    <p className="text-muted-foreground">Baton Rouge, LA & Surrounding Areas</p>
-                  </div>
+
+                <div className="mt-8">
+                  <a 
+                    href="http://thumbtack.com/la/baton-rouge/moving-companies/bantu-movers/service/547406780080742407"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 text-primary hover:underline"
+                  >
+                    <ExternalLink className="h-4 w-4" />
+                    View us on Thumbtack
+                  </a>
                 </div>
               </div>
 
-              <div className="mt-8">
-                <a 
-                  href="http://thumbtack.com/la/baton-rouge/moving-companies/bantu-movers/service/547406780080742407"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 text-primary hover:underline"
-                >
-                  <ExternalLink className="h-4 w-4" />
-                  View us on Thumbtack
-                </a>
-              </div>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Request a Quote</CardTitle>
+                  <CardDescription>Get a personalized estimate for your move</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <form className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium mb-2">First Name</label>
+                        <input 
+                          type="text" 
+                          className="w-full p-3 border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                          placeholder="John"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-2">Last Name</label>
+                        <input 
+                          type="text"
+                          className="w-full p-3 border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                          placeholder="Doe"
+                        />
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium mb-2">Email</label>
+                      <input 
+                        type="email"
+                        className="w-full p-3 border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                        placeholder="john@example.com"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium mb-2">Phone</label>
+                      <input 
+                        type="tel"
+                        className="w-full p-3 border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                        placeholder="(225) 555-0123"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium mb-2">Moving Details</label>
+                      <textarea 
+                        rows={4}
+                        className="w-full p-3 border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                        placeholder="Tell us about your move (dates, locations, special requirements, etc.)"
+                      ></textarea>
+                    </div>
+                    
+                    <Button type="submit" className="w-full">
+                      Get Free Quote
+                    </Button>
+                  </form>
+                </CardContent>
+              </Card>
             </div>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Request a Quote</CardTitle>
-                <CardDescription>Get a personalized estimate for your move</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <form className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium mb-2">First Name</label>
-                      <input 
-                        type="text" 
-                        className="w-full p-3 border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                        placeholder="John"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-2">Last Name</label>
-                      <input 
-                        type="text"
-                        className="w-full p-3 border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                        placeholder="Doe"
-                      />
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Email</label>
-                    <input 
-                      type="email"
-                      className="w-full p-3 border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                      placeholder="john@example.com"
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Phone</label>
-                    <input 
-                      type="tel"
-                      className="w-full p-3 border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                      placeholder="(225) 555-0123"
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Moving Details</label>
-                    <textarea 
-                      rows={4}
-                      className="w-full p-3 border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                      placeholder="Tell us about your move (dates, locations, special requirements, etc.)"
-                    ></textarea>
-                  </div>
-                  
-                  <Button type="submit" className="w-full">
-                    Get Free Quote
-                  </Button>
-                </form>
-              </CardContent>
-            </Card>
           </div>
         </div>
       </section>
@@ -425,9 +398,11 @@ const Website = () => {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             <div>
               <div className="flex items-center space-x-3 mb-4">
-                <div className="bg-primary rounded-lg p-2">
-                  <Truck className="h-5 w-5 text-white" />
-                </div>
+                <img 
+                  src="/lovable-uploads/6319d82c-0bdd-465a-9925-c9401c11e50a.png" 
+                  alt="Bantu Movers Logo" 
+                  className="h-8 w-auto"
+                />
                 <div>
                   <h3 className="font-bold text-primary">Bantu Movers</h3>
                 </div>
