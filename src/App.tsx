@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Layout } from "./components/Layout";
 import { ManagerLayout } from "./components/ManagerLayout";
 import Index from "./pages/Index";
+import Website from "./pages/Website";
 import { Auth } from "./pages/Auth";
 import { Dashboard } from "./pages/Dashboard";
 import { Jobs } from "./pages/Jobs";
@@ -33,6 +34,7 @@ function App() {
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Index />} />
+            <Route path="/website" element={<Website />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/manager-login" element={<ManagerLogin />} />
             <Route path="/employee-portal" element={<EmployeePortal />} />

@@ -2,18 +2,17 @@
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Truck, Users, Shield, ExternalLink } from 'lucide-react';
 
 const Index = () => {
   const navigate = useNavigate();
   const { isAuthenticated, isLoading } = useAuth();
 
   useEffect(() => {
-    if (!isLoading) {
-      if (isAuthenticated) {
-        navigate('/dashboard', { replace: true });
-      } else {
-        navigate('/auth', { replace: true });
-      }
+    if (!isLoading && isAuthenticated) {
+      navigate('/dashboard', { replace: true });
     }
   }, [isAuthenticated, isLoading, navigate]);
 
@@ -29,12 +28,99 @@ const Index = () => {
     );
   }
 
-  // This should rarely be seen since we redirect immediately
+  // If not authenticated, show welcome page with options
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="text-center">
-        <h1 className="text-2xl font-bold text-gray-800 mb-4">Bantu Movers</h1>
-        <p className="text-gray-600">Redirecting...</p>
+    <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-secondary/5">
+      <div className="container mx-auto px-4 py-12">
+        <div className="text-center mb-12">
+          <div className="flex items-center justify-center space-x-3 mb-6">
+            <div className="bg-primary rounded-lg p-3">
+              <Truck className="h-8 w-8 text-white" />
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold text-primary">Bantu Movers</h1>
+              <p className="text-muted-foreground">Professional Moving Services</p>
+            </div>
+          </div>
+          
+          <h2 className="text-2xl md:text-3xl font-semibold mb-4">
+            Welcome to Bantu Movers Portal System
+          </h2>
+          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+            Access our management portals or visit our main website for moving services
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+          {/* Main Website */}
+          <Card className="hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
+            <CardHeader className="text-center">
+              <div className="mx-auto mb-4 p-3 bg-primary/10 rounded-lg w-fit">
+                <ExternalLink className="h-8 w-8 text-primary" />
+              </div>
+              <CardTitle>Main Website</CardTitle>
+              <CardDescription>
+                Our public website with services, quotes, and customer information
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button 
+                onClick={() => navigate('/website')}
+                className="w-full"
+              >
+                Visit Website
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* Employee Portal */}
+          <Card className="hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
+            <CardHeader className="text-center">
+              <div className="mx-auto mb-4 p-3 bg-primary/10 rounded-lg w-fit">
+                <Users className="h-8 w-8 text-primary" />
+              </div>
+              <CardTitle>Employee Portal</CardTitle>
+              <CardDescription>
+                Access for team members and field staff to manage time and tasks
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button 
+                onClick={() => navigate('/employee-portal')}
+                className="w-full"
+                variant="outline"
+              >
+                Employee Login
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* Manager Portal */}
+          <Card className="hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
+            <CardHeader className="text-center">
+              <div className="mx-auto mb-4 p-3 bg-primary/10 rounded-lg w-fit">
+                <Shield className="h-8 w-8 text-primary" />
+              </div>
+              <CardTitle>Manager Portal</CardTitle>
+              <CardDescription>
+                Administrative access for business management and operations
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button 
+                onClick={() => navigate('/manager-login')}
+                className="w-full"
+                variant="outline"
+              >
+                Manager Login
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="text-center mt-12 text-sm text-muted-foreground">
+          <p>Need help? Contact us at (225) 555-MOVE or info@bantumovers.com</p>
+        </div>
       </div>
     </div>
   );
