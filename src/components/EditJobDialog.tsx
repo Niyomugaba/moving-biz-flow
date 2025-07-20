@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -42,6 +43,7 @@ export const EditJobDialog = ({ job, open, onOpenChange }: EditJobDialogProps) =
   const [pricingModel, setPricingModel] = useState<'per_person' | 'flat_rate'>('per_person');
   const [totalClientPayment, setTotalClientPayment] = useState('');
   const [totalEmployeePayment, setTotalEmployeePayment] = useState('');
+  const [leadCost, setLeadCost] = useState('');
 
   useEffect(() => {
     if (job) {
@@ -66,6 +68,7 @@ export const EditJobDialog = ({ job, open, onOpenChange }: EditJobDialogProps) =
       setPricingModel(job.pricing_model || 'per_person');
       setTotalClientPayment(job.total_amount_received?.toString() || job.actual_total?.toString() || '');
       setTotalEmployeePayment(''); // Will be calculated from time entries
+      setLeadCost(job.lead_cost?.toString() || '');
     }
   }, [job]);
 
@@ -93,7 +96,8 @@ export const EditJobDialog = ({ job, open, onOpenChange }: EditJobDialogProps) =
       payment_method: paymentMethod || null,
       completion_notes: completionNotes || null,
       pricing_model: pricingModel,
-      total_amount_received: parseFloat(totalClientPayment) || null
+      total_amount_received: parseFloat(totalClientPayment) || null,
+      lead_cost: parseFloat(leadCost) || null
     };
 
     updateJob({ 
@@ -273,37 +277,65 @@ export const EditJobDialog = ({ job, open, onOpenChange }: EditJobDialogProps) =
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="per_person">Per Person Rate</SelectItem>
-                    <SelectItem value="flat_rate">Flat Rate</SelectItem>
+                    <SelectItem value="flat_rate">Flat Rate (Negotiated)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               {pricingModel === 'flat_rate' ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-blue-50 rounded-lg">
-                  <div>
-                    <Label htmlFor="totalClientPayment">Total Client Payment</Label>
-                    <Input
-                      id="totalClientPayment"
-                      type="number"
-                      step="0.01"
-                      value={totalClientPayment}
-                      onChange={(e) => setTotalClientPayment(e.target.value)}
-                      placeholder="What client paid you"
-                    />
+                <div className="p-4 bg-blue-50 rounded-lg space-y-4">
+                  <div className="text-sm font-medium text-blue-800 mb-3">
+                    Flat Rate Job - Simple Tracking
                   </div>
-                  <div>
-                    <Label htmlFor="totalEmployeePayment">Total Employee Payment</Label>
-                    <Input
-                      id="totalEmployeePayment"
-                      type="number"
-                      step="0.01"
-                      value={totalEmployeePayment}
-                      onChange={(e) => setTotalEmployeePayment(e.target.value)}
-                      placeholder="What you paid employees"
-                    />
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <Label htmlFor="totalClientPayment">What Client Paid You</Label>
+                      <Input
+                        id="totalClientPayment"
+                        type="number"
+                        step="0.01"
+                        value={totalClientPayment}
+                        onChange={(e) => setTotalClientPayment(e.target.value)}
+                        placeholder="Total amount received"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="totalEmployeePayment">What You Paid Employees</Label>
+                      <Input
+                        id="totalEmployeePayment"
+                        type="number"
+                        step="0.01"
+                        value={totalEmployeePayment}
+                        onChange={(e) => setTotalEmployeePayment(e.target.value)}
+                        placeholder="Total paid to workers"
+                      />
+                    </div>
+                    {job.lead_id && (
+                      <div>
+                        <Label htmlFor="leadCost">Lead Cost</Label>
+                        <Input
+                          id="leadCost"
+                          type="number"
+                          step="0.01"
+                          value={leadCost}
+                          onChange={(e) => setLeadCost(e.target.value)}
+                          placeholder="Cost of acquiring this lead"
+                        />
+                      </div>
+                    )}
                   </div>
-                  <div className="col-span-2 text-sm text-gray-600">
-                    <p><strong>Simplified Flat Rate:</strong> Just enter what the client paid and what you paid employees. The system will handle the rest.</p>
+                  
+                  <div className="text-sm text-gray-600 bg-white p-3 rounded border">
+                    <strong>Your Profit:</strong> ${totalClientPayment && totalEmployeePayment ? 
+                      (parseFloat(totalClientPayment) - parseFloat(totalEmployeePayment) - (parseFloat(leadCost) || 0)).toFixed(2) : 
+                      '0.00'}
+                    {leadCost && parseFloat(leadCost) > 0 && (
+                      <span className="block text-xs mt-1">
+                        (After lead cost of ${leadCost})
+                      </span>
+                    )}
                   </div>
                 </div>
               ) : (
