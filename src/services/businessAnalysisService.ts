@@ -1,4 +1,3 @@
-
 import { Job } from '@/hooks/useJobs';
 import { Lead } from '@/hooks/useLeads';
 import { Client } from '@/hooks/useClients';
@@ -84,7 +83,7 @@ export class BusinessAnalysisService {
       return sum + (job.actual_total || job.estimated_total);
     }, 0);
 
-    const totalHours = jobs.reduce((sum, job) => sum + (job.actual_duration_hours || job.estimated_duration_hours), 0);
+    const totalHours = jobs.reduce((sum, job) => sum + (job.actual_duration_hours || job.estimated_duration_hours || 0), 0);
     const totalLabor = timeEntries.reduce((sum, entry) => {
       const regularPay = (entry.regular_hours || 0) * (entry.hourly_rate || 0);
       const overtimePay = (entry.overtime_hours || 0) * (entry.overtime_rate || entry.hourly_rate || 0);
@@ -115,7 +114,7 @@ export class BusinessAnalysisService {
       operations: {
         jobCompletionRate: jobs.length > 0 ? (completedJobs.length / jobs.length) * 100 : 0,
         averageJobDuration: completedJobs.length > 0 ? 
-          completedJobs.reduce((sum, job) => sum + (job.actual_duration_hours || 0), 0) / completedJobs.length : 0,
+          completedJobs.reduce((sum, job) => sum + (job.actual_duration_hours || job.estimated_duration_hours || 0), 0) / completedJobs.length : 0,
         utilizationRate: this.calculateUtilizationRate(timeEntries, employees),
         customerSatisfactionAverage: this.calculateAverageRating(jobs),
         repeatCustomerRate: this.calculateRepeatCustomerRate(clients),
