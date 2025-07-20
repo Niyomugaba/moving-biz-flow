@@ -1,4 +1,3 @@
-
 export interface BusinessMetrics {
   totalRevenue: number;
   totalJobs: number;
@@ -93,7 +92,7 @@ export class BusinessAnalysisService {
       return acc;
     }, {} as Record<string, number>);
     
-    const repeatCustomers = Object.values(clientJobCounts).filter(count => count > 1).length;
+    const repeatCustomers = Object.values(clientJobCounts).filter(count => Number(count) > 1).length;
     const repeatCustomerRate = clients.length > 0 ? (repeatCustomers / clients.length) * 100 : 0;
 
     return {
