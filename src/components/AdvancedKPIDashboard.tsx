@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -12,9 +11,10 @@ import {
   Clock,
   Repeat,
   AlertTriangle,
-  CheckCircle2
+  CheckCircle2,
+  BarChart
 } from 'lucide-react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell, ComposedChart } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart as RechartsBarChart, Bar, PieChart, Pie, Cell, ComposedChart } from 'recharts';
 
 interface KPIData {
   totalRevenue: number;
@@ -221,7 +221,7 @@ export const AdvancedKPIDashboard: React.FC<AdvancedKPIDashboardProps> = ({ data
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <BarChart3 className="h-5 w-5 text-blue-600" />
+            <BarChart className="h-5 w-5 text-blue-600" />
             Key Business Metrics
           </CardTitle>
         </CardHeader>
