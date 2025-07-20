@@ -82,10 +82,13 @@ export const Dashboard = () => {
     const avgRevenuePerCustomer = clients.length > 0 ? totalRevenue / clients.length : 0;
     const repeatRate = clients.length > 0 ? (repeatCustomers / clients.length) * 100 : 0;
     
-    // Operational efficiency
+    // Operational efficiency - using actual_duration_hours or estimated_duration_hours
     const avgJobDuration = completedJobs > 0 
       ? jobs.filter(job => job.status === 'completed')
-          .reduce((sum, job) => sum + (job.actual_duration_hours || job.estimated_duration_hours || 0), 0) / completedJobs
+          .reduce((sum, job) => {
+            const duration = job.actual_duration_hours || job.estimated_duration_hours || job.hours_worked || 0;
+            return sum + Number(duration);
+          }, 0) / completedJobs
       : 0;
     
     // Profit margins
