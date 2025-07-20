@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useJobs } from '@/hooks/useJobs';
+import { useJobs, Job } from '@/hooks/useJobs';
 import { useAuth } from '@/hooks/useAuth';
 import { ScheduleJobDialog } from '@/components/ScheduleJobDialog';
 import { EditJobDialog } from '@/components/EditJobDialog';
@@ -31,31 +31,6 @@ import {
 } from 'lucide-react';
 
 const ITEMS_PER_PAGE = 10;
-
-// Define Job interface based on the database schema
-interface Job {
-  id: string;
-  job_number: string;
-  client_id?: string;
-  client_name: string;
-  client_phone: string;
-  client_email?: string;
-  job_date: string;
-  start_time: string;
-  estimated_duration_hours: number;
-  actual_duration_hours?: number;
-  hourly_rate: number;
-  estimated_total: number;
-  actual_total?: number;
-  movers_needed: number;
-  status: string;
-  origin_address: string;
-  destination_address: string;
-  special_requirements?: string;
-  completion_notes?: string;
-  created_at: string;
-  updated_at: string;
-}
 
 export const Jobs = () => {
   const { jobs, isLoading, addJob, updateJob, deleteJob } = useJobs();
@@ -105,14 +80,27 @@ export const Jobs = () => {
     currentPage * itemsPerPage
   );
 
-  const handleScheduleJob = async (jobData: Partial<Job>) => {
+  const handleScheduleJob = async (jobData: {
+    client_name: string;
+    client_phone: string;
+    client_email?: string;
+    origin_address: string;
+    destination_address: string;
+    job_date: string;
+    start_time: string;
+    hourly_rate: number;
+    movers_needed: number;
+    estimated_total: number;
+    truck_size?: string;
+    special_requirements?: string;
+  }) => {
     await addJob(jobData);
     setShowScheduleDialog(false);
   };
 
   const handleEditJob = async (jobData: Partial<Job>) => {
     if (selectedJob) {
-      await updateJob(selectedJob.id, jobData);
+      await updateJob({ id: selectedJob.id, updates: jobData });
       setShowEditDialog(false);
       setSelectedJob(null);
     }
@@ -120,7 +108,7 @@ export const Jobs = () => {
 
   const handlePaymentUpdate = async (paymentData: any) => {
     if (selectedJob) {
-      await updateJob(selectedJob.id, paymentData);
+      await updateJob({ id: selectedJob.id, updates: paymentData });
       setShowPaymentDialog(false);
       setSelectedJob(null);
     }
@@ -309,7 +297,7 @@ export const Jobs = () => {
           {showScheduleDialog && (
             <ScheduleJobDialog
               open={showScheduleDialog}
-              onClose={() => setShowScheduleDialog(false)}
+              onOpenChange={setShowScheduleDialog}
               onSchedule={handleScheduleJob}
             />
           )}
@@ -317,11 +305,12 @@ export const Jobs = () => {
           {showEditDialog && selectedJob && (
             <EditJobDialog
               open={showEditDialog}
-              onClose={() => {
-                setShowEditDialog(false);
-                setSelectedJob(null);
+              onOpenChange={setShowEditDialog}
+              job={{
+                ...selectedJob,
+                is_paid: selectedJob.is_paid || false,
+                estimated_duration_hours: selectedJob.estimated_duration_hours || 2
               }}
-              job={selectedJob}
               onUpdate={handleEditJob}
             />
           )}
@@ -329,11 +318,12 @@ export const Jobs = () => {
           {showPaymentDialog && selectedJob && (
             <JobPaymentDialog
               open={showPaymentDialog}
-              onClose={() => {
-                setShowPaymentDialog(false);
-                setSelectedJob(null);
+              onOpenChange={setShowPaymentDialog}
+              job={{
+                ...selectedJob,
+                is_paid: selectedJob.is_paid || false,
+                estimated_duration_hours: selectedJob.estimated_duration_hours || 2
               }}
-              job={selectedJob}
               onUpdate={handlePaymentUpdate}
             />
           )}

@@ -73,14 +73,21 @@ export const Clients = () => {
     currentPage * itemsPerPage
   );
 
-  const handleAddClient = async (clientData: Partial<Client>) => {
+  const handleAddClient = async (clientData: {
+    name: string;
+    phone: string;
+    email?: string;
+    primary_address: string;
+    company_name?: string;
+    preferred_contact_method?: string;
+  }) => {
     await addClient(clientData);
     setShowAddDialog(false);
   };
 
   const handleEditClient = async (clientData: Partial<Client>) => {
     if (selectedClient) {
-      await updateClient(selectedClient.id, clientData);
+      await updateClient({ id: selectedClient.id, updates: clientData });
       setShowEditDialog(false);
       setSelectedClient(null);
     }
@@ -247,7 +254,7 @@ export const Clients = () => {
           {showAddDialog && (
             <AddClientDialog
               open={showAddDialog}
-              onClose={() => setShowAddDialog(false)}
+              onOpenChange={setShowAddDialog}
               onAdd={handleAddClient}
             />
           )}
@@ -255,10 +262,7 @@ export const Clients = () => {
           {showEditDialog && selectedClient && (
             <EditClientDialog
               open={showEditDialog}
-              onClose={() => {
-                setShowEditDialog(false);
-                setSelectedClient(null);
-              }}
+              onOpenChange={setShowEditDialog}
               client={selectedClient}
               onUpdate={handleEditClient}
             />

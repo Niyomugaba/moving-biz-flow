@@ -78,14 +78,24 @@ export const Employees = () => {
     currentPage * itemsPerPage
   );
 
-  const handleAddEmployee = async (employeeData: Partial<Employee>) => {
+  const handleAddEmployee = async (employeeData: {
+    name: string;
+    phone: string;
+    email: string;
+    address?: string;
+    hourly_wage: number;
+    status: 'active' | 'inactive' | 'terminated' | 'on_leave';
+    hire_date: string;
+    position?: string;
+    department?: string;
+  }) => {
     await addEmployee(employeeData);
     setShowAddDialog(false);
   };
 
   const handleEditEmployee = async (employeeData: Partial<Employee>) => {
     if (selectedEmployee) {
-      await updateEmployee(selectedEmployee.id, employeeData);
+      await updateEmployee({ id: selectedEmployee.id, updates: employeeData });
       setShowEditDialog(false);
       setSelectedEmployee(null);
     }
@@ -280,7 +290,7 @@ export const Employees = () => {
           {showAddDialog && (
             <AddEmployeeDialog
               open={showAddDialog}
-              onClose={() => setShowAddDialog(false)}
+              onOpenChange={setShowAddDialog}
               onAdd={handleAddEmployee}
             />
           )}
@@ -288,12 +298,12 @@ export const Employees = () => {
           {showEditDialog && selectedEmployee && (
             <EditEmployeeDialog
               open={showEditDialog}
-              onClose={() => {
-                setShowEditDialog(false);
-                setSelectedEmployee(null);
-              }}
+              onOpenChange={setShowEditDialog}
               employee={selectedEmployee}
               onUpdate={handleEditEmployee}
+              onDelete={deleteEmployee}
+              isUpdating={false}
+              isDeleting={false}
             />
           )}
         </div>
