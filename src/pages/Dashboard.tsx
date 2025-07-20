@@ -100,11 +100,23 @@ export const Dashboard = () => {
       { name: 'Cancelled', value: cancelledJobs, color: '#6B7280' },
     ];
 
-    // Top performing metrics
+    // Top performing metrics with proper typing
     const topPerformingMetrics = [
-      { metric: 'Conversion Rate', value: `${conversionRate.toFixed(1)}%`, trend: conversionRate > 35 ? 'up' : 'down' as const },
-      { metric: 'Avg Job Value', value: `$${averageJobValue.toFixed(0)}`, trend: averageJobValue > 400 ? 'up' : 'down' as const },
-      { metric: 'Profit Margin', value: `${profitMargin.toFixed(1)}%`, trend: profitMargin > 25 ? 'up' : 'down' as const },
+      { 
+        metric: 'Conversion Rate', 
+        value: `${conversionRate.toFixed(1)}%`, 
+        trend: (conversionRate > 35 ? 'up' : 'down') as 'up' | 'down' | 'stable'
+      },
+      { 
+        metric: 'Avg Job Value', 
+        value: `$${averageJobValue.toFixed(0)}`, 
+        trend: (averageJobValue > 400 ? 'up' : 'down') as 'up' | 'down' | 'stable'
+      },
+      { 
+        metric: 'Profit Margin', 
+        value: `${profitMargin.toFixed(1)}%`, 
+        trend: (profitMargin > 25 ? 'up' : 'down') as 'up' | 'down' | 'stable'
+      },
     ];
 
     return {

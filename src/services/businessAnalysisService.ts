@@ -70,15 +70,24 @@ export class BusinessAnalysisService {
     const netProfit = totalRevenue - totalExpenses;
     const profitMargin = totalRevenue > 0 ? (netProfit / totalRevenue) * 100 : 0;
 
-    // Calculate average job duration using actual_duration_hours or fallback
-    const jobsWithDuration = completedJobs.filter(job => job.actual_duration_hours || job.hours_worked);
+    // Calculate average job duration using actual hours worked or time entries
+    const jobsWithDuration = completedJobs.filter(job => {
+      const hoursWorked = Number(job.hours_worked) || 0;
+      const actualDuration = Number(job.actual_duration_hours) || 0;
+      return hoursWorked > 0 || actualDuration > 0;
+    });
+    
     const averageJobDuration = jobsWithDuration.length > 0 
-      ? jobsWithDuration.reduce((sum, job) => sum + (job.actual_duration_hours || job.hours_worked || 0), 0) / jobsWithDuration.length
+      ? jobsWithDuration.reduce((sum, job) => {
+          const hoursWorked = Number(job.hours_worked) || 0;
+          const actualDuration = Number(job.actual_duration_hours) || 0;
+          return sum + (actualDuration || hoursWorked);
+        }, 0) / jobsWithDuration.length
       : 0;
 
     // Calculate repeat customer rate
     const clientJobCounts = clients.reduce((acc, client) => {
-      acc[client.id] = client.total_jobs_completed || 0;
+      acc[client.id] = Number(client.total_jobs_completed) || 0;
       return acc;
     }, {} as Record<string, number>);
     
