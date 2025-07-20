@@ -32,7 +32,12 @@ export const Dashboard = () => {
   const completedJobs = jobs.filter(job => job.status === 'completed').length;
   const totalRevenue = jobs
     .filter(job => job.status === 'completed' && job.is_paid)
-    .reduce((sum, job) => sum + (job.actual_total || job.estimated_total), 0);
+    .reduce((sum, job) => {
+      if (job.pricing_model === 'flat_rate' && job.total_amount_received) {
+        return sum + job.total_amount_received;
+      }
+      return sum + (job.actual_total || job.estimated_total);
+    }, 0);
   
   const activeEmployees = employees.filter(emp => emp.status === 'active').length;
   const newLeads = leads.filter(lead => lead.status === 'new').length;
@@ -108,9 +113,9 @@ export const Dashboard = () => {
         />
       </div>
 
-      {/* AI Business Analysis */}
+      {/* Enhanced AI Business Analysis */}
       <div className="grid grid-cols-1 gap-6">
-        <BusinessAnalysisCard />
+        <BusinessAnalysisCard selectedDateRange="this_month" />
       </div>
     </div>
   );

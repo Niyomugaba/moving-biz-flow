@@ -3,164 +3,109 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Lightbulb, TrendingUp, AlertTriangle, CheckCircle, BarChart3, RefreshCw } from 'lucide-react';
+import { Lightbulb, TrendingUp, AlertTriangle, CheckCircle, BarChart3, RefreshCw, Target, DollarSign, Users, Calendar } from 'lucide-react';
 import { useJobs } from '@/hooks/useJobs';
 import { useLeads } from '@/hooks/useLeads';
 import { useClients } from '@/hooks/useClients';
 import { useTimeEntries } from '@/hooks/useTimeEntries';
+import { useEmployees } from '@/hooks/useEmployees';
+import { BusinessAnalysisService, BusinessInsight } from '@/services/businessAnalysisService';
+import { useDateFilter, filterDataByDateRange } from '@/hooks/useDateFilter';
 
-interface AnalysisInsight {
-  type: 'success' | 'warning' | 'info';
-  title: string;
-  description: string;
-  recommendation?: string;
+interface BusinessAnalysisCardProps {
+  selectedDateRange?: 'today' | 'this_week' | 'this_month' | 'this_quarter' | 'this_year' | 'since_inception';
 }
 
-export const BusinessAnalysisCard = () => {
+export const BusinessAnalysisCard: React.FC<BusinessAnalysisCardProps> = ({ 
+  selectedDateRange = 'this_month' 
+}) => {
   const { jobs } = useJobs();
   const { leads } = useLeads();
   const { clients } = useClients();
   const { timeEntries } = useTimeEntries();
-  const [insights, setInsights] = useState<AnalysisInsight[]>([]);
+  const { employees } = useEmployees();
+  const [insights, setInsights] = useState<BusinessInsight[]>([]);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [showMetrics, setShowMetrics] = useState(false);
 
-  const generateInsights = () => {
+  const { startDate, endDate } = useDateFilter(selectedDateRange);
+
+  const generateAdvancedInsights = () => {
     setIsAnalyzing(true);
     
-    // Simulate analysis delay
     setTimeout(() => {
-      const newInsights: AnalysisInsight[] = [];
+      // Filter data by selected date range
+      const filteredJobs = filterDataByDateRange(jobs, startDate, endDate, 'job_date');
+      const filteredLeads = filterDataByDateRange(leads, startDate, endDate, 'created_at');
+      const filteredTimeEntries = filterDataByDateRange(timeEntries, startDate, endDate, 'entry_date');
 
-      // Revenue Analysis
-      const completedJobs = jobs.filter(job => job.status === 'completed');
-      const paidJobs = completedJobs.filter(job => job.is_paid);
-      const totalRevenue = paidJobs.reduce((sum, job) => sum + (job.actual_total || job.estimated_total), 0);
-      const averageJobValue = completedJobs.length > 0 ? totalRevenue / completedJobs.length : 0;
+      // Calculate comprehensive business metrics
+      const metrics = BusinessAnalysisService.analyzeBusinessMetrics(
+        filteredJobs,
+        filteredLeads,
+        clients,
+        filteredTimeEntries,
+        employees,
+        selectedDateRange
+      );
 
-      if (averageJobValue > 300) {
-        newInsights.push({
-          type: 'success',
-          title: 'Strong Average Job Value',
-          description: `Your average job value is $${averageJobValue.toFixed(0)}, which is excellent for the moving industry.`,
-          recommendation: 'Continue targeting similar high-value clients and consider premium service offerings.'
-        });
-      } else if (averageJobValue < 200) {
-        newInsights.push({
-          type: 'warning',
-          title: 'Low Average Job Value',
-          description: `Your average job value is $${averageJobValue.toFixed(0)}, which may limit profitability.`,
-          recommendation: 'Consider raising rates, upselling additional services, or targeting larger moves.'
-        });
-      }
+      // Generate industry-specific insights
+      const businessInsights = BusinessAnalysisService.generateIndustryInsights(
+        metrics,
+        selectedDateRange
+      );
 
-      // Payment Analysis
-      const paymentRate = completedJobs.length > 0 ? (paidJobs.length / completedJobs.length) * 100 : 0;
-      if (paymentRate < 80) {
-        newInsights.push({
-          type: 'warning',
-          title: 'Payment Collection Issues',
-          description: `Only ${paymentRate.toFixed(1)}% of completed jobs are marked as paid.`,
-          recommendation: 'Implement stricter payment terms, require deposits, or improve follow-up procedures.'
-        });
-      } else if (paymentRate > 95) {
-        newInsights.push({
-          type: 'success',
-          title: 'Excellent Payment Collection',
-          description: `${paymentRate.toFixed(1)}% of completed jobs are paid - excellent cash flow management!`,
-        });
-      }
-
-      // Lead Conversion Analysis
-      const convertedLeads = leads.filter(lead => lead.status === 'converted').length;
-      const conversionRate = leads.length > 0 ? (convertedLeads / leads.length) * 100 : 0;
-      
-      if (conversionRate > 70) {
-        newInsights.push({
-          type: 'success',
-          title: 'High Lead Conversion Rate',
-          description: `${conversionRate.toFixed(1)}% conversion rate shows strong sales performance.`,
-          recommendation: 'Document your successful conversion process and train others on these techniques.'
-        });
-      } else if (conversionRate < 30) {
-        newInsights.push({
-          type: 'warning',
-          title: 'Low Lead Conversion Rate',
-          description: `${conversionRate.toFixed(1)}% conversion rate suggests room for improvement.`,
-          recommendation: 'Review lead qualification process, improve follow-up timing, or adjust pricing strategy.'
-        });
-      }
-
-      // Client Retention Analysis
-      const repeatClients = clients.filter(client => client.total_jobs_completed > 1).length;
-      const retentionRate = clients.length > 0 ? (repeatClients / clients.length) * 100 : 0;
-      
-      if (retentionRate > 20) {
-        newInsights.push({
-          type: 'success',
-          title: 'Good Client Retention',
-          description: `${retentionRate.toFixed(1)}% of clients are repeat customers.`,
-          recommendation: 'Implement a customer loyalty program to further increase retention.'
-        });
-      } else if (retentionRate < 10) {
-        newInsights.push({
-          type: 'info',
-          title: 'Focus on Client Retention',
-          description: `Only ${retentionRate.toFixed(1)}% of clients are repeat customers.`,
-          recommendation: 'Implement follow-up campaigns, referral programs, and exceptional service to encourage repeat business.'
-        });
-      }
-
-      // Operational Efficiency
-      const activeJobs = jobs.filter(job => ['scheduled', 'in_progress'].includes(job.status)).length;
-      if (activeJobs > 10) {
-        newInsights.push({
-          type: 'warning',
-          title: 'High Active Job Volume',
-          description: `You have ${activeJobs} active jobs. Monitor capacity carefully.`,
-          recommendation: 'Consider hiring additional staff or implementing better scheduling to manage workload.'
-        });
-      }
-
-      // Lead Cost Efficiency
-      const leadsWithCost = leads.filter(lead => lead.lead_cost && lead.lead_cost > 0);
-      const totalLeadCost = leadsWithCost.reduce((sum, lead) => sum + (lead.lead_cost || 0), 0);
-      const costPerConversion = convertedLeads > 0 ? totalLeadCost / convertedLeads : 0;
-      
-      if (costPerConversion > 50) {
-        newInsights.push({
-          type: 'warning',
-          title: 'High Lead Acquisition Cost',
-          description: `Average cost per converted lead is $${costPerConversion.toFixed(0)}.`,
-          recommendation: 'Analyze which lead sources provide the best ROI and focus marketing spend there.'
-        });
-      } else if (costPerConversion > 0 && costPerConversion < 25) {
-        newInsights.push({
-          type: 'success',
-          title: 'Efficient Lead Acquisition',
-          description: `Low cost per converted lead ($${costPerConversion.toFixed(0)}) shows efficient marketing.`,
-          recommendation: 'Scale up your current marketing channels while maintaining this efficiency.'
-        });
-      }
-
-      setInsights(newInsights);
+      setInsights(businessInsights);
       setIsAnalyzing(false);
-    }, 1500);
+    }, 2000);
   };
 
-  const getInsightIcon = (type: string) => {
-    switch (type) {
-      case 'success': return <CheckCircle className="h-4 w-4 text-green-600" />;
-      case 'warning': return <AlertTriangle className="h-4 w-4 text-yellow-600" />;
-      default: return <Lightbulb className="h-4 w-4 text-blue-600" />;
+  const getInsightIcon = (category: string) => {
+    switch (category) {
+      case 'revenue': return <DollarSign className="h-4 w-4 text-green-600" />;
+      case 'profitability': return <TrendingUp className="h-4 w-4 text-blue-600" />;
+      case 'operations': return <Target className="h-4 w-4 text-purple-600" />;
+      case 'marketing': return <Users className="h-4 w-4 text-orange-600" />;
+      case 'workforce': return <Users className="h-4 w-4 text-indigo-600" />;
+      default: return <Lightbulb className="h-4 w-4 text-gray-600" />;
     }
   };
 
-  const getInsightBadge = (type: string) => {
-    switch (type) {
-      case 'success': return <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">Strength</Badge>;
-      case 'warning': return <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">Opportunity</Badge>;
-      default: return <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">Insight</Badge>;
+  const getPriorityBadge = (priority: string) => {
+    switch (priority) {
+      case 'critical': 
+        return <Badge variant="destructive" className="bg-red-100 text-red-800 border-red-200">Critical</Badge>;
+      case 'high': 
+        return <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200">High Priority</Badge>;
+      case 'medium': 
+        return <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">Medium</Badge>;
+      default: 
+        return <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">Low Priority</Badge>;
     }
+  };
+
+  const getCategoryName = (category: string) => {
+    const names = {
+      revenue: 'Revenue Strategy',
+      profitability: 'Profit Optimization',
+      operations: 'Operational Excellence',
+      marketing: 'Marketing & Sales',
+      workforce: 'Workforce Management',
+      competitive: 'Market Positioning'
+    };
+    return names[category as keyof typeof names] || category;
+  };
+
+  const getRangeLabel = () => {
+    const labels = {
+      today: 'Today',
+      this_week: 'This Week',
+      this_month: 'This Month',
+      this_quarter: 'This Quarter',
+      this_year: 'This Year',
+      since_inception: 'All Time'
+    };
+    return labels[selectedDateRange];
   };
 
   return (
@@ -169,55 +114,141 @@ export const BusinessAnalysisCard = () => {
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2">
             <BarChart3 className="h-5 w-5" />
-            Business Intelligence Analysis
+            Advanced Business Intelligence - {getRangeLabel()}
           </CardTitle>
-          <Button 
-            onClick={generateInsights} 
-            disabled={isAnalyzing}
-            variant="outline"
-            size="sm"
-          >
-            {isAnalyzing ? (
-              <>
-                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                Analyzing...
-              </>
-            ) : (
-              <>
-                <TrendingUp className="h-4 w-4 mr-2" />
-                Analyze Performance
-              </>
-            )}
-          </Button>
+          <div className="flex gap-2">
+            <Button 
+              onClick={() => setShowMetrics(!showMetrics)}
+              variant="outline"
+              size="sm"
+            >
+              <BarChart3 className="h-4 w-4 mr-2" />
+              {showMetrics ? 'Hide' : 'Show'} Metrics
+            </Button>
+            <Button 
+              onClick={generateAdvancedInsights} 
+              disabled={isAnalyzing}
+              size="sm"
+            >
+              {isAnalyzing ? (
+                <>
+                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                  Analyzing...
+                </>
+              ) : (
+                <>
+                  <TrendingUp className="h-4 w-4 mr-2" />
+                  Generate Analysis
+                </>
+              )}
+            </Button>
+          </div>
         </div>
       </CardHeader>
       <CardContent>
         {insights.length === 0 ? (
           <div className="text-center py-8 text-gray-500">
             <BarChart3 className="h-12 w-12 mx-auto mb-3 text-gray-300" />
-            <p>Click "Analyze Performance" to get AI-powered insights about your business metrics and personalized recommendations.</p>
+            <p className="text-lg font-medium mb-2">Advanced Business Intelligence Ready</p>
+            <p>Click "Generate Analysis" to get comprehensive insights about your moving business performance, industry benchmarks, and strategic recommendations.</p>
           </div>
         ) : (
-          <div className="space-y-4">
-            {insights.map((insight, index) => (
-              <div key={index} className="border rounded-lg p-4 bg-gray-50">
-                <div className="flex items-start gap-3">
-                  {getInsightIcon(insight.type)}
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
-                      <h4 className="font-medium">{insight.title}</h4>
-                      {getInsightBadge(insight.type)}
-                    </div>
-                    <p className="text-sm text-gray-600 mb-2">{insight.description}</p>
-                    {insight.recommendation && (
-                      <div className="bg-white border border-gray-200 rounded p-3">
-                        <p className="text-sm"><strong>Recommendation:</strong> {insight.recommendation}</p>
+          <div className="space-y-6">
+            {/* Quick Stats */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 bg-gray-50 rounded-lg">
+              <div className="text-center">
+                <div className="text-2xl font-bold text-green-600">
+                  {insights.filter(i => i.priority === 'critical').length}
+                </div>
+                <div className="text-sm text-gray-600">Critical Issues</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-orange-600">
+                  {insights.filter(i => i.priority === 'high').length}
+                </div>
+                <div className="text-sm text-gray-600">High Priority</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-blue-600">
+                  {insights.filter(i => i.category === 'revenue').length}
+                </div>
+                <div className="text-sm text-gray-600">Revenue Insights</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-purple-600">
+                  {insights.filter(i => i.category === 'operations').length}
+                </div>
+                <div className="text-sm text-gray-600">Operational</div>
+              </div>
+            </div>
+
+            {/* Insights List */}
+            <div className="space-y-4">
+              {insights.map((insight, index) => (
+                <div key={index} className="border rounded-lg p-6 bg-white shadow-sm hover:shadow-md transition-shadow">
+                  <div className="flex items-start gap-4">
+                    {getInsightIcon(insight.category)}
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-3">
+                        <h4 className="font-semibold text-lg">{insight.title}</h4>
+                        {getPriorityBadge(insight.priority)}
+                        <Badge variant="outline" className="text-xs">
+                          {getCategoryName(insight.category)}
+                        </Badge>
                       </div>
-                    )}
+                      
+                      <div className="space-y-3">
+                        <div>
+                          <p className="text-gray-700 mb-2">{insight.description}</p>
+                          <div className="text-sm text-red-600 bg-red-50 p-2 rounded">
+                            <strong>Business Impact:</strong> {insight.impact}
+                          </div>
+                        </div>
+
+                        <div className="bg-blue-50 border border-blue-200 rounded p-4">
+                          <h5 className="font-medium text-blue-900 mb-2">Strategic Recommendation</h5>
+                          <p className="text-blue-800 mb-3">{insight.recommendation}</p>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                            <div>
+                              <strong className="text-blue-900">Expected Outcome:</strong>
+                              <p className="text-blue-700">{insight.expectedOutcome}</p>
+                            </div>
+                            <div>
+                              <strong className="text-blue-900">Implementation Timeline:</strong>
+                              <p className="text-blue-700">{insight.timeframe}</p>
+                            </div>
+                          </div>
+                        </div>
+
+                        {insight.metrics && insight.metrics.length > 0 && (
+                          <div className="bg-gray-50 rounded p-3">
+                            <h6 className="font-medium text-gray-900 mb-2">Key Metrics</h6>
+                            <div className="grid grid-cols-2 gap-3 text-sm">
+                              {insight.metrics.map((metric, idx) => (
+                                <div key={idx} className="flex justify-between">
+                                  <span className="text-gray-600">{metric.label}:</span>
+                                  <span className="font-medium">{metric.value}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </div>
+              ))}
+            </div>
+
+            {insights.length > 0 && (
+              <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+                <h4 className="font-medium text-green-900 mb-2">Moving Industry Benchmarks Applied</h4>
+                <p className="text-green-800 text-sm">
+                  This analysis uses current moving industry standards: 25-35% profit margins, $400-600 average job values, 
+                  35-45% lead conversion rates, and seasonal patterns specific to the moving business.
+                </p>
               </div>
-            ))}
+            )}
           </div>
         )}
       </CardContent>

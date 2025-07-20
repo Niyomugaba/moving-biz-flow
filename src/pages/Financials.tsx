@@ -1,4 +1,3 @@
-
 import React, { useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -59,8 +58,18 @@ export const Financials = () => {
 
     const totalLeadCosts = filteredData.leads.reduce((sum, lead) => sum + (lead.lead_cost || 0), 0);
 
+    // Fix payroll calculation - include all time entries, not just paid ones for expense tracking
     const totalPayroll = filteredData.timeEntries
-      .filter(entry => entry.is_paid)
+      .filter(entry => entry.status === 'approved') // Count approved time entries for accurate expense tracking
+      .reduce((sum, entry) => {
+        const regularPay = (entry.regular_hours || 0) * (entry.hourly_rate || 0);
+        const overtimePay = (entry.overtime_hours || 0) * (entry.overtime_rate || entry.hourly_rate || 0);
+        return sum + regularPay + overtimePay;
+      }, 0);
+
+    // Calculate paid payroll separately for cash flow analysis
+    const paidPayroll = filteredData.timeEntries
+      .filter(entry => entry.is_paid && entry.status === 'approved')
       .reduce((sum, entry) => {
         const regularPay = (entry.regular_hours || 0) * (entry.hourly_rate || 0);
         const overtimePay = (entry.overtime_hours || 0) * (entry.overtime_rate || entry.hourly_rate || 0);
@@ -68,7 +77,7 @@ export const Financials = () => {
       }, 0);
 
     const totalEmployeeTips = filteredData.timeEntries
-      .filter(entry => entry.is_paid)
+      .filter(entry => entry.status === 'approved')
       .reduce((sum, entry) => sum + (entry.tip_amount || 0), 0);
 
     const totalExpenses = totalPayroll + totalEmployeeTips + totalLeadCosts;
@@ -84,6 +93,8 @@ export const Financials = () => {
       totalRevenue: paidRevenue + unpaidRevenue,
       totalLeadCosts,
       totalPayroll,
+      paidPayroll,
+      unpaidPayroll: totalPayroll - paidPayroll,
       totalEmployeeTips,
       totalExpenses,
       grossProfit,
@@ -164,7 +175,7 @@ export const Financials = () => {
       />
 
       {/* AI Business Analysis */}
-      <BusinessAnalysisCard />
+      <BusinessAnalysisCard selectedDateRange={selectedDateRange} />
 
       {/* Revenue Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -214,7 +225,7 @@ export const Financials = () => {
         </Card>
       </div>
 
-      {/* Expense and Profit Analysis */}
+      {/* Enhanced Expense and Profit Analysis */}
       <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
         <Card className="border-l-4 border-l-red-500 hover:shadow-lg transition-shadow">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -233,7 +244,7 @@ export const Financials = () => {
 
         <Card className="border-l-4 border-l-purple-500 hover:shadow-lg transition-shadow">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">Payroll Costs</CardTitle>
+            <CardTitle className="text-sm font-medium text-gray-600">Total Payroll</CardTitle>
             <Users className="h-5 w-5 text-purple-600" />
           </CardHeader>
           <CardContent>
@@ -241,8 +252,11 @@ export const Financials = () => {
               ${financialMetrics.totalPayroll.toLocaleString()}
             </div>
             <p className="text-xs text-gray-500 mt-1">
-              Employee wages only
+              All approved wages
             </p>
+            <div className="text-xs text-purple-600 mt-1">
+              Paid: ${financialMetrics.paidPayroll.toLocaleString()}
+            </div>
           </CardContent>
         </Card>
 
@@ -295,11 +309,11 @@ export const Financials = () => {
         </Card>
       </div>
 
-      {/* Business Performance */}
+      {/* Enhanced Business Performance */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Card>
           <CardHeader>
-            <CardTitle>Revenue Breakdown - {getRangeDisplayText()}</CardTitle>
+            <CardTitle>Revenue Analysis - {getRangeDisplayText()}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -318,7 +332,7 @@ export const Financials = () => {
               <div className="flex justify-between items-center">
                 <span className="text-sm text-gray-600">Average Job Value</span>
                 <span className="font-medium">
-                  ${filteredData.jobs.length > 0 ? (financialMetrics.totalRevenue / filteredData.jobs.length).toFixed(0) : '0'}
+                  ${filteredData.jobs.length > 0 ? (financialMetrics.totalRevenue / filteredData.jobs.filter(j => j.status === 'completed').length || 1).toFixed(0) : '0'}
                 </span>
               </div>
               <div className="flex justify-between items-center">
@@ -330,26 +344,38 @@ export const Financials = () => {
                   }%
                 </span>
               </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-gray-600">Lead Conversion Rate</span>
+                <span className="font-medium">
+                  {financialMetrics.conversionRate.toFixed(1)}%
+                </span>
+              </div>
             </div>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle>Expense Breakdown - {getRangeDisplayText()}</CardTitle>
+            <CardTitle>Payroll Analysis - {getRangeDisplayText()}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
               <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600">Total Expenses</span>
+                <span className="text-sm text-gray-600">Total Payroll Expense</span>
                 <span className="font-medium text-red-600">
-                  ${financialMetrics.totalExpenses.toLocaleString()}
+                  ${financialMetrics.totalPayroll.toLocaleString()}
                 </span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600">Payroll (Wages)</span>
-                <span className="font-medium">
-                  ${financialMetrics.totalPayroll.toLocaleString()}
+                <span className="text-sm text-gray-600">Payroll Paid Out</span>
+                <span className="font-medium text-green-600">
+                  ${financialMetrics.paidPayroll.toLocaleString()}
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-gray-600">Outstanding Payroll</span>
+                <span className="font-medium text-orange-600">
+                  ${financialMetrics.unpaidPayroll.toLocaleString()}
                 </span>
               </div>
               <div className="flex justify-between items-center">
@@ -359,9 +385,9 @@ export const Financials = () => {
                 </span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600">Marketing Costs</span>
+                <span className="text-sm text-gray-600">Labor Cost Ratio</span>
                 <span className="font-medium">
-                  ${financialMetrics.totalLeadCosts.toLocaleString()}
+                  {financialMetrics.paidRevenue > 0 ? ((financialMetrics.totalPayroll / financialMetrics.paidRevenue) * 100).toFixed(1) : '0'}%
                 </span>
               </div>
             </div>
