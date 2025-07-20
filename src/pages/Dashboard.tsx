@@ -180,13 +180,13 @@ export const Dashboard = () => {
           { 
             metric: 'Profit Margin', 
             value: `${profitMargin.toFixed(1)}%`, 
-            trend: (profitMargin > 20 ? 'up' : 'down') as const,
+            trend: (profitMargin > 20 ? 'up' : 'down') as 'up' | 'down',
             description: 'Gross profit percentage'
           },
           { 
             metric: 'Customer LTV', 
             value: `$${avgRevenuePerCustomer.toFixed(0)}`, 
-            trend: (avgRevenuePerCustomer > 500 ? 'up' : 'stable') as const,
+            trend: (avgRevenuePerCustomer > 500 ? 'up' : 'stable') as 'up' | 'stable',
             description: 'Average lifetime value'
           },
           { 
