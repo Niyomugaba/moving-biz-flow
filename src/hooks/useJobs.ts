@@ -1,3 +1,4 @@
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -147,15 +148,31 @@ export const useJobs = () => {
         console.log('Job being marked as completed - database trigger will update client stats automatically');
       }
       
+      // Remove lead_cost from updates as it's not a direct column on jobs table
+      const { lead_cost, ...jobUpdates } = updates as any;
+      
       // First update the job
       const { data, error } = await supabase
         .from('jobs')
-        .update(updates)
+        .update(jobUpdates)
         .eq('id', id)
         .select()
         .single();
 
       if (error) throw error;
+
+      // If lead_cost was provided and we have a lead_id, update the lead cost
+      if (lead_cost !== undefined && data.lead_id) {
+        console.log('Updating lead cost:', lead_cost);
+        const { error: leadError } = await supabase
+          .from('leads')
+          .update({ lead_cost })
+          .eq('id', data.lead_id);
+          
+        if (leadError) {
+          console.error('Error updating lead cost:', leadError);
+        }
+      }
 
       // If this is a flat_rate job and we need to create dummy employees
       if (shouldCreateDummyEmployees && 
@@ -258,6 +275,7 @@ export const useJobs = () => {
       queryClient.invalidateQueries({ queryKey: ['clients'] });
       queryClient.invalidateQueries({ queryKey: ['employees'] });
       queryClient.invalidateQueries({ queryKey: ['time-entries'] });
+      queryClient.invalidateQueries({ queryKey: ['leads'] });
       
       // If job was completed, the database trigger automatically updated client stats
       if (data.status === 'completed') {
@@ -290,7 +308,7 @@ export const useJobs = () => {
       console.log('Creating job with data:', jobData);
       
       // Extract flags and process job data
-      const { is_lead, shouldCreateDummyEmployees, ...jobDataWithoutFlags } = jobData;
+      const { is_lead, shouldCreateDummyEmployees, lead_cost, ...jobDataWithoutFlags } = jobData;
       const isLead = is_lead === true;
       
       // Validate job data
@@ -303,7 +321,7 @@ export const useJobs = () => {
       
       let leadId = sanitizedData.lead_id;
       
-      if ((isLead || (sanitizedData.lead_cost && sanitizedData.lead_cost > 0)) && !leadId) {
+      if ((isLead || (lead_cost && lead_cost > 0)) && !leadId) {
         console.log('Creating lead entry for client marked as lead:', sanitizedData.client_name);
         
         const { data: leadData, error: leadError } = await supabase
@@ -313,7 +331,7 @@ export const useJobs = () => {
             phone: sanitizedData.client_phone,
             email: sanitizedData.client_email || null,
             estimated_value: sanitizedData.estimated_total,
-            lead_cost: sanitizedData.lead_cost || 0,
+            lead_cost: lead_cost || 0,
             status: 'converted',
             source: 'other',
             notes: isLead ? 'Added as lead during manual job scheduling' : 'Direct scheduling with lead cost tracking'
