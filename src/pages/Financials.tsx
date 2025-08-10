@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -47,21 +46,48 @@ export const Financials = () => {
   const { employees } = useEmployees();
 
   const filteredJobs = useMemo(() => {
-    return filterDataByDateRange(jobs, startDate, endDate, 'job_date');
-  }, [jobs, startDate, endDate]);
+    console.log('Filtering jobs for financials. Date range:', { startDate, endDate, selectedPeriod });
+    console.log('All jobs:', jobs.length);
+    
+    // For financial analysis, we want to include jobs based on when they were completed/updated
+    // rather than their original job_date
+    const filtered = jobs.filter(job => {
+      if (job.status !== 'completed') return false;
+      
+      if (!startDate || !endDate) return true; // Show all for 'since_inception'
+      
+      // Use updated_at for completed jobs to catch recent status changes
+      const relevantDate = job.updated_at || job.job_date;
+      if (!relevantDate) return false;
+      
+      const date = new Date(relevantDate);
+      const isInRange = date >= startDate && date <= endDate;
+      
+      console.log(`Job ${job.job_number}: status=${job.status}, updated_at=${job.updated_at}, job_date=${job.job_date}, inRange=${isInRange}`);
+      
+      return isInRange;
+    });
+    
+    console.log('Filtered completed jobs:', filtered.length);
+    return filtered;
+  }, [jobs, startDate, endDate, selectedPeriod]);
 
   const filteredTimeEntries = useMemo(() => {
     return filterDataByDateRange(timeEntries, startDate, endDate, 'entry_date');
   }, [timeEntries, startDate, endDate]);
 
   const financialMetrics = useMemo(() => {
-    const completedJobs = filteredJobs.filter(job => job.status === 'completed');
+    const completedJobs = filteredJobs; // These are already filtered to completed jobs
+    
+    console.log('Calculating financial metrics for completed jobs:', completedJobs.length);
     
     const totalRevenue = completedJobs.reduce((sum, job) => {
-      if (job.pricing_model === 'flat_rate' && job.total_amount_received) {
-        return sum + job.total_amount_received;
-      }
-      return sum + (job.actual_total || job.estimated_total || 0);
+      const revenue = job.pricing_model === 'flat_rate' && job.total_amount_received
+        ? job.total_amount_received
+        : (job.actual_total || job.estimated_total || 0);
+      
+      console.log(`Job ${job.job_number}: revenue=${revenue}`);
+      return sum + revenue;
     }, 0);
 
     const totalExpenses = completedJobs.reduce((sum, job) => {
@@ -81,6 +107,14 @@ export const Financials = () => {
 
     const averageJobValue = completedJobs.length > 0 ? totalRevenue / completedJobs.length : 0;
 
+    console.log('Financial metrics calculated:', {
+      totalRevenue,
+      totalExpenses,
+      grossProfit,
+      profitMargin,
+      completedJobsCount: completedJobs.length
+    });
+
     return {
       totalRevenue,
       totalExpenses,
@@ -89,9 +123,9 @@ export const Financials = () => {
       totalHours,
       averageJobValue,
       completedJobs: completedJobs.length,
-      activeJobs: filteredJobs.filter(job => ['scheduled', 'in_progress'].includes(job.status)).length
+      activeJobs: jobs.filter(job => ['scheduled', 'in_progress'].includes(job.status)).length
     };
-  }, [filteredJobs, filteredTimeEntries]);
+  }, [filteredJobs, filteredTimeEntries, jobs]);
 
   const chartData = useMemo(() => {
     const monthlyData = [];
@@ -131,7 +165,9 @@ export const Financials = () => {
   }, [jobs]);
 
   const jobStatusData = useMemo(() => {
-    const statusCounts = filteredJobs.reduce((acc, job) => {
+    // Use all jobs (not just filtered) for status distribution
+    const allFilteredJobs = filterDataByDateRange(jobs, startDate, endDate, 'job_date');
+    const statusCounts = allFilteredJobs.reduce((acc, job) => {
       acc[job.status] = (acc[job.status] || 0) + 1;
       return acc;
     }, {} as Record<string, number>);
@@ -143,11 +179,10 @@ export const Financials = () => {
              status === 'in_progress' ? '#F59E0B' : 
              status === 'scheduled' ? '#3B82F6' : '#EF4444'
     }));
-  }, [filteredJobs]);
+  }, [jobs, startDate, endDate]);
 
   const revenueSourceData = useMemo(() => {
     const sourceData = filteredJobs
-      .filter(job => job.status === 'completed')
       .reduce((acc, job) => {
         const source = job.pricing_model || 'hourly';
         const revenue = job.actual_total || job.estimated_total || 0;
