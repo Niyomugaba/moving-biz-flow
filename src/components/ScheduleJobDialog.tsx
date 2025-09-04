@@ -63,7 +63,9 @@ export const ScheduleJobDialog = ({ open, onOpenChange, leadData, jobData }: Sch
     flat_hourly_rate: 90,
     worker_hourly_rate: 20,
     hours_worked: 4,
-    total_amount_received: 0
+    total_amount_received: 0,
+    worker_flat_rate: false,
+    worker_flat_amount: 0
   });
 
   const { addJob, updateJob, isAddingJob, isUpdatingJob } = useJobs();
@@ -94,7 +96,9 @@ export const ScheduleJobDialog = ({ open, onOpenChange, leadData, jobData }: Sch
         flat_hourly_rate: 90,
         worker_hourly_rate: 20,
         hours_worked: 4,
-        total_amount_received: 0
+        total_amount_received: 0,
+        worker_flat_rate: false,
+        worker_flat_amount: 0
       });
     }
   }, [open, leadData, jobData]);
@@ -129,21 +133,12 @@ export const ScheduleJobDialog = ({ open, onOpenChange, leadData, jobData }: Sch
   const handleInputChange = (field: string, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     
-    // Auto-calculate estimated total based on pricing model
-    if (['hourly_rate', 'movers_needed', 'pricing_model', 'flat_hourly_rate', 'hours_worked'].includes(field)) {
-      const pricingModel = field === 'pricing_model' ? value : formData.pricing_model;
+    // Don't auto-calculate for negotiated flat rate - user enters the total amount
+    if (formData.pricing_model === 'per_person' && ['hourly_rate', 'movers_needed'].includes(field)) {
       const rate = field === 'hourly_rate' ? Number(value) : formData.hourly_rate;
       const movers = field === 'movers_needed' ? Number(value) : formData.movers_needed;
-      const flatRate = field === 'flat_hourly_rate' ? Number(value) : formData.flat_hourly_rate;
-      const hours = field === 'hours_worked' ? Number(value) : formData.hours_worked;
       
-      let calculatedTotal;
-      if (pricingModel === 'flat_rate') {
-        calculatedTotal = flatRate * hours;
-      } else {
-        calculatedTotal = rate * movers * 2; // Standard 2 hours minimum
-      }
-      
+      const calculatedTotal = rate * movers * 2; // Standard 2 hours minimum
       const maxTotal = 999999.99;
       
       setFormData(prev => ({ 
@@ -371,64 +366,73 @@ export const ScheduleJobDialog = ({ open, onOpenChange, leadData, jobData }: Sch
                   </div>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="flat_hourly_rate">Client Pays Per Hour ($)</Label>
-                    <Input
-                      id="flat_hourly_rate"
-                      type="number"
-                      value={formData.flat_hourly_rate}
-                      onChange={(e) => handleInputChange('flat_hourly_rate', e.target.value)}
-                      required
-                      min="0"
-                      step="0.01"
-                    />
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="movers_needed">Number of Workers</Label>
+                      <Input
+                        id="movers_needed"
+                        type="number"
+                        value={formData.movers_needed}
+                        onChange={(e) => handleInputChange('movers_needed', e.target.value)}
+                        required
+                        min="1"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="worker_hourly_rate">Worker Rate Per Hour ($)</Label>
+                      <Input
+                        id="worker_hourly_rate"
+                        type="number"
+                        value={formData.worker_hourly_rate}
+                        onChange={(e) => handleInputChange('worker_hourly_rate', e.target.value)}
+                        min="0"
+                        step="0.01"
+                      />
+                    </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="worker_hourly_rate">Worker Rate Per Hour ($)</Label>
-                    <Input
-                      id="worker_hourly_rate"
-                      type="number"
-                      value={formData.worker_hourly_rate}
-                      onChange={(e) => handleInputChange('worker_hourly_rate', e.target.value)}
-                      min="0"
-                      step="0.01"
-                    />
+                  
+                  <div className="space-y-3">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="worker_flat_rate"
+                        checked={formData.worker_flat_rate || false}
+                        onCheckedChange={(checked) => handleInputChange('worker_flat_rate', !!checked)}
+                      />
+                      <Label htmlFor="worker_flat_rate">Workers get flat rate instead of hourly</Label>
+                    </div>
+                    
+                    {formData.worker_flat_rate && (
+                      <div className="space-y-2">
+                        <Label htmlFor="worker_flat_amount">Flat Rate Per Worker ($)</Label>
+                        <Input
+                          id="worker_flat_amount"
+                          type="number"
+                          value={formData.worker_flat_amount || ''}
+                          onChange={(e) => handleInputChange('worker_flat_amount', e.target.value)}
+                          min="0"
+                          step="0.01"
+                          placeholder="Amount paid to each worker"
+                        />
+                      </div>
+                    )}
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="movers_needed">Number of Workers</Label>
-                    <Input
-                      id="movers_needed"
-                      type="number"
-                      value={formData.movers_needed}
-                      onChange={(e) => handleInputChange('movers_needed', e.target.value)}
-                      required
-                      min="1"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="hours_worked">Hours Worked</Label>
-                    <Input
-                      id="hours_worked"
-                      type="number"
-                      value={formData.hours_worked}
-                      onChange={(e) => handleInputChange('hours_worked', e.target.value)}
-                      min="0"
-                      step="0.5"
-                    />
-                  </div>
-                  <div className="space-y-2 col-span-2">
-                    <div className="grid grid-cols-2 gap-4 p-3 bg-white border rounded">
+
+                  <div className="p-3 bg-blue-50 border rounded">
+                    <div className="grid grid-cols-2 gap-4 text-sm">
                       <div>
-                        <Label className="text-sm font-medium text-gray-600">Total Worker Cost</Label>
-                        <div className="text-lg font-semibold text-red-600">
-                          ${(formData.worker_hourly_rate * formData.movers_needed * formData.hours_worked).toFixed(2)}
+                        <Label className="text-gray-600">Total Worker Cost:</Label>
+                        <div className="font-semibold text-red-600">
+                          ${formData.worker_flat_rate 
+                            ? ((formData.worker_flat_amount || 0) * formData.movers_needed).toFixed(2)
+                            : '(Hourly - depends on hours worked)'
+                          }
                         </div>
                       </div>
                       <div>
-                        <Label className="text-sm font-medium text-gray-600">Your Profit</Label>
-                        <div className="text-lg font-semibold text-green-600">
-                          ${((formData.flat_hourly_rate * formData.hours_worked) - (formData.worker_hourly_rate * formData.movers_needed * formData.hours_worked)).toFixed(2)}
+                        <Label className="text-gray-600">Client Pays (Total):</Label>
+                        <div className="font-semibold text-green-600">
+                          ${formData.estimated_total.toFixed(2)}
                         </div>
                       </div>
                     </div>
@@ -448,11 +452,9 @@ export const ScheduleJobDialog = ({ open, onOpenChange, leadData, jobData }: Sch
               required
               min="0"
               step="0.01"
-              readOnly={formData.pricing_model === 'flat_rate'}
-              className={formData.pricing_model === 'flat_rate' ? 'bg-gray-100' : ''}
             />
             {formData.pricing_model === 'flat_rate' && (
-              <p className="text-sm text-gray-500">Auto-calculated based on flat rate and hours</p>
+              <p className="text-sm text-gray-500">Enter the negotiated total amount for this job</p>
             )}
           </div>
 

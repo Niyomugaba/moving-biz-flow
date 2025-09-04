@@ -44,6 +44,9 @@ export const EditJobDialog = ({ job, open, onOpenChange }: EditJobDialogProps) =
   const [totalClientPayment, setTotalClientPayment] = useState('');
   const [totalEmployeePayment, setTotalEmployeePayment] = useState('');
   const [leadCost, setLeadCost] = useState('');
+  const [workerHourlyRate, setWorkerHourlyRate] = useState('');
+  const [workerFlatRate, setWorkerFlatRate] = useState(false);
+  const [workerFlatAmount, setWorkerFlatAmount] = useState('');
 
   useEffect(() => {
     if (job) {
@@ -69,6 +72,9 @@ export const EditJobDialog = ({ job, open, onOpenChange }: EditJobDialogProps) =
       setTotalClientPayment(job.total_amount_received?.toString() || job.actual_total?.toString() || '');
       setTotalEmployeePayment(''); // Will be calculated from time entries
       setLeadCost(job.lead_cost?.toString() || '');
+      setWorkerHourlyRate(job.worker_hourly_rate?.toString() || '');
+      setWorkerFlatRate(job.worker_flat_rate || false);
+      setWorkerFlatAmount(job.worker_flat_amount?.toString() || '');
     }
   }, [job]);
 
@@ -97,7 +103,10 @@ export const EditJobDialog = ({ job, open, onOpenChange }: EditJobDialogProps) =
       completion_notes: completionNotes || null,
       pricing_model: pricingModel,
       total_amount_received: parseFloat(totalClientPayment) || null,
-      lead_cost: parseFloat(leadCost) || null
+      lead_cost: parseFloat(leadCost) || null,
+      worker_hourly_rate: parseFloat(workerHourlyRate) || null,
+      worker_flat_rate: workerFlatRate,
+      worker_flat_amount: parseFloat(workerFlatAmount) || null
     };
 
     updateJob({ 
@@ -283,59 +292,73 @@ export const EditJobDialog = ({ job, open, onOpenChange }: EditJobDialogProps) =
               </div>
 
               {pricingModel === 'flat_rate' ? (
-                <div className="p-4 bg-blue-50 rounded-lg space-y-4">
-                  <div className="text-sm font-medium text-blue-800 mb-3">
-                    Flat Rate Job - Simple Tracking
-                  </div>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <Label htmlFor="totalClientPayment">What Client Paid You</Label>
+                      <Label htmlFor="moversNeeded">Number of Workers</Label>
                       <Input
-                        id="totalClientPayment"
+                        id="moversNeeded"
                         type="number"
-                        step="0.01"
-                        value={totalClientPayment}
-                        onChange={(e) => setTotalClientPayment(e.target.value)}
-                        placeholder="Total amount received"
+                        min="1"
+                        value={moversNeeded}
+                        onChange={(e) => setMoversNeeded(e.target.value)}
                         required
                       />
                     </div>
                     <div>
-                      <Label htmlFor="totalEmployeePayment">What You Paid Employees</Label>
+                      <Label htmlFor="workerHourlyRate">Worker Rate Per Hour ($)</Label>
                       <Input
-                        id="totalEmployeePayment"
+                        id="workerHourlyRate"
                         type="number"
                         step="0.01"
-                        value={totalEmployeePayment}
-                        onChange={(e) => setTotalEmployeePayment(e.target.value)}
-                        placeholder="Total paid to workers"
+                        value={workerHourlyRate}
+                        onChange={(e) => setWorkerHourlyRate(e.target.value)}
+                        placeholder="Hourly rate for workers"
                       />
                     </div>
-                    {job.lead_id && (
-                      <div>
-                        <Label htmlFor="leadCost">Lead Cost</Label>
-                        <Input
-                          id="leadCost"
-                          type="number"
-                          step="0.01"
-                          value={leadCost}
-                          onChange={(e) => setLeadCost(e.target.value)}
-                          placeholder="Cost of acquiring this lead"
-                        />
-                      </div>
-                    )}
                   </div>
                   
-                  <div className="text-sm text-gray-600 bg-white p-3 rounded border">
-                    <strong>Your Profit:</strong> ${totalClientPayment && totalEmployeePayment ? 
-                      (parseFloat(totalClientPayment) - parseFloat(totalEmployeePayment) - (parseFloat(leadCost) || 0)).toFixed(2) : 
-                      '0.00'}
-                    {leadCost && parseFloat(leadCost) > 0 && (
-                      <span className="block text-xs mt-1">
-                        (After lead cost of ${leadCost})
-                      </span>
-                    )}
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="workerFlatRate"
+                      checked={workerFlatRate}
+                      onCheckedChange={(checked) => setWorkerFlatRate(!!checked)}
+                    />
+                    <Label htmlFor="workerFlatRate">Workers get flat rate instead of hourly</Label>
+                  </div>
+                  
+                  {workerFlatRate && (
+                    <div>
+                      <Label htmlFor="workerFlatAmount">Flat Rate Per Worker ($)</Label>
+                      <Input
+                        id="workerFlatAmount"
+                        type="number"
+                        step="0.01"
+                        value={workerFlatAmount}
+                        onChange={(e) => setWorkerFlatAmount(e.target.value)}
+                        placeholder="Amount paid to each worker"
+                      />
+                    </div>
+                  )}
+
+                  <div className="p-3 bg-blue-50 border rounded">
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <Label className="text-gray-600">Total Worker Cost:</Label>
+                        <div className="font-semibold text-red-600">
+                          ${workerFlatRate 
+                            ? ((parseFloat(workerFlatAmount) || 0) * parseInt(moversNeeded || '0')).toFixed(2)
+                            : '(Hourly - depends on hours worked)'
+                          }
+                        </div>
+                      </div>
+                      <div>
+                        <Label className="text-gray-600">Client Pays (Total):</Label>
+                        <div className="font-semibold text-green-600">
+                          ${parseFloat(estimatedTotal || '0').toFixed(2)}
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               ) : (
