@@ -47,31 +47,11 @@ const Index = () => {
             Welcome to Bantu Movers Portal System
           </h2>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Access our management portals or visit our main website for moving services
+            Access our management and employee portals
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
-          {/* Main Website */}
-          <Card className="hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
-            <CardHeader className="text-center">
-              <div className="mx-auto mb-4 p-3 bg-primary/10 rounded-lg w-fit">
-                <ExternalLink className="h-8 w-8 text-primary" />
-              </div>
-              <CardTitle>Main Website</CardTitle>
-              <CardDescription>
-                Our public website with services, quotes, and customer information
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button 
-                onClick={() => navigate('/website')}
-                className="w-full"
-              >
-                Visit Website
-              </Button>
-            </CardContent>
-          </Card>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl mx-auto">
 
           {/* Employee Portal */}
           <Card className="hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
