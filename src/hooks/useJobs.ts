@@ -148,6 +148,43 @@ export const useJobs = () => {
         console.log('Job being marked as completed - database trigger will update client stats automatically');
       }
       
+      // Handle cancelled jobs - delete them and mark lead as lost
+      if (updates.status === 'cancelled') {
+        console.log('Job being cancelled - will delete job and mark associated lead as lost');
+        
+        // Get the job data first to check for lead_id
+        const { data: currentJob, error: fetchError } = await supabase
+          .from('jobs')
+          .select('lead_id')
+          .eq('id', id)
+          .single();
+
+        if (fetchError) throw fetchError;
+
+        // If there's an associated lead, mark it as lost
+        if (currentJob.lead_id) {
+          console.log('Marking associated lead as lost:', currentJob.lead_id);
+          const { error: leadError } = await supabase
+            .from('leads')
+            .update({ status: 'lost' })
+            .eq('id', currentJob.lead_id);
+            
+          if (leadError) {
+            console.error('Error updating lead status to lost:', leadError);
+          }
+        }
+
+        // Delete the cancelled job
+        const { error: deleteError } = await supabase
+          .from('jobs')
+          .delete()
+          .eq('id', id);
+
+        if (deleteError) throw deleteError;
+
+        return { id, status: 'cancelled' }; // Return minimal data since job is deleted
+      }
+      
       // Remove lead_cost from updates as it's not a direct column on jobs table
       const { lead_cost, ...jobUpdates } = updates as any;
       
@@ -286,11 +323,20 @@ export const useJobs = () => {
         }, 100);
       }
       
-      toast({
-        title: "Job Updated",
-        description: "Job has been successfully updated.",
-        duration: 2000
-      });
+      // Handle cancelled job response
+      if (data.status === 'cancelled') {
+        toast({
+          title: "Job Cancelled",
+          description: "Job has been cancelled and removed. Associated lead marked as lost.",
+          duration: 3000
+        });
+      } else {
+        toast({
+          title: "Job Updated",
+          description: "Job has been successfully updated.",
+          duration: 2000
+        });
+      }
     },
     onError: (error: any) => {
       console.error('Error updating job:', error);

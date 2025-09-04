@@ -201,7 +201,7 @@ export const useLeads = () => {
       // Check if this lead has been converted to jobs
       const { data: relatedJobs, error: jobsError } = await supabase
         .from('jobs')
-        .select('id, job_number')
+        .select('id, job_number, status')
         .eq('lead_id', id);
 
       if (jobsError) {
@@ -209,18 +209,36 @@ export const useLeads = () => {
         throw jobsError;
       }
 
-      // If there are related jobs, update them to remove the lead reference
+      // Handle related jobs based on their status
       if (relatedJobs && relatedJobs.length > 0) {
-        console.log('Found related jobs, removing lead reference:', relatedJobs);
+        console.log('Found related jobs, handling based on status:', relatedJobs);
         
-        const { error: updateError } = await supabase
-          .from('jobs')
-          .update({ lead_id: null })
-          .eq('lead_id', id);
+        for (const job of relatedJobs) {
+          if (job.status === 'scheduled' || job.status === 'pending_schedule') {
+            // Delete scheduled jobs when lead is deleted
+            console.log(`Deleting scheduled job ${job.job_number} associated with lead`);
+            const { error: deleteJobError } = await supabase
+              .from('jobs')
+              .delete()
+              .eq('id', job.id);
 
-        if (updateError) {
-          console.error('Error updating related jobs:', updateError);
-          throw updateError;
+            if (deleteJobError) {
+              console.error('Error deleting scheduled job:', deleteJobError);
+              throw deleteJobError;
+            }
+          } else {
+            // For completed/in-progress jobs, just remove the lead reference
+            console.log(`Removing lead reference from job ${job.job_number} (status: ${job.status})`);
+            const { error: updateError } = await supabase
+              .from('jobs')
+              .update({ lead_id: null })
+              .eq('id', job.id);
+
+            if (updateError) {
+              console.error('Error updating job lead reference:', updateError);
+              throw updateError;
+            }
+          }
         }
       }
 
