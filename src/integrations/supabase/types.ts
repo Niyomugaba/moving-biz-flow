@@ -7,13 +7,40 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "12.2.3 (519615d)"
   }
   public: {
     Tables: {
+      admin_users: {
+        Row: {
+          admin_role: Database["public"]["Enums"]["admin_role"]
+          created_at: string | null
+          created_by: string | null
+          id: string
+          is_active: boolean | null
+          user_id: string
+        }
+        Insert: {
+          admin_role?: Database["public"]["Enums"]["admin_role"]
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          is_active?: boolean | null
+          user_id: string
+        }
+        Update: {
+          admin_role?: Database["public"]["Enums"]["admin_role"]
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          is_active?: boolean | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       clients: {
         Row: {
           company_name: string | null
@@ -62,6 +89,30 @@ export type Database = {
           total_jobs_completed?: number | null
           total_revenue?: number | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      conversations: {
+        Row: {
+          created_at: string | null
+          id: string
+          last_message_at: string | null
+          user1_id: string
+          user2_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          last_message_at?: string | null
+          user1_id: string
+          user2_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          last_message_at?: string | null
+          user1_id?: string
+          user2_id?: string
         }
         Relationships: []
       }
@@ -269,6 +320,8 @@ export type Database = {
           truck_service_fee: number | null
           truck_size: string | null
           updated_at: string
+          worker_flat_amount: number | null
+          worker_flat_rate: boolean | null
           worker_hourly_rate: number | null
         }
         Insert: {
@@ -309,6 +362,8 @@ export type Database = {
           truck_service_fee?: number | null
           truck_size?: string | null
           updated_at?: string
+          worker_flat_amount?: number | null
+          worker_flat_rate?: boolean | null
           worker_hourly_rate?: number | null
         }
         Update: {
@@ -349,6 +404,8 @@ export type Database = {
           truck_service_fee?: number | null
           truck_size?: string | null
           updated_at?: string
+          worker_flat_amount?: number | null
+          worker_flat_rate?: boolean | null
           worker_hourly_rate?: number | null
         }
         Relationships: [
@@ -454,6 +511,233 @@ export type Database = {
         }
         Relationships: []
       }
+      matches: {
+        Row: {
+          created_at: string | null
+          id: string
+          matched_at: string | null
+          status: Database["public"]["Enums"]["match_status"] | null
+          target_user_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          matched_at?: string | null
+          status?: Database["public"]["Enums"]["match_status"] | null
+          target_user_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          matched_at?: string | null
+          status?: Database["public"]["Enums"]["match_status"] | null
+          target_user_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      messages: {
+        Row: {
+          content: string
+          conversation_id: string
+          created_at: string | null
+          id: string
+          read_at: string | null
+          sender_id: string
+          status: Database["public"]["Enums"]["message_status"] | null
+        }
+        Insert: {
+          content: string
+          conversation_id: string
+          created_at?: string | null
+          id?: string
+          read_at?: string | null
+          sender_id: string
+          status?: Database["public"]["Enums"]["message_status"] | null
+        }
+        Update: {
+          content?: string
+          conversation_id?: string
+          created_at?: string | null
+          id?: string
+          read_at?: string | null
+          sender_id?: string
+          status?: Database["public"]["Enums"]["message_status"] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notifications: {
+        Row: {
+          created_at: string | null
+          data: Json | null
+          id: string
+          message: string
+          read_at: string | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          data?: Json | null
+          id?: string
+          message: string
+          read_at?: string | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          data?: Json | null
+          id?: string
+          message?: string
+          read_at?: string | null
+          title?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          age: number
+          ban_reason: string | null
+          banned_until: string | null
+          bio: string | null
+          created_at: string | null
+          drinking: boolean | null
+          education: string | null
+          height: number | null
+          id: string
+          interests: string[] | null
+          is_banned: boolean | null
+          is_verified: boolean | null
+          languages: string[] | null
+          last_active: string | null
+          location: string | null
+          looking_for: string | null
+          name: string
+          national_id_verified: boolean | null
+          occupation: string | null
+          phone_verified: boolean | null
+          photos: string[] | null
+          profile_picture: string | null
+          relationship_type: string | null
+          religion: string | null
+          smoking: boolean | null
+          status: Database["public"]["Enums"]["profile_status"] | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          age: number
+          ban_reason?: string | null
+          banned_until?: string | null
+          bio?: string | null
+          created_at?: string | null
+          drinking?: boolean | null
+          education?: string | null
+          height?: number | null
+          id?: string
+          interests?: string[] | null
+          is_banned?: boolean | null
+          is_verified?: boolean | null
+          languages?: string[] | null
+          last_active?: string | null
+          location?: string | null
+          looking_for?: string | null
+          name: string
+          national_id_verified?: boolean | null
+          occupation?: string | null
+          phone_verified?: boolean | null
+          photos?: string[] | null
+          profile_picture?: string | null
+          relationship_type?: string | null
+          religion?: string | null
+          smoking?: boolean | null
+          status?: Database["public"]["Enums"]["profile_status"] | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          age?: number
+          ban_reason?: string | null
+          banned_until?: string | null
+          bio?: string | null
+          created_at?: string | null
+          drinking?: boolean | null
+          education?: string | null
+          height?: number | null
+          id?: string
+          interests?: string[] | null
+          is_banned?: boolean | null
+          is_verified?: boolean | null
+          languages?: string[] | null
+          last_active?: string | null
+          location?: string | null
+          looking_for?: string | null
+          name?: string
+          national_id_verified?: boolean | null
+          occupation?: string | null
+          phone_verified?: boolean | null
+          photos?: string[] | null
+          profile_picture?: string | null
+          relationship_type?: string | null
+          religion?: string | null
+          smoking?: boolean | null
+          status?: Database["public"]["Enums"]["profile_status"] | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      subscriptions: {
+        Row: {
+          created_at: string | null
+          expires_at: string | null
+          id: string
+          payment_amount: number | null
+          payment_currency: string | null
+          payment_date: string | null
+          status: Database["public"]["Enums"]["subscription_status"] | null
+          stripe_session_id: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          payment_amount?: number | null
+          payment_currency?: string | null
+          payment_date?: string | null
+          status?: Database["public"]["Enums"]["subscription_status"] | null
+          stripe_session_id?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          payment_amount?: number | null
+          payment_currency?: string | null
+          payment_date?: string | null
+          status?: Database["public"]["Enums"]["subscription_status"] | null
+          stripe_session_id?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       time_entries: {
         Row: {
           approved_at: string | null
@@ -544,6 +828,78 @@ export type Database = {
           },
         ]
       }
+      user_actions: {
+        Row: {
+          action_type: string
+          admin_id: string
+          created_at: string | null
+          expires_at: string | null
+          id: string
+          notes: string | null
+          reason: string
+          target_user_id: string
+        }
+        Insert: {
+          action_type: string
+          admin_id: string
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          notes?: string | null
+          reason: string
+          target_user_id: string
+        }
+        Update: {
+          action_type?: string
+          admin_id?: string
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          notes?: string | null
+          reason?: string
+          target_user_id?: string
+        }
+        Relationships: []
+      }
+      user_reports: {
+        Row: {
+          admin_notes: string | null
+          created_at: string | null
+          description: string | null
+          id: string
+          reason: string
+          reported_user_id: string
+          reporter_id: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string | null
+        }
+        Insert: {
+          admin_notes?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          reason: string
+          reported_user_id: string
+          reporter_id: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string | null
+        }
+        Update: {
+          admin_notes?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          reason?: string
+          reported_user_id?: string
+          reporter_id?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string | null
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           employee_id: string | null
@@ -584,6 +940,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      create_notification: {
+        Args: {
+          notification_data?: Json
+          notification_message: string
+          notification_title: string
+          notification_type: string
+          target_user_id: string
+        }
+        Returns: string
+      }
       generate_employee_number: {
         Args: Record<PropertyKey, never>
         Returns: string
@@ -592,15 +958,24 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string
       }
+      get_admin_role: {
+        Args: { user_id?: string }
+        Returns: Database["public"]["Enums"]["admin_role"]
+      }
       has_role: {
         Args: {
-          _user_id: string
           _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
         }
+        Returns: boolean
+      }
+      is_admin: {
+        Args: { user_id?: string }
         Returns: boolean
       }
     }
     Enums: {
+      admin_role: "super_admin" | "admin" | "moderator"
       app_role: "super_admin" | "admin" | "manager" | "employee"
       employee_status: "active" | "inactive" | "terminated" | "on_leave"
       job_status:
@@ -619,6 +994,10 @@ export type Database = {
         | "walk_in"
         | "other"
       lead_status: "new" | "contacted" | "quoted" | "converted" | "lost"
+      match_status: "pending" | "matched" | "rejected"
+      message_status: "sent" | "delivered" | "read"
+      profile_status: "active" | "inactive" | "suspended"
+      subscription_status: "free" | "paid" | "expired"
       time_entry_status: "pending" | "approved" | "rejected"
     }
     CompositeTypes: {
@@ -747,6 +1126,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      admin_role: ["super_admin", "admin", "moderator"],
       app_role: ["super_admin", "admin", "manager", "employee"],
       employee_status: ["active", "inactive", "terminated", "on_leave"],
       job_status: [
@@ -767,6 +1147,10 @@ export const Constants = {
         "other",
       ],
       lead_status: ["new", "contacted", "quoted", "converted", "lost"],
+      match_status: ["pending", "matched", "rejected"],
+      message_status: ["sent", "delivered", "read"],
+      profile_status: ["active", "inactive", "suspended"],
+      subscription_status: ["free", "paid", "expired"],
       time_entry_status: ["pending", "approved", "rejected"],
     },
   },

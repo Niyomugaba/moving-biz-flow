@@ -72,9 +72,9 @@ export const EditJobDialog = ({ job, open, onOpenChange }: EditJobDialogProps) =
       setTotalClientPayment(job.total_amount_received?.toString() || job.actual_total?.toString() || '');
       setTotalEmployeePayment(''); // Will be calculated from time entries
       setLeadCost(job.lead_cost?.toString() || '');
-      setWorkerHourlyRate(job.worker_hourly_rate?.toString() || '');
-      setWorkerFlatRate(job.worker_flat_rate || false);
-      setWorkerFlatAmount(job.worker_flat_amount?.toString() || '');
+      setWorkerHourlyRate((job as any).worker_hourly_rate?.toString() || '');
+      setWorkerFlatRate((job as any).worker_flat_rate || false);
+      setWorkerFlatAmount((job as any).worker_flat_amount?.toString() || '');
     }
   }, [job]);
 
@@ -103,10 +103,7 @@ export const EditJobDialog = ({ job, open, onOpenChange }: EditJobDialogProps) =
       completion_notes: completionNotes || null,
       pricing_model: pricingModel,
       total_amount_received: parseFloat(totalClientPayment) || null,
-      lead_cost: parseFloat(leadCost) || null,
-      worker_hourly_rate: parseFloat(workerHourlyRate) || null,
-      worker_flat_rate: workerFlatRate,
-      worker_flat_amount: parseFloat(workerFlatAmount) || null
+      lead_cost: parseFloat(leadCost) || null
     };
 
     updateJob({ 

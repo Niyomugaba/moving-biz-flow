@@ -116,7 +116,10 @@ export const ScheduleJobDialog = ({ open, onOpenChange, leadData, jobData }: Sch
       truck_size: formData.truck_size || null,
       special_requirements: formData.special_requirements || null,
       paid_at: formData.is_paid && formData.paid_at ? formData.paid_at : null,
-      lead_cost: formData.is_lead ? Number(formData.lead_cost) : 0
+      lead_cost: formData.is_lead ? Number(formData.lead_cost) : 0,
+      // Add the new worker pricing fields
+      worker_flat_rate: formData.worker_flat_rate,
+      worker_flat_amount: formData.worker_flat_amount ? Number(formData.worker_flat_amount) : null
     };
 
     console.log('Submitting job data:', submissionData);
